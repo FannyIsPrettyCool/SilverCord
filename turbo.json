@@ -6,10 +6,11 @@
       "outputs": ["dist/**", "out/**"]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"]
+      "dependsOn": ["^typecheck"],
+      "outputs": []
     },
     "test": {
-      "outputs": ["coverage/**"]
+      "outputs": []
     },
     "test:integration": {
       "cache": false
