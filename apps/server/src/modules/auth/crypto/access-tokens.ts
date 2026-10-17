@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { errors, jwtVerify, SignJWT } from 'jose';
 import { AppError } from '../../../http/app-error.ts';
 
@@ -47,6 +48,8 @@ export function createTokenIssuer(secret: string, now: () => Date = () => new Da
       .setIssuer(ISSUER)
       .setSubject(subject)
       .setIssuedAt(issuedAt)
+      // Unique per token: two tickets minted in the same second must not be identical strings.
+      .setJti(randomBytes(12).toString('base64url'))
       .setExpirationTime(issuedAt + ttl)
       .sign(key);
     return { token, expiresAt: new Date((issuedAt + ttl) * 1000) };

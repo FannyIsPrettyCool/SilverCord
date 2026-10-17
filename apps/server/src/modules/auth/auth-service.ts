@@ -12,6 +12,7 @@ import { type Executor, uniqueViolation } from '../../db/executor.ts';
 import { channels, type EventPublisher } from '../../gateway/event-bus.ts';
 import { AppError } from '../../http/app-error.ts';
 import type { Mailer } from '../../infra/mailer.ts';
+import type { RateLimiter } from '../../infra/rate-limiter.ts';
 import type { Valkey } from '../../infra/valkey.ts';
 import type { AdminService } from '../admin/admin-service.ts';
 import type { UserRow } from '../users/users-schema.ts';
@@ -28,6 +29,8 @@ import { generateRecoveryCodes, generateTotpSecret, verifyTotp } from './totp.ts
 const REFRESH_TTL_MS = 30 * 24 * 3600 * 1000;
 const VERIFY_EMAIL_TTL_MS = 48 * 3600 * 1000;
 const RESET_PASSWORD_TTL_MS = 30 * 60 * 1000;
+/** 10 second-factor attempts per account per hour, across all tickets and IPs. */
+const TOTP_ACCOUNT_POLICY = { capacity: 10, refillPerSecond: 10 / 3600 } as const;
 /** Serializes registrations so exactly one "first user" becomes instance admin. */
 const REGISTRATION_LOCK_KEY = 0x5c_0001;
 
@@ -57,6 +60,7 @@ export interface AuthServiceDependencies {
   readonly users: UsersService;
   readonly admin: AdminService;
   readonly events: EventPublisher;
+  readonly rateLimiter: RateLimiter;
   readonly log: { warn(object: object, message: string): void };
 }
 
@@ -227,6 +231,16 @@ export function createAuthService(deps: AuthServiceDependencies) {
       client: Omit<ClientInfo, 'deviceName'>,
     ): Promise<AuthTokens> {
       const { userId, deviceName } = await deps.tokens.verifyMfaTicket(ticket);
+      // Per-account ceiling: fresh tickets per login must not multiply the guess budget.
+      const budget = await deps.rateLimiter.consume(
+        `auth.totp.account:${userId}`,
+        TOTP_ACCOUNT_POLICY,
+      );
+      if (!budget.allowed) {
+        throw new AppError('RATE_LIMITED', 'Too many attempts', {
+          retryAfterSeconds: Math.max(1, Math.ceil(budget.retryAfterMs / 1000)),
+        });
+      }
       const user = requireUser(await users.findById(db, userId));
       const totp = await repo.findTotp(db, userId);
       if (!totp?.confirmedAt)

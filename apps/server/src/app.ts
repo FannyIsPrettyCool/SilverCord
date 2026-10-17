@@ -73,6 +73,7 @@ export async function buildApp(
     users: createUsersService(),
     admin: createAdminService(),
     events: context.events,
+    rateLimiter: context.rateLimiter,
     log: app.log,
   });
 
@@ -97,6 +98,8 @@ export async function buildApp(
       subscriber,
       loadUser: auth.me,
       log: app.log,
+      rateLimiter: context.rateLimiter,
+      trustProxy: env.TRUST_PROXY,
     },
     context.gateway,
   );
