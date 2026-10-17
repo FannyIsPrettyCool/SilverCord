@@ -3,7 +3,7 @@ import { Button, TextField } from '@silvercord/ui';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DesktopError, desktop, unwrap } from '../../desktop.ts';
+import { desktop, unwrap } from '../../desktop.ts';
 import { AuthLayout, authStyles as styles } from './AuthLayout.tsx';
 import { useSubmit } from './use-submit.ts';
 
@@ -21,15 +21,7 @@ export function ForgotPasswordScreen() {
       return;
     }
     setFieldError(undefined);
-    const { apiUrl } = await unwrap(desktop().config());
-    const response = await fetch(`${apiUrl}/api/v1/auth/password/forgot`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email }),
-    }).catch(() => null);
-    if (!response) throw new DesktopError('NETWORK', 'Server unreachable');
-    if (response.status === 429) throw new DesktopError('RATE_LIMITED', 'Too many requests');
-    if (!response.ok) throw new DesktopError('fallback', 'Unexpected response');
+    await unwrap(desktop().auth.forgotPassword({ email }));
     setSent(true);
   });
 

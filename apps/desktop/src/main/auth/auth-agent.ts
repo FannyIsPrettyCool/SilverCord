@@ -6,9 +6,16 @@ import {
   loginResponseSchema,
 } from '@silvercord/protocol';
 import { net } from 'electron';
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { LoginOutcome, RegisterInput, SessionSnapshot } from '../../shared/ipc-contract.ts';
 import type { TokenStore } from './token-store.ts';
+
+const SESSION_ENDING: ReadonlySet<string> = new Set([
+  'TOKEN_INVALID',
+  'TOKEN_EXPIRED',
+  'TOKEN_REUSED',
+  'UNAUTHENTICATED',
+]);
 
 /** Refresh this long before expiry so requests never race the deadline. */
 const REFRESH_MARGIN_MS = 60_000;
@@ -43,6 +50,8 @@ export function createAuthAgent(apiUrl: string, store: TokenStore) {
   let session: { tokens: AuthTokens } | null = null;
   let mfaTicket: string | null = null;
   let refreshing: Promise<SessionSnapshot> | null = null;
+  /** Bumped on logout: results of requests started before it are discarded. */
+  let generation = 0;
 
   async function call<S extends z.ZodType>(
     path: string,
@@ -73,7 +82,8 @@ export function createAuthAgent(apiUrl: string, store: TokenStore) {
     return schema.parse(json);
   }
 
-  async function adopt(tokens: AuthTokens): Promise<SessionSnapshot> {
+  async function adopt(tokens: AuthTokens, startedIn = generation): Promise<SessionSnapshot> {
+    if (startedIn !== generation) throw new ApiError('UNAUTHENTICATED', 'Signed out');
     session = { tokens };
     mfaTicket = null;
     await store.save(tokens.refreshToken);
@@ -90,10 +100,15 @@ export function createAuthAgent(apiUrl: string, store: TokenStore) {
   }
 
   async function refreshWith(refreshToken: string): Promise<SessionSnapshot> {
+    const startedIn = generation;
     try {
-      return await adopt(await call('/api/v1/auth/refresh', { refreshToken }, authTokensSchema));
+      return await adopt(
+        await call('/api/v1/auth/refresh', { refreshToken }, authTokensSchema),
+        startedIn,
+      );
     } catch (error) {
-      if (error instanceof ApiError && error.code !== 'NETWORK') {
+      // Only a rejected token ends the session; 429s, 5xx and network trouble are retried later.
+      if (error instanceof ApiError && SESSION_ENDING.has(error.code) && startedIn === generation) {
         session = null;
         await store.clear();
       }
@@ -161,7 +176,9 @@ export function createAuthAgent(apiUrl: string, store: TokenStore) {
     },
 
     async logout(): Promise<void> {
-      const current = session;
+      // A fresh access token, or the server-side session would outlive the "signed out" UI.
+      const current = session ? await this.accessToken().catch(() => null) : null;
+      generation += 1;
       session = null;
       mfaTicket = null;
       await store.clear();
@@ -169,9 +186,14 @@ export function createAuthAgent(apiUrl: string, store: TokenStore) {
       await net
         .fetch(`${apiUrl}/api/v1/auth/logout`, {
           method: 'POST',
-          headers: { authorization: `Bearer ${current.tokens.accessToken}` },
+          headers: { authorization: `Bearer ${current.accessToken}` },
         })
         .catch(() => undefined);
+    },
+
+    /** Always "sent" from the user's view; the server answers 202 either way. */
+    async forgotPassword(email: string): Promise<void> {
+      await call('/api/v1/auth/password/forgot', { email }, z.null());
     },
   };
 }

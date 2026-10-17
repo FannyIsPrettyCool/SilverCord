@@ -7,6 +7,7 @@ import {
   APP_SCHEME,
   DEV_RENDERER_URL,
   isRendererOrigin,
+  isRendererUrl,
   RENDERER_ORIGIN,
 } from './app-origin.ts';
 import { buildContentSecurityPolicy } from './content-security-policy.ts';
@@ -58,7 +59,7 @@ const ALLOWED_PERMISSIONS = new Set([
 export function hardenSession(session: Session, config: DesktopConfig): void {
   const csp = buildContentSecurityPolicy(config, DEV_RENDERER_URL ? RENDERER_ORIGIN : undefined);
   session.webRequest.onHeadersReceived((details, callback) => {
-    const isRendererDocument = details.url.startsWith(RENDERER_ORIGIN);
+    const isRendererDocument = isRendererUrl(details.url);
     callback({
       responseHeaders: {
         ...details.responseHeaders,
@@ -74,8 +75,10 @@ export function hardenSession(session: Session, config: DesktopConfig): void {
   });
 
   session.setPermissionRequestHandler((contents, permission, callback, details) => {
-    const origin = new URL(details.requestingUrl || contents.getURL()).origin;
-    callback(isRendererOrigin(origin) && ALLOWED_PERMISSIONS.has(permission));
+    callback(
+      isRendererUrl(details.requestingUrl || contents.getURL()) &&
+        ALLOWED_PERMISSIONS.has(permission),
+    );
   });
   session.setPermissionCheckHandler(
     (_contents, permission, requestingOrigin) =>
@@ -90,10 +93,10 @@ export function hardenWebContents(): void {
   app.on('web-contents-created', (_event, contents) => {
     contents.on('will-attach-webview', (event) => event.preventDefault());
     contents.on('will-navigate', (event, url) => {
-      if (new URL(url).origin !== RENDERER_ORIGIN) event.preventDefault();
+      if (!isRendererUrl(url)) event.preventDefault();
     });
     contents.on('will-redirect', (event, url) => {
-      if (new URL(url).origin !== RENDERER_ORIGIN) event.preventDefault();
+      if (!isRendererUrl(url)) event.preventDefault();
     });
     contents.setWindowOpenHandler(({ url }) => {
       if (isSafeExternalUrl(url)) void shell.openExternal(url);

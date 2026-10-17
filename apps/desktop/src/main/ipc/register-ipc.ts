@@ -45,6 +45,7 @@ const inputSchemas: { [C in IpcChannel]: z.ZodType<IpcInput<C>> } = {
   ]),
   'auth:access-token': none,
   'auth:logout': none,
+  'auth:forgot-password': z.object({ email: emailSchema }),
   'window:toggle-maximize': none,
 };
 
@@ -72,6 +73,10 @@ export function registerIpc(deps: IpcDependencies): void {
     'auth:login': ({ login, password }) => deps.auth.login(login, password),
     'auth:login-second-factor': (factor) => deps.auth.loginSecondFactor(factor),
     'auth:access-token': () => deps.auth.accessToken(),
+    'auth:forgot-password': async ({ email }) => {
+      await deps.auth.forgotPassword(email);
+      return null;
+    },
     'auth:logout': async () => {
       await deps.auth.logout();
       return null;

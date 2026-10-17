@@ -22,6 +22,8 @@ const bridge = {
       invoke('auth:login-second-factor', input),
     accessToken: () => invoke('auth:access-token'),
     logout: () => invoke('auth:logout'),
+    forgotPassword: (input: IpcInput<'auth:forgot-password'>) =>
+      invoke('auth:forgot-password', input),
   },
   window: {
     toggleMaximize: () => invoke('window:toggle-maximize'),
