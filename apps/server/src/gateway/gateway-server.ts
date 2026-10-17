@@ -1,4 +1,5 @@
 import type { IncomingMessage } from 'node:http';
+import type { Duplex } from 'node:stream';
 import { GATEWAY_MAX_INBOUND_BYTES, GATEWAY_PATH } from '@silvercord/protocol';
 import type { FastifyInstance } from 'fastify';
 import { WebSocketServer } from 'ws';
@@ -59,6 +60,7 @@ export function registerGateway(
   });
   const state: GatewayState = { runtimes: new Map(), connectionsPerUser: new Map() };
   const socketsPerIp = new Map<string, number>();
+  const sockets = new Set<Duplex>();
   const { rateLimiter, trustProxy, ...connectionDeps } = deps;
 
   const refuse = (socket: { write(data: string): void; destroy(): void }, status: string) => {
@@ -73,6 +75,7 @@ export function registerGateway(
   };
 
   app.server.on('upgrade', (request, socket, head) => {
+    socket.once('error', () => socket.destroy());
     try {
       if (requestPath(request.url) !== GATEWAY_PATH) {
         socket.destroy();
@@ -86,30 +89,44 @@ export function registerGateway(
         return;
       }
       socketsPerIp.set(subject, count + 1);
+      sockets.add(socket);
+      let released = false;
+      const releaseReservation = () => {
+        if (released) return;
+        released = true;
+        sockets.delete(socket);
+        release(subject);
+      };
+      // A refused handshake never creates a WebSocket. The raw socket owns the reservation,
+      // including when its peer disconnects while the rate-limit request is pending.
+      socket.once('close', releaseReservation);
+      socket.once('end', () => socket.destroy());
       rateLimiter
         .consume(`gw.upgrade:${subject}`, UPGRADE_POLICY)
         .then((result) => {
+          if (socket.destroyed) return;
           if (!result.allowed) {
-            release(subject);
+            releaseReservation();
             refuse(socket, '429 Too Many Requests');
             return;
           }
           wss.handleUpgrade(request, socket, head, (ws) => {
-            ws.once('close', () => release(subject));
             handleConnection(ws, { ...connectionDeps, state }, options);
           });
         })
         .catch(() => {
-          release(subject);
-          refuse(socket, '503 Service Unavailable');
+          releaseReservation();
+          if (!socket.destroyed) refuse(socket, '503 Service Unavailable');
         });
     } catch {
       socket.destroy();
     }
   });
 
-  app.addHook('onClose', async () => {
+  // preClose runs before HTTP server.close waits for upgraded sockets to finish.
+  app.addHook('preClose', async () => {
     for (const client of wss.clients) client.terminate();
+    for (const socket of sockets) socket.destroy();
     await Promise.all([...state.runtimes.values()].map((runtime) => runtime.dispose()));
     await new Promise<void>((resolve) => wss.close(() => resolve()));
   });

@@ -15,6 +15,8 @@ able to continue from the top entry alone.
   screen readers; panel entrance is transform-only. Fourteen auth regression checks pass.
 - Desktop main rejects authentication results started before logout and serializes token
   persistence. Six network/disk logout-race regressions pass.
+- Gateway follow-up review fixed rejected/aborted-upgrade reservation leaks, authoritative
+  handshake session checks, database-error handling and shutdown ordering; six transport tests pass.
 - Baseline and full lint/type/unit verification pass. Final server integration, Electron visual
   verification, follow-up security fixes and CI remain before merge/tag; phase 1 is not released yet.
 - Original `D:\SilverCord` checkout has only line-ending changes and is preserved. Work continues

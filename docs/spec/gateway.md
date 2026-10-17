@@ -60,6 +60,11 @@ Token requests belong to their original socket; late results cannot authenticate
 Only terminal token errors end the login session. Network errors, rate limits and server failures
 retry with backoff, including during re-identification after INVALID_SESSION.
 
+Upgrade reservations belong to the raw TCP socket and are released even on malformed handshakes
+or disconnects while rate-limit work is pending. Initial/resume authentication checks the database
+session as well as revocation markers. Database revalidation failures close recoverably with 4000
+and are logged. Server shutdown terminates upgraded and pending sockets before HTTP close waits.
+
 ## Close codes
 
 | Code | Meaning | Client action |

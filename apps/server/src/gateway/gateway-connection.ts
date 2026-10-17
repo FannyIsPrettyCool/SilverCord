@@ -125,11 +125,24 @@ export function handleConnection(
     let claims: AccessClaims;
     try {
       claims = await deps.tokens.verifyAccessToken(token);
-      if (await deps.revocations.isRevoked(claims.sessionId)) throw new Error('revoked');
     } catch {
       close(GatewayClose.AUTHENTICATION_FAILED);
       return null;
     }
+    try {
+      if (
+        (await deps.revocations.isRevoked(claims.sessionId)) ||
+        !(await deps.isAuthSessionActive(claims.sessionId))
+      ) {
+        close(GatewayClose.AUTHENTICATION_FAILED);
+        return null;
+      }
+    } catch (error) {
+      deps.log.warn({ err: error }, 'gateway session validation failed');
+      close(GatewayClose.UNKNOWN_ERROR);
+      return null;
+    }
+    if (isClosed()) return null;
     if (!reserveConnection(claims.userId)) {
       close(GatewayClose.RATE_LIMITED);
       return null;
@@ -242,9 +255,15 @@ export function handleConnection(
       heartbeats += 1;
       // A kick can be lost while Valkey pub/sub reconnects: re-check the session now and then.
       if (current && heartbeats % REVALIDATE_EVERY_HEARTBEATS === 0) {
-        void deps.isAuthSessionActive(current.session.authSessionId).then((active) => {
-          if (!active) close(GatewayClose.AUTHENTICATION_FAILED);
-        });
+        void deps
+          .isAuthSessionActive(current.session.authSessionId)
+          .then((active) => {
+            if (!active) close(GatewayClose.AUTHENTICATION_FAILED);
+          })
+          .catch((error: unknown) => {
+            deps.log.warn({ err: error }, 'gateway session revalidation failed');
+            close(GatewayClose.UNKNOWN_ERROR);
+          });
       }
       return;
     }
