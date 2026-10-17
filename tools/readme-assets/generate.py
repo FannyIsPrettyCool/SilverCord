@@ -61,7 +61,7 @@ def hero(dark: bool) -> str:
     </g>
     <rect x="290.75" y="105.75" width="698.5" height="208.5" rx="55.25" fill="none" stroke="url(#rim)" stroke-width="1.5"/>
     <text x="640" y="222" text-anchor="middle" font-family="{SANS}" font-size="76" font-weight="650" letter-spacing="-2.5" fill="{ink}">SilverCord</text>
-    <text x="640" y="268" text-anchor="middle" font-family="{SANS}" font-size="21" font-weight="450" fill="{sub}">Your own voice, video and chat. One VPS. Liquid glass.</text>
+    <text x="640" y="268" text-anchor="middle" font-family="{SANS}" font-size="21" font-weight="450" fill="{sub}">Your own voice, video and chat.</text>
   </g>
 </svg>
 """
