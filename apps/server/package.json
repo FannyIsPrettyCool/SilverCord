@@ -11,7 +11,8 @@
     "test": "vitest run --project unit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env src/db/migrate-cli.ts",
-    "test:integration": "vitest run --project integration"
+    "test:integration": "vitest run --project integration",
+    "db:seed": "node --env-file-if-exists=.env src/db/seed-cli.ts"
   },
   "dependencies": {
     "@fastify/cors": "11.3.1",
