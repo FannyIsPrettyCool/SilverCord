@@ -178,5 +178,7 @@ high/critical findings open.
 
 ## Backlog / follow-ups
 
+- [ ] Polish: tune High-tier refraction (bezel width, displacement scale, corner artifacts) on real UI pills
+
 - [ ] Upgrade pnpm 11 → 12 after reviewing its changelog (ADR-0003)
 - [ ] Reassess Node 26 LTS once it enters Active LTS (late October 2026)
