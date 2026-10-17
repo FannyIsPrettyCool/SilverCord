@@ -86,7 +86,11 @@ export async function createSessionRuntime(
   function onMessage(message: BusMessage) {
     if (message.kind === 'kick') {
       attached?.kick();
-      void run(() => deps.sessions.destroy(session.id)).then(() => runtime.dispose());
+      void run(() => deps.sessions.destroy(session.id))
+        // run already reports the destroy error. Always release local subscriptions too.
+        .catch(() => undefined)
+        .then(() => runtime.dispose())
+        .catch(deps.onError);
       return;
     }
     void run(() => dispatch(message.t, message.d));

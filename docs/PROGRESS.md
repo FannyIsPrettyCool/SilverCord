@@ -17,6 +17,8 @@ able to continue from the top entry alone.
   persistence. Six network/disk logout-race regressions pass.
 - Gateway follow-up review fixed rejected/aborted-upgrade reservation leaks, authoritative
   handshake session checks, database-error handling and shutdown ordering; six transport tests pass.
+- Gateway kick cleanup disposes subscriptions even when Valkey destruction fails, and consumes
+  derived promise rejections. Two session-runtime regressions pass without unhandled errors.
 - Baseline and full lint/type/unit verification pass. Final server integration, Electron visual
   verification, follow-up security fixes and CI remain before merge/tag; phase 1 is not released yet.
 - Original `D:\SilverCord` checkout has only line-ending changes and is preserved. Work continues
