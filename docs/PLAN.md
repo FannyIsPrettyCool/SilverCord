@@ -36,11 +36,11 @@ Accept: sign up, log in, see live gateway connection; glass renders in all tiers
 security checklist test passes; threat model written.
 
 - [x] `docs/spec/threat-model.md`
-- [ ] Snowflake id generator (+ property tests) in `packages/protocol`
-- [ ] Error envelope + machine codes in `packages/protocol`
-- [ ] REST schema conventions, OpenAPI generation at `/api/v1/openapi.json`
-- [ ] DB: Drizzle setup, migrations pipeline, `db:migrate`, Testcontainers harness
-- [ ] Valkey client, token-bucket rate limiter (+ tests)
+- [x] Snowflake id generator (+ property tests) in `packages/protocol`
+- [x] Error envelope + machine codes in `packages/protocol`
+- [x] REST schema conventions, OpenAPI generation at `/api/v1/openapi.json`
+- [x] DB: Drizzle setup, migrations pipeline, `db:migrate`, Testcontainers harness
+- [x] Valkey client, token-bucket rate limiter (+ tests)
 - [ ] Spec `docs/spec/auth.md`
 - [ ] Auth: register (invite-only/open/closed; first user = admin), Argon2id, login
 - [ ] Auth: access JWT + rotating refresh with reuse detection; sessions list/revoke
