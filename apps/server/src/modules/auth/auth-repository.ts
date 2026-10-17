@@ -22,7 +22,17 @@ export const authRepository = {
     return row;
   },
 
-  async hasSeenDevice(ex: Executor, userId: bigint, deviceName: string, userAgent: string | null) {
+  /**
+   * Whether this user already had a session from the same device *and* network. Device name and
+   * user agent are client-supplied, so the IP keeps a password thief from silencing the alert.
+   */
+  async hasSeenDevice(
+    ex: Executor,
+    userId: bigint,
+    deviceName: string,
+    userAgent: string | null,
+    ip: string | null,
+  ) {
     const [row] = await ex
       .select({ id: sessions.id })
       .from(sessions)
@@ -31,8 +41,18 @@ export const authRepository = {
           eq(sessions.userId, userId),
           eq(sessions.deviceName, deviceName),
           userAgent === null ? isNull(sessions.userAgent) : eq(sessions.userAgent, userAgent),
+          ip === null ? isNull(sessions.ip) : eq(sessions.ip, ip),
         ),
       )
+      .limit(1);
+    return row !== undefined;
+  },
+
+  async isSessionActive(ex: Executor, sessionId: bigint): Promise<boolean> {
+    const [row] = await ex
+      .select({ id: sessions.id })
+      .from(sessions)
+      .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt)))
       .limit(1);
     return row !== undefined;
   },

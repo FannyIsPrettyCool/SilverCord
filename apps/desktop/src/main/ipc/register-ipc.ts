@@ -7,7 +7,7 @@ import {
   totpCodeSchema,
   usernameSchema,
 } from '@silvercord/protocol';
-import { type BrowserWindow, type IpcMainInvokeEvent, ipcMain } from 'electron';
+import { type BrowserWindow, ipcMain } from 'electron';
 import { z } from 'zod';
 import {
   type DesktopConfig,
@@ -45,9 +45,8 @@ const inputSchemas: { [C in IpcChannel]: z.ZodType<IpcInput<C>> } = {
   ]),
   'auth:access-token': none,
   'auth:logout': none,
-  'window:minimize': none,
+  'auth:forgot-password': z.object({ email: emailSchema }),
   'window:toggle-maximize': none,
-  'window:close': none,
 };
 
 type Handlers = { [C in IpcChannel]: (input: IpcInput<C>) => Promise<IpcOutput<C>> | IpcOutput<C> };
@@ -60,7 +59,8 @@ export interface IpcDependencies {
 
 function toError(error: unknown): IpcResult<never> {
   if (error instanceof ApiError) {
-    return { ok: false, error: { code: error.code as never, message: error.message } };
+    const field = error.field === undefined ? {} : { field: error.field };
+    return { ok: false, error: { code: error.code as never, message: error.message, ...field } };
   }
   return { ok: false, error: { code: 'INTERNAL', message: 'Unexpected error' } };
 }
@@ -73,12 +73,12 @@ export function registerIpc(deps: IpcDependencies): void {
     'auth:login': ({ login, password }) => deps.auth.login(login, password),
     'auth:login-second-factor': (factor) => deps.auth.loginSecondFactor(factor),
     'auth:access-token': () => deps.auth.accessToken(),
-    'auth:logout': async () => {
-      await deps.auth.logout();
+    'auth:forgot-password': async ({ email }) => {
+      await deps.auth.forgotPassword(email);
       return null;
     },
-    'window:minimize': () => {
-      deps.window()?.minimize();
+    'auth:logout': async () => {
+      await deps.auth.logout();
       return null;
     },
     'window:toggle-maximize': () => {
@@ -87,10 +87,6 @@ export function registerIpc(deps: IpcDependencies): void {
       if (window.isMaximized()) window.unmaximize();
       else window.maximize();
       return window.isMaximized();
-    },
-    'window:close': () => {
-      deps.window()?.close();
-      return null;
     },
   };
 

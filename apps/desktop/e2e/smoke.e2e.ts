@@ -16,7 +16,7 @@ test('opens a hardened empty window', async () => {
     .toBe(true);
 
   await expect(page).toHaveTitle('SilverCord');
-  await expect(page.locator('main.app')).toBeAttached();
+  await expect(page.getByRole('heading', { name: /Sign in|Connexion/ })).toBeVisible();
 
   // Renderer must not see Node; only the typed bridge is exposed.
   const exposure = await page.evaluate(() => ({
@@ -29,7 +29,7 @@ test('opens a hardened empty window', async () => {
     hasProcess: false,
     bridgeKeys: ['config', 'auth', 'window'],
   });
-  expect(page.url()).toBe('app://bundle/index.html');
+  expect(page.url()).toBe('app://bundle/index.html#/sign-in');
 
   const prefs = await app.evaluate(({ BrowserWindow }) => {
     const [win] = BrowserWindow.getAllWindows();
@@ -47,4 +47,34 @@ test('opens a hardened empty window', async () => {
   mkdirSync(shotsDir, { recursive: true });
   await page.screenshot({ path: join(shotsDir, 'phase0-empty-window.png') });
   await app.close();
+});
+
+test('auth panels stay centered and registration scrolls in a short window', async () => {
+  const app = await electron.launch({ args: ['.'], cwd: join(import.meta.dirname, '..') });
+  try {
+    const page = await app.firstWindow();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(page.getByRole('heading', { name: /Sign in|Connexion/ })).toBeVisible();
+    const panel = await page.locator('form').boundingBox();
+    expect(panel).not.toBeNull();
+    if (!panel) throw new Error('auth panel missing');
+    expect(Math.abs(panel.x + panel.width / 2 - 640)).toBeLessThan(2);
+
+    await page.setViewportSize({ width: 940, height: 560 });
+    await page.goto('app://bundle/index.html#/register');
+    const title = page.getByRole('heading', { name: /Create account|Créer un compte/ });
+    await expect(title).toBeVisible();
+    const heading = await title.boundingBox();
+    expect(heading?.y).toBeGreaterThanOrEqual(40);
+    const submit = page.getByRole('button', {
+      name: /Create account|Créer le compte/,
+      exact: true,
+    });
+    await submit.scrollIntoViewIfNeeded();
+    await expect(submit).toBeInViewport();
+    const headingAfterScroll = await title.boundingBox();
+    expect(headingAfterScroll?.y).toBeLessThan(heading?.y ?? 0);
+  } finally {
+    await app.close();
+  }
 });

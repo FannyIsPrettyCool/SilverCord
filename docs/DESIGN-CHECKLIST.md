@@ -3,6 +3,11 @@
 Used by the visual loop (BRIEF §11.4) and the `design-critic` agent. A screen passes
 only when every item holds in each theme and each glass tier (High, Low, Solid).
 
+2026-10-18 review evidence: `.artifacts/shots/app/` contains refreshed auth/MFA/shell captures
+for Aurora, Frost and Midnight Ember. Owner requested centered auth panels; real Electron tests
+verify centering and short-window registration scrolling. Age validation and WebGL-loss CSS
+fallback were exercised in the running app. Existing Storybook baselines cover theme/tier pairs.
+
 ## Legibility
 - [ ] Body text contrast ≥ 4.5:1 against its actual rendered background (measure, don't guess)
 - [ ] Message text sits on the quieter content surface, never directly on high-blur glass

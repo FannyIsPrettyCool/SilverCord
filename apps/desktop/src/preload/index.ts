@@ -22,11 +22,11 @@ const bridge = {
       invoke('auth:login-second-factor', input),
     accessToken: () => invoke('auth:access-token'),
     logout: () => invoke('auth:logout'),
+    forgotPassword: (input: IpcInput<'auth:forgot-password'>) =>
+      invoke('auth:forgot-password', input),
   },
   window: {
-    minimize: () => invoke('window:minimize'),
     toggleMaximize: () => invoke('window:toggle-maximize'),
-    close: () => invoke('window:close'),
   },
 } as const;
 

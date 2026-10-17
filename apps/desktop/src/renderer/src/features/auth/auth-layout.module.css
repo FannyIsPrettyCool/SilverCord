@@ -1,0 +1,61 @@
+.stage {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 64px 24px 24px;
+}
+
+.surface {
+  /* Auto margins center short panels and become zero when the form needs to scroll. */
+  margin-block: auto;
+  flex-shrink: 0;
+}
+
+.panel {
+  width: 400px;
+  padding: var(--space-8);
+  display: grid;
+  gap: var(--space-6);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  line-height: var(--leading-2xl);
+  font-weight: 680;
+  letter-spacing: -0.015em;
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.actions {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.secondary {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 calc(-1 * var(--space-3));
+}
+
+.formError {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--color-danger);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  color: var(--color-text-faint);
+}

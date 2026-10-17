@@ -1,0 +1,72 @@
+{
+  "brand": "SilverCord",
+  "signIn": {
+    "title": "Connexion",
+    "login": "E-mail ou nom d'utilisateur",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "register": "Créer un compte",
+    "forgot": "Mot de passe oublié ?"
+  },
+  "code": {
+    "title": "Code de vérification",
+    "code": "Code à 6 chiffres",
+    "recovery": "Code de secours",
+    "useRecovery": "Utiliser un code de secours",
+    "useApp": "Utiliser un code d'application",
+    "submit": "Vérifier",
+    "back": "Retour"
+  },
+  "register": {
+    "title": "Créer un compte",
+    "email": "E-mail",
+    "username": "Nom d'utilisateur",
+    "displayName": "Nom affiché",
+    "password": "Mot de passe",
+    "invite": "Code d'invitation",
+    "age": "J'ai au moins 15 ans",
+    "submit": "Créer le compte",
+    "signIn": "J'ai déjà un compte"
+  },
+  "forgot": {
+    "title": "Réinitialiser le mot de passe",
+    "email": "E-mail",
+    "submit": "Envoyer le lien",
+    "sent": "Consultez votre boîte de réception",
+    "back": "Retour à la connexion"
+  },
+  "session": {
+    "notRemembered": "Non mémorisé sur cet appareil"
+  },
+  "shell": {
+    "home": "Accueil",
+    "signOut": "Se déconnecter"
+  },
+  "connection": {
+    "connected": "Connecté",
+    "connecting": "Connexion…",
+    "offline": "Hors ligne"
+  },
+  "window": {
+    "minimize": "Réduire",
+    "maximize": "Agrandir",
+    "close": "Fermer"
+  },
+  "errors": {
+    "INVALID_CREDENTIALS": "Identifiant ou mot de passe incorrect",
+    "INVALID_TOTP": "Code incorrect",
+    "RATE_LIMITED": "Trop de tentatives, réessayez plus tard",
+    "NETWORK": "Serveur injoignable",
+    "CONFLICT": "Déjà utilisé",
+    "INVITE_REQUIRED": "Invitation valide requise",
+    "REGISTRATION_CLOSED": "Les inscriptions sont fermées",
+    "TOKEN_INVALID": "Session expirée, reconnectez-vous",
+    "fallback": "Une erreur est survenue"
+  },
+  "field": {
+    "required": "Obligatoire",
+    "passwordLength": "10 caractères minimum",
+    "username": "2 à 32 lettres, chiffres, _ ou .",
+    "email": "E-mail invalide"
+  }
+}

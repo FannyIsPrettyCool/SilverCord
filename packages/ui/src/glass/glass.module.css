@@ -1,0 +1,99 @@
+/*
+ * Liquid glass surface (BRIEF §7.2). Layers, bottom to top:
+ * backdrop blur/saturate/brightness → tint → inner glow → specular rim (::before) → grain (::after).
+ * Tiers come from `data-glass-tier` on the root element; never nest two glass surfaces.
+ */
+.glass {
+  --glass-blur: var(--glass-blur-2);
+  --glass-radius: var(--radius-2);
+  --mx: 18%;
+  --my: 0%;
+
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--glass-radius);
+  background: var(--glass-tint);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+    brightness(var(--glass-brightness));
+  box-shadow:
+    0 8px 32px -6px var(--glass-shadow),
+    0 2px 8px -2px var(--glass-shadow-soft),
+    inset 0 1px 1px 0 var(--glass-rim-faint),
+    inset 0 -12px 24px -18px var(--glass-rim-faint);
+
+  /* Specular rim: a 1px gradient border, brightest top-left and under the pointer. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    padding: 1px;
+    border-radius: inherit;
+    background:
+      radial-gradient(70% 90% at var(--mx) var(--my), var(--glass-rim), transparent 70%),
+      linear-gradient(
+        140deg,
+        var(--glass-rim) 0%,
+        var(--glass-rim-faint) 32%,
+        transparent 55%,
+        var(--glass-rim-faint) 100%
+      );
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+
+  /* Grain keeps large glass areas from looking like flat plastic. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: var(--glass-grain-alpha);
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+}
+
+.level1 {
+  --glass-blur: var(--glass-blur-1);
+  --glass-radius: var(--radius-3);
+}
+
+.level3 {
+  --glass-blur: var(--glass-blur-3);
+  --glass-radius: var(--radius-1);
+}
+
+.pill {
+  --glass-radius: 999px;
+}
+
+:global([data-glass-tier="high"]) .refract[data-refracting] {
+  /*
+   * Chromium drops filter functions that follow an SVG reference in backdrop-filter, so the
+   * refraction filter performs blur, saturate and brightness itself (docs/PLATFORM-LIMITS.md).
+   */
+  backdrop-filter: var(--glass-refraction);
+}
+
+:global([data-glass-tier="low"]) .glass {
+  box-shadow: 0 8px 28px -8px var(--glass-shadow);
+
+  &::after {
+    display: none;
+  }
+}
+
+:global([data-glass-tier="solid"]) .glass {
+  background: var(--glass-solid);
+  backdrop-filter: none;
+  box-shadow: 0 6px 24px -10px var(--glass-shadow);
+
+  &::after {
+    display: none;
+  }
+}

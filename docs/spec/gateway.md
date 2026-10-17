@@ -54,6 +54,17 @@ sequence 1 of a new session.
 6. Unknown, expired or foreign sessions, or a `seq` older than the buffer, get
    `INVALID_SESSION { resumable: false }`; the client then identifies again.
 
+The desktop starts heartbeat timers only after READY or RESUMED. A missed ACK detaches the
+socket immediately and schedules a resume without waiting for the browser close handshake.
+Token requests belong to their original socket; late results cannot authenticate a replacement.
+Only terminal token errors end the login session. Network errors, rate limits and server failures
+retry with backoff, including during re-identification after INVALID_SESSION.
+
+Upgrade reservations belong to the raw TCP socket and are released even on malformed handshakes
+or disconnects while rate-limit work is pending. Initial/resume authentication checks the database
+session as well as revocation markers. Database revalidation failures close recoverably with 4000
+and are logged. Server shutdown terminates upgraded and pending sockets before HTTP close waits.
+
 ## Close codes
 
 | Code | Meaning | Client action |

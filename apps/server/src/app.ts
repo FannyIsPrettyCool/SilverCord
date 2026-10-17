@@ -13,9 +13,10 @@ import { registerRateLimiting } from './http/rate-limit.ts';
 import { createAdminService } from './modules/admin/admin-service.ts';
 import { registerAuthRoutes } from './modules/auth/auth-routes.ts';
 import { createAuthService } from './modules/auth/auth-service.ts';
+import { createCodeHasher } from './modules/auth/crypto/code-hasher.ts';
 import { createUsersService } from './modules/users/users-service.ts';
 
-export const VERSION = '0.0.0';
+export const VERSION = '0.1.0';
 
 const REDACTED_PATHS = [
   'req.headers.authorization',
@@ -48,7 +49,8 @@ export async function buildApp(
       ...(options.logStream ? { stream: options.logStream } : {}),
     },
     bodyLimit: 1_048_576,
-    trustProxy: env.TRUST_PROXY,
+    // Exactly one trusted hop (Caddy): request.ip is the address Caddy saw.
+    trustProxy: env.TRUST_PROXY ? (_address: string, hop: number) => hop === 0 : false,
   });
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -73,6 +75,8 @@ export async function buildApp(
     users: createUsersService(),
     admin: createAdminService(),
     events: context.events,
+    rateLimiter: context.rateLimiter,
+    hashRecoveryCode: createCodeHasher(env.TOTP_ENCRYPTION_KEY),
     log: app.log,
   });
 
@@ -81,6 +85,7 @@ export async function buildApp(
     tokens: context.tokens,
     revocations: context.revocations,
     isInstanceAdmin: auth.isInstanceAdmin,
+    isAuthSessionActive: auth.isSessionActive,
   });
   await registerOpenApi(app, VERSION);
   registerHealthRoutes(app, VERSION);
@@ -96,7 +101,10 @@ export async function buildApp(
       sessions: createSessionStore(context.valkey),
       subscriber,
       loadUser: auth.me,
+      isAuthSessionActive: auth.isSessionActive,
       log: app.log,
+      rateLimiter: context.rateLimiter,
+      trustProxy: env.TRUST_PROXY,
     },
     context.gateway,
   );

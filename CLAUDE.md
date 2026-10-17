@@ -20,12 +20,21 @@ Full brief: `docs/BRIEF.md` (verbatim, never edit). Keep this file ≤200 lines.
 | `pnpm verify:full` | + integration + e2e |
 | `pnpm lint:commits` | commitlint over `COMMITS_FROM..HEAD` |
 | `pnpm --filter @silvercord/desktop test:e2e` | Playwright `_electron` (build first) |
+| `pnpm db:migrate` / `pnpm db:seed` | migrate dev DB / open registration + accounts `aurora`, `tide` (pw `silvercord-dev-password`) |
+| `pnpm --filter @silvercord/server test:integration` | Testcontainers (Postgres 18.6 + Valkey 9.1.2); needs Docker |
+| `pnpm ui:shots` | real-app screenshot tour → `.artifacts/shots/app/` (needs dev stack + `pnpm dev` server + seed) |
+| `pnpm --filter @silvercord/ui test:visual` | Storybook × theme × tier snapshots in Electron (local only; `:update` to rebaseline) |
+| `pnpm --filter @silvercord/ui storybook` | Storybook on :6006 |
 | `python3 tools/readme-assets/generate.py <phase>` | regenerate README art at each phase boundary |
 
 ## Map
 - `apps/server` — Fastify app (`src/app.ts` builds, `src/main.ts` listens), `src/config/env.ts` (Zod, refuses invalid boot). Modules go in `src/modules/<domain>/`.
 - `apps/desktop` — `src/main` (windows, hardening), `src/preload` (CJS, typed bridge), `src/renderer` (React). `e2e/` Playwright.
-- `packages/protocol` — Zod contracts, `brand.ts` (rename point). `packages/permissions|markdown|ui|widgets` — phase placeholders.
+- `apps/server/src/modules/<domain>/` — schema, repository, service, routes per module; `src/gateway/` — event bus, session store/runtime, connection state machine; `src/http/` — error envelope, rate-limit + auth declarations (every route needs `config.auth` and `config.rateLimit`).
+- `apps/desktop/src/main/auth/auth-agent.ts` holds refresh token + MFA ticket; renderer only gets access tokens via IPC.
+- `apps/desktop/src/renderer/src/` — `app/` (router, App), `features/<area>/`, `session/`, `gateway/`, `i18n/locales/{en,fr}.json`.
+- `packages/protocol` — Zod contracts (errors, pagination, auth, users, gateway), `brand.ts` (rename point).
+- `packages/ui` — themes/tokens, `<Glass>` + tiers + governor + refraction, `AmbientLayer`, primitives, Storybook, `visual/` snapshots. `packages/permissions|markdown|widgets` — placeholders.
 - `packages/config` — tsconfig presets. `tools/commitlint` — gitmoji rule. `infra/` — compose, LiveKit config.
 - `docs/adr/` decisions · `docs/spec/` feature specs · `docs/PLATFORM-LIMITS.md` · `docs/DESIGN-CHECKLIST.md` · `docs/RUNBOOK.md`.
 
@@ -41,6 +50,8 @@ Full brief: `docs/BRIEF.md` (verbatim, never edit). Keep this file ≤200 lines.
 - Update `docs/PLAN.md` checkbox + `docs/PROGRESS.md` entry after each task.
 
 ## Gotchas
+- Windows: prefer native Git (`C:\Program Files\Git\cmd`) over MSYS Git for worktrees and hooks.
+  Text files use LF (`.gitattributes`); the original checkout's line-ending changes may be left intact.
 - GitHub SSH: default agent key is rejected; repo-local `git config core.sshCommand "ssh -i ~/.ssh/epitech_key -o IdentitiesOnly=yes"`.
 - Electron 44 has no download postinstall; desktop's `postinstall: install-electron` handles it.
 - electron-vite: workspace packages must be in `externalizeDeps.exclude` (main); preload uses `externalizeDeps: false` + CJS output (`index.cjs`) because the sandbox only polyfills `require`.
@@ -52,6 +63,13 @@ Full brief: `docs/BRIEF.md` (verbatim, never edit). Keep this file ≤200 lines.
 - LiveKit config keys: check `config-sample.yaml` at the pinned tag on GitHub; docs.livekit.io moved paths.
 - The workstation's global gitignore excludes `**/.claude/`; repo `.gitignore` re-includes it. Always check `git status` shows new `.claude/` files before committing; verify on a fresh clone at phase end.
 - `.claude/hooks/guard-bash.ts` is live in this session: it strips quoted text before matching, so messages may mention forbidden flags.
+- Biome reformats files on write (hook): scripted `str.replace` on code often misses; prefer the Edit tool on freshly read text.
+- Gitmoji allowlist is strict (e.g. 📸 is rejected); see `tools/commitlint/src/gitmoji.ts`.
+- Chromium (Electron 44): `backdrop-filter: url(#svg) blur()` ignores everything after `url()`, and a reference filter with a primitive after `feDisplacementMap` isn't applied → refraction filter does blur/saturate/brightness itself, displacement last.
+- WebAuthn is unavailable on `app://` (ADR-0007). Playwright `evaluate` bypasses page CSP.
+- Vite React refresh needs inline scripts → dev-only `'unsafe-inline'` in script-src.
+- `#root` needs `height: 100%` (renderer `app/app.css`) or layouts collapse.
+- CI uses `concurrency: cancel-in-progress`: a newer push cancels the older run; check the latest SHA. Check runs with `tools/scripts/ci-status.sh <sha>` (annotations are public; logs need admin).
 - Biome `useLiteralKeys` is off (conflicts with `noPropertyAccessFromIndexSignature`).
 
 ## Agents & commands (`.claude/`)

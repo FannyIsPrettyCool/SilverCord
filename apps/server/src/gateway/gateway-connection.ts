@@ -38,9 +38,14 @@ export interface ConnectionDependencies {
   readonly sessions: SessionStore;
   readonly subscriber: EventSubscriber;
   readonly loadUser: (userId: bigint) => Promise<CurrentUser>;
+  /** Authoritative (database) check that the REST session behind a socket is still valid. */
+  readonly isAuthSessionActive: (sessionId: bigint) => Promise<boolean>;
   readonly state: GatewayState;
   readonly log: { warn(object: object, message: string): void };
 }
+
+/** ~3.5 minutes at the default 41.25 s interval. */
+const REVALIDATE_EVERY_HEARTBEATS = 5;
 
 /** Local token bucket: the connection is pinned to this process, so no shared state is needed. */
 function createOpBudget(perMinute: number) {
@@ -85,6 +90,7 @@ export function handleConnection(
   };
 
   let heartbeatTimer: NodeJS.Timeout | undefined;
+  let heartbeats = 0;
   const armHeartbeatDeadline = () => {
     clearTimeout(heartbeatTimer);
     heartbeatTimer = setTimeout(
@@ -119,11 +125,24 @@ export function handleConnection(
     let claims: AccessClaims;
     try {
       claims = await deps.tokens.verifyAccessToken(token);
-      if (await deps.revocations.isRevoked(claims.sessionId)) throw new Error('revoked');
     } catch {
       close(GatewayClose.AUTHENTICATION_FAILED);
       return null;
     }
+    try {
+      if (
+        (await deps.revocations.isRevoked(claims.sessionId)) ||
+        !(await deps.isAuthSessionActive(claims.sessionId))
+      ) {
+        close(GatewayClose.AUTHENTICATION_FAILED);
+        return null;
+      }
+    } catch (error) {
+      deps.log.warn({ err: error }, 'gateway session validation failed');
+      close(GatewayClose.UNKNOWN_ERROR);
+      return null;
+    }
+    if (isClosed()) return null;
     if (!reserveConnection(claims.userId)) {
       close(GatewayClose.RATE_LIMITED);
       return null;
@@ -131,45 +150,72 @@ export function handleConnection(
     return claims;
   }
 
+  /**
+   * Detached runtimes stay alive for the resume window; cap how many one user may accumulate so
+   * reconnect loops can't grow memory without bound (ADR-0006). Oldest detached go first.
+   */
+  function evictDetachedRuntimes(userId: bigint) {
+    const mine = [...runtimes.values()].filter((candidate) => candidate.session.userId === userId);
+    const detached = mine.filter((candidate) => !candidate.isAttached());
+    const excess = mine.length - options.maxConnectionsPerUser * 2 + 1;
+    for (const stale of detached.slice(0, Math.max(0, excess))) void stale.dispose();
+  }
+
+  /** The socket may close during any await of a handshake; every step re-checks. */
+  const isClosed = () => state === 'closed' || socket.readyState !== socket.OPEN;
+
   async function identify(frame: Extract<ClientFrame, { op: 2 }>) {
     const claims = await authenticate(frame.d.token);
-    if (!claims || state === 'closed') return;
-    const user = await deps.loadUser(claims.userId);
+    if (!claims || isClosed()) return;
+    evictDetachedRuntimes(claims.userId);
     const session = await deps.sessions.create(claims.userId, claims.sessionId);
     const created = await createSessionRuntime(session, {
       sessions: deps.sessions,
       subscriber: deps.subscriber,
       onError: (error) => deps.log.warn({ err: error }, 'gateway session task failed'),
       onDisposed: (disposed) => runtimes.delete(disposed.session.id),
+      initialSocket: attachment,
+      firstEvent: async () => ({
+        t: 'READY',
+        d: {
+          sessionId: session.id,
+          user: await deps.loadUser(claims.userId),
+          heartbeatIntervalMs: options.heartbeatIntervalMs,
+        },
+      }),
     });
+    if (isClosed()) {
+      // Nobody will ever resume a session whose READY was never delivered.
+      await created.dispose();
+      await deps.sessions.destroy(session.id);
+      return;
+    }
     runtimes.set(session.id, created);
     runtime = created;
-    created.attach(attachment);
     state = 'ready';
-    await created.dispatch('READY', {
-      sessionId: session.id,
-      user,
-      heartbeatIntervalMs: options.heartbeatIntervalMs,
-    });
   }
 
   async function resume(frame: Extract<ClientFrame, { op: 3 }>) {
     const claims = await authenticate(frame.d.token);
-    if (!claims || state === 'closed') return;
+    if (!claims || isClosed()) return;
     const candidate = runtimes.get(frame.d.sessionId);
-    const adopted =
-      candidate && candidate.session.userId === claims.userId
-        ? await candidate.run(async () => {
-            const stored = await deps.sessions.get(candidate.session.id);
-            const replay =
-              stored && (await deps.sessions.replay(stored.id, frame.d.seq, stored.seq));
-            if (!replay) return false;
-            for (const event of replay) sendRaw(event.frame);
-            // Attached inside the queue: later events follow the replay, never precede it.
-            candidate.attach(attachment);
-            return replay.length;
-          })
-        : false;
+    // Same user *and* same auth session: a revoke of that auth session must still kick it.
+    const owned =
+      candidate !== undefined &&
+      candidate.session.userId === claims.userId &&
+      candidate.session.authSessionId === claims.sessionId;
+    const adopted = owned
+      ? await candidate.run(async () => {
+          const stored = await deps.sessions.get(candidate.session.id);
+          const replay = stored && (await deps.sessions.replay(stored.id, frame.d.seq, stored.seq));
+          if (!replay || isClosed()) return false;
+          for (const event of replay) sendRaw(event.frame);
+          // Attached inside the queue: later events follow the replay, never precede it.
+          candidate.attach(attachment);
+          return replay.length;
+        })
+      : false;
+    if (isClosed()) return;
     if (adopted === false || !candidate) {
       // A session on another process, expired, foreign or with a trimmed gap: start over.
       releaseConnection();
@@ -200,11 +246,25 @@ export function handleConnection(
     }
     const frame = parsed.data;
     if (frame.op === GatewayOp.HEARTBEAT) {
-      if (state !== 'ready' || !runtime) return close(GatewayClose.NOT_AUTHENTICATED);
+      if (state === 'awaiting-auth') return close(GatewayClose.NOT_AUTHENTICATED);
+      // Heartbeats during an in-flight IDENTIFY/RESUME are fine; they just keep the link alive.
       armHeartbeatDeadline();
       send({ op: GatewayOp.HEARTBEAT_ACK, d: {} });
-      const id = runtime.session.id;
-      void runtime.run(() => deps.sessions.touch(id));
+      const current = runtime;
+      if (current) void current.run(() => deps.sessions.touch(current.session.id));
+      heartbeats += 1;
+      // A kick can be lost while Valkey pub/sub reconnects: re-check the session now and then.
+      if (current && heartbeats % REVALIDATE_EVERY_HEARTBEATS === 0) {
+        void deps
+          .isAuthSessionActive(current.session.authSessionId)
+          .then((active) => {
+            if (!active) close(GatewayClose.AUTHENTICATION_FAILED);
+          })
+          .catch((error: unknown) => {
+            deps.log.warn({ err: error }, 'gateway session revalidation failed');
+            close(GatewayClose.UNKNOWN_ERROR);
+          });
+      }
       return;
     }
     if (state !== 'awaiting-auth') return close(GatewayClose.ALREADY_AUTHENTICATED);

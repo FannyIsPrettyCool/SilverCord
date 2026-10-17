@@ -1,4 +1,6 @@
+import { connect } from 'node:net';
 import { GatewayClose, GatewayOp, readyEventSchema } from '@silvercord/protocol';
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bearer, openRegistration, register, tokenFromLink } from '../../test/auth-helpers.ts';
 import { TestGatewayClient } from '../../test/gateway-client.ts';
@@ -162,5 +164,133 @@ describe('gateway conformance', () => {
     const update = await client.dispatch('USER_UPDATE');
     expect((update.d as { emailVerified: boolean }).emailVerified).toBe(true);
     await client.close();
+  });
+});
+
+describe('gateway handshake races and limits', () => {
+  let t: TestApp;
+  let baseUrl: string;
+
+  beforeAll(async () => {
+    t = await createTestApp({
+      rateLimits: 'valkey',
+      gateway: { heartbeatIntervalMs: 300, identifyTimeoutMs: 400 },
+    });
+    await openRegistration(t);
+    baseUrl = await t.app.listen({ host: '127.0.0.1', port: 0 });
+  });
+  afterAll(() => t.close());
+
+  const subscribers = async (channel: string) => {
+    const [, count] = (await t.context.valkey.pubsub('NUMSUB', channel)) as [string, number];
+    return count;
+  };
+
+  it('leaves no subscriptions behind when the socket closes mid-IDENTIFY', async () => {
+    const { tokens } = await register(t, { username: `race_${Date.now() % 100_000}` });
+    const client = await TestGatewayClient.connect(baseUrl);
+    client.identify(tokens.accessToken);
+    await client.close();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(await subscribers(channels.user(BigInt(tokens.user.id)))).toBe(0);
+  });
+
+  it('accepts heartbeats while IDENTIFY is in flight', async () => {
+    const { tokens } = await register(t, { username: `hb_${Date.now() % 100_000}` });
+    const client = await TestGatewayClient.connect(baseUrl);
+    client.identify(tokens.accessToken);
+    client.send({ op: GatewayOp.HEARTBEAT, d: { seq: null } });
+    await client.next((f) => f.op === GatewayOp.HEARTBEAT_ACK);
+    expect((await client.dispatch('READY')).s).toBe(1);
+    await client.close();
+  });
+
+  it('refuses to resume a session owned by another auth session of the same user', async () => {
+    const { account, tokens } = await register(t, { username: `own_${Date.now() % 100_000}` });
+    const first = await TestGatewayClient.connect(baseUrl);
+    first.identify(tokens.accessToken);
+    const ready = readyEventSchema.parse((await first.dispatch('READY')).d);
+    await first.close();
+    const other = await t.request({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { login: account.email, password: account.password, deviceName: 'Other' },
+    });
+    const otherToken = other.json<{ accessToken: string }>().accessToken;
+    const thief = await TestGatewayClient.connect(baseUrl);
+    thief.resume(otherToken, ready.sessionId, 1);
+    expect((await thief.next((f) => f.op === GatewayOp.INVALID_SESSION)).d).toEqual({
+      resumable: false,
+    });
+    await thief.close();
+  });
+
+  it('limits upgrades per IP', async () => {
+    const sockets: TestGatewayClient[] = [];
+    let refused = 0;
+    for (let i = 0; i < 32; i++) {
+      try {
+        sockets.push(await TestGatewayClient.connect(baseUrl));
+      } catch {
+        refused += 1;
+      }
+    }
+    expect(refused).toBeGreaterThan(0);
+    expect(sockets.length).toBeLessThanOrEqual(30);
+    await Promise.all(sockets.map((socket) => socket.close()));
+  });
+});
+
+describe('gateway upgrade hardening', () => {
+  let t: TestApp;
+  let baseUrl: string;
+  beforeAll(async () => {
+    t = await createTestApp();
+    baseUrl = await t.app.listen({ host: '127.0.0.1', port: 0 });
+  });
+  afterAll(() => t.close());
+
+  it('survives a malformed upgrade request target', async () => {
+    const { port } = new URL(baseUrl);
+    await new Promise<void>((resolve) => {
+      const socket = connect(Number(port), '127.0.0.1', () => {
+        socket.write(
+          'GET http://[ HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
+            'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n',
+        );
+      });
+      socket.on('close', () => resolve());
+      socket.on('error', () => resolve());
+      setTimeout(() => socket.destroy(), 500);
+    });
+    const health = await fetch(`${baseUrl}/health`);
+    expect(health.status).toBe(200);
+  });
+});
+
+describe('gateway session revalidation', () => {
+  let t: TestApp;
+  let baseUrl: string;
+  beforeAll(async () => {
+    t = await createTestApp({ gateway: { heartbeatIntervalMs: 300 } });
+    await openRegistration(t);
+    baseUrl = await t.app.listen({ host: '127.0.0.1', port: 0 });
+  });
+  afterAll(() => t.close());
+
+  it('closes a socket whose session was revoked even if the kick was lost', async () => {
+    const { tokens } = await register(t, { username: `reval_${Date.now() % 100_000}` });
+    const client = await TestGatewayClient.connect(baseUrl);
+    client.identify(tokens.accessToken);
+    await client.dispatch('READY');
+    // Revoke in the database only: no pub/sub kick is published.
+    await t.context.database.db.execute(
+      sql`update sessions set revoked_at = now() where user_id = ${BigInt(tokens.user.id)}`,
+    );
+    for (let i = 0; i < 5; i++) {
+      client.send({ op: GatewayOp.HEARTBEAT, d: { seq: 1 } });
+      await client.next((f) => f.op === GatewayOp.HEARTBEAT_ACK);
+    }
+    expect(await client.closed).toBe(GatewayClose.AUTHENTICATION_FAILED);
   });
 });

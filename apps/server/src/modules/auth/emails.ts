@@ -8,7 +8,30 @@ export function appLink(path: string, token: string): string {
 
 type Template = (link: string) => { subject: string; text: string };
 
-const TEMPLATES: Record<'verify' | 'reset' | 'newDevice', Record<Locale, Template>> = {
+const TEMPLATES: Record<
+  'verify' | 'reset' | 'newDevice' | 'mfaOn' | 'mfaOff',
+  Record<Locale, Template>
+> = {
+  mfaOn: {
+    en: () => ({
+      subject: `Two-factor authentication turned on`,
+      text: `Two-factor authentication was just turned on for your ${BRAND.name} account.\n\nIf this wasn't you, reset your password now and contact your instance admin.`,
+    }),
+    fr: () => ({
+      subject: `Double authentification activée`,
+      text: `La double authentification vient d'être activée sur votre compte ${BRAND.name}.\n\nSi ce n'était pas vous, réinitialisez votre mot de passe et contactez l'administrateur de l'instance.`,
+    }),
+  },
+  mfaOff: {
+    en: () => ({
+      subject: `Two-factor authentication turned off`,
+      text: `Two-factor authentication was just turned off for your ${BRAND.name} account.\n\nIf this wasn't you, reset your password now.`,
+    }),
+    fr: () => ({
+      subject: `Double authentification désactivée`,
+      text: `La double authentification vient d'être désactivée sur votre compte ${BRAND.name}.\n\nSi ce n'était pas vous, réinitialisez votre mot de passe.`,
+    }),
+  },
   verify: {
     en: (link) => ({
       subject: `Verify your ${BRAND.name} email`,

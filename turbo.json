@@ -1,6 +1,6 @@
 {
   "$schema": "https://turborepo.com/schema.json",
-  "globalPassThroughEnv": ["CLAUDE_PROJECT_DIR", "HOME"],
+  "globalPassThroughEnv": ["CLAUDE_PROJECT_DIR", "HOME", "SILVERCORD_API_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -14,7 +14,14 @@
       "outputs": []
     },
     "test:integration": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": [
+        "DOCKER_HOST",
+        "DOCKER_TLS_VERIFY",
+        "DOCKER_CERT_PATH",
+        "TESTCONTAINERS_HOST_OVERRIDE",
+        "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE"
+      ]
     },
     "test:e2e": {
       "cache": false,

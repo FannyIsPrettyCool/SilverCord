@@ -36,7 +36,7 @@ test('web preferences are locked down', async () => {
 });
 
 test('renderer is served from the custom protocol with a strict CSP', async () => {
-  expect(page.url()).toBe('app://bundle/index.html');
+  expect(page.url()).toMatch(/^app:\/\/bundle\/index\.html/);
   const csp = await page.evaluate(async () =>
     (await fetch('/index.html')).headers.get('content-security-policy'),
   );
@@ -104,7 +104,7 @@ test('foreign navigation is blocked', async () => {
     window.location.href = 'https://example.com';
   });
   await page.waitForTimeout(300);
-  expect(page.url()).toBe('app://bundle/index.html');
+  expect(page.url()).toMatch(/^app:\/\/bundle\/index\.html/);
 });
 
 test('permissions outside the allow-list are denied', async () => {
@@ -120,6 +120,16 @@ test('permissions outside the allow-list are denied', async () => {
   });
   expect(states.geolocation).toBe('denied');
   expect(['denied', 'error']).toContain(states.midi);
+});
+
+test('the app origin can request notifications', async () => {
+  const permission = await page.evaluate(() => Notification.requestPermission());
+  expect(permission).toBe('granted');
+  expect(
+    await page.evaluate(
+      async () => (await navigator.permissions.query({ name: 'notifications' })).state,
+    ),
+  ).toBe('granted');
 });
 
 test('ipc rejects invalid input', async () => {

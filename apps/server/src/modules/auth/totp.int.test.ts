@@ -38,7 +38,9 @@ describe('TOTP', () => {
   async function enrolled() {
     const { account, tokens } = await register(t);
     const setup = totpSetupResponseSchema.parse(
-      (await post('/api/v1/auth/totp/setup', undefined, bearer(tokens))).json(),
+      (
+        await post('/api/v1/auth/totp/setup', { password: account.password }, bearer(tokens))
+      ).json(),
     );
     expect(setup.otpauthUri).toMatch(/^otpauth:\/\/totp\/SilverCord:/);
     expectError(
@@ -65,6 +67,25 @@ describe('TOTP', () => {
     });
     return mfaChallengeSchema.parse(response.json()).ticket;
   }
+
+  it('requires the password to start setup and mails the owner when 2FA turns on', async () => {
+    const { tokens } = await register(t);
+    expectError(
+      await post('/api/v1/auth/totp/setup', { password: 'wrong password!' }, bearer(tokens)),
+      401,
+      'INVALID_CREDENTIALS',
+    );
+    expectError(
+      await post('/api/v1/auth/totp/setup', {}, bearer(tokens)),
+      400,
+      'VALIDATION_FAILED',
+    );
+    const { account } = await enrolled();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(
+      t.mailer.sent.some((m) => m.to === account.email && m.subject.includes('turned on')),
+    ).toBe(true);
+  });
 
   it('requires a second factor once enabled and refuses replayed codes', async () => {
     const { account, secret } = await enrolled();
@@ -139,6 +160,69 @@ describe('TOTP', () => {
 
   it('refuses a second setup while enabled', async () => {
     const { tokens } = await enrolled();
-    expectError(await post('/api/v1/auth/totp/setup', undefined, bearer(tokens)), 409, 'CONFLICT');
+    expectError(
+      await post(
+        '/api/v1/auth/totp/setup',
+        { password: 'correct horse battery staple' },
+        bearer(tokens),
+      ),
+      409,
+      'CONFLICT',
+    );
+  });
+
+  it('caps second-factor attempts per account across fresh tickets', async () => {
+    const limited = await createTestApp({ rateLimits: 'valkey' });
+    try {
+      await openRegistration(limited);
+      const { account, tokens } = await register(limited);
+      const setup = totpSetupResponseSchema.parse(
+        (
+          await limited.request({
+            method: 'POST',
+            url: '/api/v1/auth/totp/setup',
+            headers: bearer(tokens),
+            payload: { password: account.password },
+          })
+        ).json(),
+      );
+      const enabled = await limited.request({
+        method: 'POST',
+        url: '/api/v1/auth/totp/enable',
+        headers: bearer(tokens),
+        payload: { code: codeFor(setup.secret, -1) },
+      });
+      expect(enabled.statusCode, enabled.body).toBe(200);
+      const statuses: number[] = [];
+      let ticket = '';
+      for (let i = 0; i < 11; i++) {
+        if (i < 10) {
+          const login = await limited.request({
+            method: 'POST',
+            url: '/api/v1/auth/login',
+            payload: {
+              // Alternate identifiers: each has its own 5/min login bucket.
+              login: i % 2 === 0 ? account.email : account.username,
+              password: account.password,
+              deviceName: 'Desk',
+            },
+            remoteAddress: `10.9.${i}.1`,
+          });
+          ticket = mfaChallengeSchema.parse(login.json()).ticket;
+        }
+        // The 11th attempt reuses a ticket with budget left: only the account ceiling can stop it.
+        const attempt = await limited.request({
+          method: 'POST',
+          url: '/api/v1/auth/login/totp',
+          payload: { ticket, code: '000000' },
+          remoteAddress: `10.9.${i}.2`,
+        });
+        statuses.push(attempt.statusCode);
+      }
+      expect(statuses.slice(0, 10)).toEqual(Array(10).fill(401));
+      expect(statuses[10]).toBe(429);
+    } finally {
+      await limited.close();
+    }
   });
 });

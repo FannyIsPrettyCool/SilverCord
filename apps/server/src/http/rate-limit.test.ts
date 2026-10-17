@@ -59,7 +59,30 @@ describe('rate limiting plugin', () => {
     expect((await send(' fanny', '10.0.0.2')).statusCode).toBe(429);
     expect((await send('other', '10.0.0.3')).statusCode).toBe(200);
     expect((await send(42, '10.0.0.4')).statusCode).toBe(200);
-    expect(limiter.keys).toContain('auth.login.account:fanny');
+    await send('x'.repeat(100_000), '10.0.0.5');
+    const keyed = limiter.keys.filter((key) => key.startsWith('auth.login.account:'));
+    expect(keyed).toHaveLength(4);
+    expect(keyed.at(-1)).toBe('auth.login.account:oversize');
+    // Values are hashed: keys stay small whatever the client sends.
+    expect(limiter.keys.every((key) => key.length < 80)).toBe(true);
+    await app.close();
+  });
+});
+
+describe('trusted proxy hop', () => {
+  it('uses the address the proxy appended, not client-supplied ones', async () => {
+    const app = Fastify({
+      logger: false,
+      trustProxy: (_address: string, hop: number) => hop === 0,
+    });
+    app.get('/ip', (request) => request.ip);
+    const response = await app.inject({
+      method: 'GET',
+      url: '/ip',
+      headers: { 'x-forwarded-for': '6.6.6.6, 203.0.113.9' },
+      remoteAddress: '127.0.0.1',
+    });
+    expect(response.body).toBe('203.0.113.9');
     await app.close();
   });
 });
