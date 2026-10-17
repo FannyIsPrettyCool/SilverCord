@@ -43,15 +43,15 @@ export interface DesktopConfig {
 
 /** Channel name → [input, output]. */
 export interface IpcChannels {
-  'config:get': [void, DesktopConfig];
-  'auth:restore': [void, SessionSnapshot | null];
+  'config:get': [undefined, DesktopConfig];
+  'auth:restore': [undefined, SessionSnapshot | null];
   'auth:register': [RegisterInput, SessionSnapshot];
   'auth:login': [{ login: string; password: string }, LoginOutcome];
   'auth:login-second-factor': [{ code: string } | { recoveryCode: string }, SessionSnapshot];
-  'auth:access-token': [void, SessionSnapshot];
-  'auth:logout': [void, null];
+  'auth:access-token': [undefined, SessionSnapshot];
+  'auth:logout': [undefined, null];
   'auth:forgot-password': [{ email: string }, null];
-  'window:toggle-maximize': [void, boolean];
+  'window:toggle-maximize': [undefined, boolean];
 }
 
 export type IpcChannel = keyof IpcChannels;

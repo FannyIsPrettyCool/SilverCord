@@ -7,7 +7,7 @@ import {
   totpCodeSchema,
   usernameSchema,
 } from '@silvercord/protocol';
-import { type BrowserWindow, type IpcMainInvokeEvent, ipcMain } from 'electron';
+import { type BrowserWindow, ipcMain } from 'electron';
 import { z } from 'zod';
 import {
   type DesktopConfig,

@@ -23,6 +23,8 @@ able to continue from the top entry alone.
   markers cannot restore access. Unit regressions and 68 real Postgres/Valkey integration tests pass.
 - Positive notification permission test found Electron's trailing-slash origin serialization;
   exact app-origin variants are accepted and foreign/path origins remain denied. Real E2E passes.
+- Removed pre-existing IPC lint warnings and pinned LF text checkout behavior for Windows;
+  all-package lint/type/unit verification now passes without warnings.
 - Baseline and full lint/type/unit verification pass. Final server integration, Electron visual
   verification, follow-up security fixes and CI remain before merge/tag; phase 1 is not released yet.
 - Original `D:\SilverCord` checkout has only line-ending changes and is preserved. Work continues

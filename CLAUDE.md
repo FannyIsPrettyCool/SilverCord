@@ -50,6 +50,8 @@ Full brief: `docs/BRIEF.md` (verbatim, never edit). Keep this file ≤200 lines.
 - Update `docs/PLAN.md` checkbox + `docs/PROGRESS.md` entry after each task.
 
 ## Gotchas
+- Windows: prefer native Git (`C:\Program Files\Git\cmd`) over MSYS Git for worktrees and hooks.
+  Text files use LF (`.gitattributes`); the original checkout's line-ending changes may be left intact.
 - GitHub SSH: default agent key is rejected; repo-local `git config core.sshCommand "ssh -i ~/.ssh/epitech_key -o IdentitiesOnly=yes"`.
 - Electron 44 has no download postinstall; desktop's `postinstall: install-electron` handles it.
 - electron-vite: workspace packages must be in `externalizeDeps.exclude` (main); preload uses `externalizeDeps: false` + CJS output (`index.cjs`) because the sandbox only polyfills `require`.
