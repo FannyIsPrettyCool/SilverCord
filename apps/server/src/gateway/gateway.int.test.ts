@@ -1,3 +1,4 @@
+import { connect } from 'node:net';
 import { GatewayClose, GatewayOp, readyEventSchema } from '@silvercord/protocol';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bearer, openRegistration, register, tokenFromLink } from '../../test/auth-helpers.ts';
@@ -236,5 +237,32 @@ describe('gateway handshake races and limits', () => {
     expect(refused).toBeGreaterThan(0);
     expect(sockets.length).toBeLessThanOrEqual(30);
     await Promise.all(sockets.map((socket) => socket.close()));
+  });
+});
+
+describe('gateway upgrade hardening', () => {
+  let t: TestApp;
+  let baseUrl: string;
+  beforeAll(async () => {
+    t = await createTestApp();
+    baseUrl = await t.app.listen({ host: '127.0.0.1', port: 0 });
+  });
+  afterAll(() => t.close());
+
+  it('survives a malformed upgrade request target', async () => {
+    const { port } = new URL(baseUrl);
+    await new Promise<void>((resolve) => {
+      const socket = connect(Number(port), '127.0.0.1', () => {
+        socket.write(
+          'GET http://[ HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
+            'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n',
+        );
+      });
+      socket.on('close', () => resolve());
+      socket.on('error', () => resolve());
+      setTimeout(() => socket.destroy(), 500);
+    });
+    const health = await fetch(`${baseUrl}/health`);
+    expect(health.status).toBe(200);
   });
 });

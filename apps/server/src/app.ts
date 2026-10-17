@@ -48,7 +48,8 @@ export async function buildApp(
       ...(options.logStream ? { stream: options.logStream } : {}),
     },
     bodyLimit: 1_048_576,
-    trustProxy: env.TRUST_PROXY,
+    // Exactly one trusted hop (Caddy): request.ip is the address Caddy saw.
+    trustProxy: env.TRUST_PROXY ? (_address: string, hop: number) => hop === 0 : false,
   });
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);

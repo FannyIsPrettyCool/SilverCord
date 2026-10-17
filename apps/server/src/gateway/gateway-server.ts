@@ -2,6 +2,7 @@ import type { IncomingMessage } from 'node:http';
 import { GATEWAY_MAX_INBOUND_BYTES, GATEWAY_PATH } from '@silvercord/protocol';
 import type { FastifyInstance } from 'fastify';
 import { WebSocketServer } from 'ws';
+import { clientSubject } from '../http/client-subject.ts';
 import type { RateLimiter } from '../infra/rate-limiter.ts';
 import {
   type ConnectionDependencies,
@@ -27,13 +28,22 @@ export interface GatewayServerDependencies extends Omit<ConnectionDependencies, 
   readonly trustProxy: boolean;
 }
 
+/**
+ * With one trusted proxy (Caddy) the client is the last X-Forwarded-For hop; earlier entries
+ * are whatever the client sent and must not be trusted (Fastify uses the same rule, trustProxy: 1).
+ */
 function clientIp(request: IncomingMessage, trustProxy: boolean): string {
   const forwarded = request.headers['x-forwarded-for'];
   if (trustProxy && typeof forwarded === 'string') {
-    const first = forwarded.split(',')[0]?.trim();
-    if (first) return first;
+    const last = forwarded.split(',').at(-1)?.trim();
+    if (last) return last;
   }
   return request.socket.remoteAddress ?? 'unknown';
+}
+
+/** Path of a raw request target, without `new URL` (which throws on hostile input). */
+function requestPath(url: string | undefined): string {
+  return (url ?? '/').split('?')[0] ?? '/';
 }
 
 /** Serves the gateway on the HTTP server's upgrade path (docs/spec/gateway.md). */
@@ -56,32 +66,46 @@ export function registerGateway(
     socket.destroy();
   };
 
+  const release = (subject: string) => {
+    const count = (socketsPerIp.get(subject) ?? 1) - 1;
+    if (count <= 0) socketsPerIp.delete(subject);
+    else socketsPerIp.set(subject, count);
+  };
+
   app.server.on('upgrade', (request, socket, head) => {
-    const { pathname } = new URL(request.url ?? '/', 'http://gateway');
-    if (pathname !== GATEWAY_PATH) {
-      socket.destroy();
-      return;
-    }
-    const ip = clientIp(request, trustProxy);
-    if ((socketsPerIp.get(ip) ?? 0) >= MAX_SOCKETS_PER_IP) {
-      refuse(socket, '429 Too Many Requests');
-      return;
-    }
-    rateLimiter
-      .consume(`gw.upgrade:${ip}`, UPGRADE_POLICY)
-      .then((result) => {
-        if (!result.allowed) return refuse(socket, '429 Too Many Requests');
-        wss.handleUpgrade(request, socket, head, (ws) => {
-          socketsPerIp.set(ip, (socketsPerIp.get(ip) ?? 0) + 1);
-          ws.once('close', () => {
-            const count = (socketsPerIp.get(ip) ?? 1) - 1;
-            if (count <= 0) socketsPerIp.delete(ip);
-            else socketsPerIp.set(ip, count);
+    try {
+      if (requestPath(request.url) !== GATEWAY_PATH) {
+        socket.destroy();
+        return;
+      }
+      const subject = clientSubject(clientIp(request, trustProxy));
+      // Reserve synchronously: concurrent upgrades must not all pass the cap check.
+      const count = socketsPerIp.get(subject) ?? 0;
+      if (count >= MAX_SOCKETS_PER_IP) {
+        refuse(socket, '429 Too Many Requests');
+        return;
+      }
+      socketsPerIp.set(subject, count + 1);
+      rateLimiter
+        .consume(`gw.upgrade:${subject}`, UPGRADE_POLICY)
+        .then((result) => {
+          if (!result.allowed) {
+            release(subject);
+            refuse(socket, '429 Too Many Requests');
+            return;
+          }
+          wss.handleUpgrade(request, socket, head, (ws) => {
+            ws.once('close', () => release(subject));
+            handleConnection(ws, { ...connectionDeps, state }, options);
           });
-          handleConnection(ws, { ...connectionDeps, state }, options);
+        })
+        .catch(() => {
+          release(subject);
+          refuse(socket, '503 Service Unavailable');
         });
-      })
-      .catch(() => refuse(socket, '503 Service Unavailable'));
+    } catch {
+      socket.destroy();
+    }
   });
 
   app.addHook('onClose', async () => {
