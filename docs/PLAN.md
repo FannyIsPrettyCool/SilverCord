@@ -46,21 +46,21 @@ security checklist test passes; threat model written.
 - [x] Auth: access JWT + rotating refresh with reuse detection; sessions list/revoke
 - [x] Auth: email verification + password reset (Mailpit in dev)
 - [x] Auth: TOTP + recovery codes
-- [ ] Auth: passkeys (WebAuthn via `@simplewebauthn`) as an alternative first factor
+- [~] Auth: passkeys — moved to phase 7 (ADR-0007: WebAuthn is unavailable on the app:// origin)
 - [x] Auth: instance invites (admin) + new-device login email
 - [x] Spec `docs/spec/gateway.md`; gateway opcodes in protocol
 - [x] Gateway: HELLO/IDENTIFY/READY/HEARTBEAT/RESUME with Valkey stream buffer; conformance tests
 - [x] Electron shell: hardened prefs, CSP, typed preload bridge, IPC validation, fuses, safeStorage token store
 - [x] Electron security checklist test (§8.2)
 - [x] Electron: custom titlebar (Win11 `backgroundMaterial`, Linux frameless), tray, single-instance
-- [ ] UI: tokens, 3 themes (Aurora, Frost, Midnight Ember), fonts bundled (Figtree, JetBrains Mono)
-- [ ] UI: `<Glass>` + `useGlass` with tiers High/Low/Solid/Auto + frame governor
-- [ ] UI: ambient layer (`ogl`) + CSS fallback
-- [ ] UI: Storybook + visual snapshots per tier/theme
-- [ ] `pnpm ui:shots` (Playwright `_electron`)
-- [ ] i18n setup (EN + FR, ICU)
-- [ ] Login/register screens + live gateway status
-- [ ] `docs/DESIGN-CHECKLIST.md` review of phase screens
+- [x] UI: tokens, 3 themes (Aurora, Frost, Midnight Ember), fonts bundled (Figtree, JetBrains Mono)
+- [x] UI: `<Glass>` + `useGlass` with tiers High/Low/Solid/Auto + frame governor
+- [x] UI: ambient layer (`ogl`) + CSS fallback
+- [x] UI: Storybook + visual snapshots per tier/theme
+- [x] `pnpm ui:shots` (Playwright `_electron`)
+- [x] i18n setup (EN + FR, ICU)
+- [x] Login/register screens + live gateway status
+- [x] `docs/DESIGN-CHECKLIST.md` review of phase screens
 
 ## Phase 2 — Social & messaging
 
@@ -144,6 +144,7 @@ vN+1 works.
 - [ ] Accessibility pass
 - [ ] Tree layout
 - [ ] Auto-update, NSIS installer, AppImage/deb/rpm
+- [ ] Passkeys via system browser + `silvercord://` deep link (ADR-0007)
 - [ ] Download site (`apps/site`): one static page served at `<DOMAIN>` (and `get.<DOMAIN>`)
       that detects the visitor's OS and offers the matching installer (NSIS / AppImage / deb / rpm)
       read from the `stable` update feed (`latest.yml`, `latest-linux.yml`) on `updates.<DOMAIN>`;
