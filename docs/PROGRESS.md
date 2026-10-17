@@ -9,6 +9,8 @@ able to continue from the top entry alone.
   temporary token failures retry, dead sockets detach immediately, and stale async results are ignored.
 - Ambient cleanup now releases GPU resources without losing a reused canvas; unexpected context
   loss selects CSS fallback. Three lifecycle regressions and UI typecheck pass.
+- Auto glass governor samples 90-frame bursts separated by five seconds without RAF, with
+  visibility/focus cleanup and pause-gap regressions passing.
 - Baseline and full lint/type/unit verification pass. Final server integration, Electron visual
   verification, follow-up security fixes and CI remain before merge/tag; phase 1 is not released yet.
 - Original `D:\SilverCord` checkout has only line-ending changes and is preserved. Work continues

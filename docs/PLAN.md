@@ -64,6 +64,7 @@ security checklist test passes; threat model written.
 - [x] Renderer gateway review: ready-only heartbeats, retryable token errors, immediate reconnect,
       stale socket result protection and handled re-identification failures
 - [x] Ambient lifecycle review: React remount cleanup and WebGL context-loss fallback
+- [x] Auto glass governor review: burst sampling with no idle RAF loop
 
 ## Phase 2 — Social & messaging
 
