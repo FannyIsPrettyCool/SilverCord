@@ -9,6 +9,10 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  DATABASE_URL: z
+    .url({ protocol: /^postgres(ql)?$/ })
+    .default('postgres://silvercord:silvercord@localhost:5432/silvercord'),
+  VALKEY_URL: z.url({ protocol: /^rediss?$/ }).default('redis://localhost:6379'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 
