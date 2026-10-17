@@ -56,6 +56,8 @@ export async function createEventSubscriber(valkey: Valkey): Promise<EventSubscr
   const connection = valkey.duplicate();
   if (connection.status === 'wait') await connection.connect();
   const handlers = new Map<string, Set<Handler>>();
+  /** In-flight SUBSCRIBE per channel, so concurrent callers wait for the same confirmation. */
+  const pending = new Map<string, Promise<void>>();
 
   connection.on('message', (channel: string, raw: string) => {
     const message = parse(raw);
@@ -69,7 +71,19 @@ export async function createEventSubscriber(valkey: Valkey): Promise<EventSubscr
       if (!set) {
         set = new Set();
         handlers.set(channel, set);
-        await connection.subscribe(channel);
+        const subscribing = connection.subscribe(channel).then(() => undefined);
+        pending.set(channel, subscribing);
+        try {
+          await subscribing;
+        } catch (error) {
+          // Leave no half-registered channel behind that later callers would trust.
+          handlers.delete(channel);
+          throw error;
+        } finally {
+          pending.delete(channel);
+        }
+      } else {
+        await pending.get(channel);
       }
       set.add(handler);
       return async () => {

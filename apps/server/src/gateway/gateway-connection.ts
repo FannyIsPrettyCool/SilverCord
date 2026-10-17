@@ -131,45 +131,60 @@ export function handleConnection(
     return claims;
   }
 
+  /** The socket may close during any await of a handshake; every step re-checks. */
+  const isClosed = () => state === 'closed' || socket.readyState !== socket.OPEN;
+
   async function identify(frame: Extract<ClientFrame, { op: 2 }>) {
     const claims = await authenticate(frame.d.token);
-    if (!claims || state === 'closed') return;
-    const user = await deps.loadUser(claims.userId);
+    if (!claims || isClosed()) return;
     const session = await deps.sessions.create(claims.userId, claims.sessionId);
     const created = await createSessionRuntime(session, {
       sessions: deps.sessions,
       subscriber: deps.subscriber,
       onError: (error) => deps.log.warn({ err: error }, 'gateway session task failed'),
       onDisposed: (disposed) => runtimes.delete(disposed.session.id),
+      initialSocket: attachment,
+      firstEvent: async () => ({
+        t: 'READY',
+        d: {
+          sessionId: session.id,
+          user: await deps.loadUser(claims.userId),
+          heartbeatIntervalMs: options.heartbeatIntervalMs,
+        },
+      }),
     });
+    if (isClosed()) {
+      // Nobody will ever resume a session whose READY was never delivered.
+      await created.dispose();
+      await deps.sessions.destroy(session.id);
+      return;
+    }
     runtimes.set(session.id, created);
     runtime = created;
-    created.attach(attachment);
     state = 'ready';
-    await created.dispatch('READY', {
-      sessionId: session.id,
-      user,
-      heartbeatIntervalMs: options.heartbeatIntervalMs,
-    });
   }
 
   async function resume(frame: Extract<ClientFrame, { op: 3 }>) {
     const claims = await authenticate(frame.d.token);
-    if (!claims || state === 'closed') return;
+    if (!claims || isClosed()) return;
     const candidate = runtimes.get(frame.d.sessionId);
-    const adopted =
-      candidate && candidate.session.userId === claims.userId
-        ? await candidate.run(async () => {
-            const stored = await deps.sessions.get(candidate.session.id);
-            const replay =
-              stored && (await deps.sessions.replay(stored.id, frame.d.seq, stored.seq));
-            if (!replay) return false;
-            for (const event of replay) sendRaw(event.frame);
-            // Attached inside the queue: later events follow the replay, never precede it.
-            candidate.attach(attachment);
-            return replay.length;
-          })
-        : false;
+    // Same user *and* same auth session: a revoke of that auth session must still kick it.
+    const owned =
+      candidate !== undefined &&
+      candidate.session.userId === claims.userId &&
+      candidate.session.authSessionId === claims.sessionId;
+    const adopted = owned
+      ? await candidate.run(async () => {
+          const stored = await deps.sessions.get(candidate.session.id);
+          const replay = stored && (await deps.sessions.replay(stored.id, frame.d.seq, stored.seq));
+          if (!replay || isClosed()) return false;
+          for (const event of replay) sendRaw(event.frame);
+          // Attached inside the queue: later events follow the replay, never precede it.
+          candidate.attach(attachment);
+          return replay.length;
+        })
+      : false;
+    if (isClosed()) return;
     if (adopted === false || !candidate) {
       // A session on another process, expired, foreign or with a trimmed gap: start over.
       releaseConnection();
@@ -200,11 +215,12 @@ export function handleConnection(
     }
     const frame = parsed.data;
     if (frame.op === GatewayOp.HEARTBEAT) {
-      if (state !== 'ready' || !runtime) return close(GatewayClose.NOT_AUTHENTICATED);
+      if (state === 'awaiting-auth') return close(GatewayClose.NOT_AUTHENTICATED);
+      // Heartbeats during an in-flight IDENTIFY/RESUME are fine; they just keep the link alive.
       armHeartbeatDeadline();
       send({ op: GatewayOp.HEARTBEAT_ACK, d: {} });
-      const id = runtime.session.id;
-      void runtime.run(() => deps.sessions.touch(id));
+      const current = runtime;
+      if (current) void current.run(() => deps.sessions.touch(current.session.id));
       return;
     }
     if (state !== 'awaiting-auth') return close(GatewayClose.ALREADY_AUTHENTICATED);
