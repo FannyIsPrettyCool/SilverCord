@@ -9,10 +9,17 @@ export interface CheckboxProps {
   readonly onCheckedChange: (checked: boolean) => void;
   readonly children: ReactNode;
   readonly required?: boolean;
+  readonly 'aria-invalid'?: boolean;
 }
 
 /** Radix checkbox (keyboard + screen reader semantics) with a spring-drawn check. */
-export function Checkbox({ checked, onCheckedChange, children, required }: CheckboxProps) {
+export function Checkbox({
+  checked,
+  onCheckedChange,
+  children,
+  required,
+  'aria-invalid': invalid,
+}: CheckboxProps) {
   const id = useId();
   const spring = useSpring('press');
   return (
@@ -22,6 +29,7 @@ export function Checkbox({ checked, onCheckedChange, children, required }: Check
         className={styles['box']}
         checked={checked}
         required={required ?? false}
+        aria-invalid={invalid}
         onCheckedChange={(state) => onCheckedChange(state === true)}
       >
         <RadixCheckbox.Indicator forceMount>

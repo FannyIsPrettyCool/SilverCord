@@ -1,6 +1,6 @@
 import { recoveryCodeSchema, totpCodeSchema } from '@silvercord/protocol';
 import { Button, TextField } from '@silvercord/ui';
-import { useNavigate } from '@tanstack/react-router';
+import { Navigate, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../../session/session-store.ts';
@@ -11,6 +11,8 @@ export function CodeScreen() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const secondFactor = useSession((s) => s.secondFactor);
+  const mfaPending = useSession((s) => s.mfaPending);
+  const status = useSession((s) => s.status);
   const [mode, setMode] = useState<'app' | 'recovery'>('app');
   const [value, setValue] = useState('');
 
@@ -24,6 +26,8 @@ export function CodeScreen() {
     await secondFactor(mode === 'app' ? { code: parsed.data } : { recoveryCode: parsed.data });
     await navigate({ to: '/app' });
   });
+
+  if (!mfaPending) return <Navigate to={status === 'signed-in' ? '/app' : '/sign-in'} />;
 
   return (
     <AuthLayout title={t('code.title')} onSubmit={submit}>

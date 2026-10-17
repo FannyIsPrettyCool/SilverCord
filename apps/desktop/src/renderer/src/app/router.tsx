@@ -30,28 +30,36 @@ const guestOnly = () => {
   if (signedIn()) throw redirect({ to: '/app' });
 };
 
+const passwordStep = () => {
+  guestOnly();
+  useSession.getState().cancelMfa();
+};
+
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sign-in',
-  beforeLoad: guestOnly,
+  beforeLoad: passwordStep,
   component: SignInScreen,
 });
 const codeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sign-in/code',
-  beforeLoad: guestOnly,
+  beforeLoad: () => {
+    guestOnly();
+    if (!useSession.getState().mfaPending) throw redirect({ to: '/sign-in' });
+  },
   component: CodeScreen,
 });
 const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/register',
-  beforeLoad: guestOnly,
+  beforeLoad: passwordStep,
   component: RegisterScreen,
 });
 const forgotRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/forgot-password',
-  beforeLoad: guestOnly,
+  beforeLoad: passwordStep,
   component: ForgotPasswordScreen,
 });
 const appRoute = createRoute({

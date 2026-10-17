@@ -11,6 +11,8 @@ able to continue from the top entry alone.
   loss selects CSS fallback. Three lifecycle regressions and UI typecheck pass.
 - Auto glass governor samples 90-frame bursts separated by five seconds without RAF, with
   visibility/focus cleanup and pause-gap regressions passing.
+- Auth screens guard pending MFA, classify terminal token copy and expose age validation to
+  screen readers; panel entrance is transform-only. Fourteen auth regression checks pass.
 - Baseline and full lint/type/unit verification pass. Final server integration, Electron visual
   verification, follow-up security fixes and CI remain before merge/tag; phase 1 is not released yet.
 - Original `D:\SilverCord` checkout has only line-ending changes and is preserved. Work continues

@@ -91,6 +91,12 @@ Errors (shown under the related field, or under the submit button when not field
 - Submit buttons show a spinner and stay the same width; errors announce via `role="alert"`.
 - Keyboard: every action reachable with Tab; Enter submits; focus starts in the first field.
 - Locale: the app locale (from the OS, `en` fallback) is sent at registration.
+- The code route requires a pending MFA challenge from a completed password step. Direct
+  access, abandoned challenges and terminal ticket errors return to sign-in. Success, a new
+  password step, restore and sign-out clear the challenge; retryable errors retain it.
+- TOKEN_EXPIRED, TOKEN_REUSED and UNAUTHENTICATED use the session-expired error copy.
+- Age confirmation exposes `aria-invalid` after validation failure. Panel entrance animates
+  transform only so the glass backdrop stays composited.
 
 ## Acceptance criteria
 
