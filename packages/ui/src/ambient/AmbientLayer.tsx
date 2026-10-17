@@ -35,7 +35,7 @@ export function AmbientLayer({ theme, intensity, still = false }: AmbientLayerPr
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || webglFailed) return;
     let renderer: Renderer;
     try {
       renderer = new Renderer({
@@ -59,7 +59,9 @@ export function AmbientLayer({ theme, intensity, still = false }: AmbientLayerPr
       uIntensity: { value: strength },
     };
     const program = new Program(gl, { vertex: AURORA_VERTEX, fragment: AURORA_FRAGMENT, uniforms });
-    const mesh = new Mesh(gl, { geometry: new Triangle(gl), program });
+    const geometry = new Triangle(gl);
+    const mesh = new Mesh(gl, { geometry, program });
+    let contextLost = false;
 
     const resize = () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -72,6 +74,7 @@ export function AmbientLayer({ theme, intensity, still = false }: AmbientLayerPr
       renderer.render({ scene: mesh });
     };
     const onResize = () => {
+      if (contextLost) return;
       resize();
       draw(performance.now());
     };
@@ -88,7 +91,7 @@ export function AmbientLayer({ theme, intensity, still = false }: AmbientLayerPr
       draw(now);
     };
     const start = () => {
-      if (frozen || frame || document.hidden || !document.hasFocus()) return;
+      if (contextLost || frozen || frame || document.hidden || !document.hasFocus()) return;
       frame = requestAnimationFrame(loop);
     };
     const stop = () => {
@@ -96,6 +99,12 @@ export function AmbientLayer({ theme, intensity, still = false }: AmbientLayerPr
       frame = 0;
     };
     const onVisibility = () => (document.hidden ? stop() : start());
+    const onContextLost = () => {
+      contextLost = true;
+      stop();
+      setWebglFailed(true);
+    };
+    canvas.addEventListener('webglcontextlost', onContextLost);
     draw(performance.now());
     start();
     document.addEventListener('visibilitychange', onVisibility);
@@ -107,9 +116,15 @@ export function AmbientLayer({ theme, intensity, still = false }: AmbientLayerPr
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('focus', start);
       window.removeEventListener('blur', stop);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      canvas.removeEventListener('webglcontextlost', onContextLost);
+      // React reuses the canvas after StrictMode cleanup and theme changes. Losing its context
+      // here makes the next renderer unusable; release only the resources this effect owns.
+      geometry.remove();
+      program.remove();
+      gl.deleteShader(program.vertexShader);
+      gl.deleteShader(program.fragmentShader);
     };
-  }, [theme, strength, still]);
+  }, [theme, strength, still, webglFailed]);
 
   return (
     <div className={styles['layer']} aria-hidden="true">
