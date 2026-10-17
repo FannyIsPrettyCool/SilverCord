@@ -1,0 +1,15 @@
+node_modules/
+dist/
+out/
+build/
+release/
+coverage/
+.turbo/
+.artifacts/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+infra/.data/
+.DS_Store
+*.log
