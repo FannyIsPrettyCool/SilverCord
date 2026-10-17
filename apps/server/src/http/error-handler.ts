@@ -66,10 +66,15 @@ export function registerErrorHandling(app: FastifyInstance): void {
         .send(envelope({ code: 'PAYLOAD_TOO_LARGE', message: 'Payload too large', requestId }));
     }
 
-    if (isFastifyError(error) && error.statusCode === 400) {
-      // Malformed JSON, wrong content type and similar framework-level client errors.
+    if (
+      isFastifyError(error) &&
+      error.statusCode !== undefined &&
+      error.statusCode >= 400 &&
+      error.statusCode < 500
+    ) {
+      // Malformed JSON, unsupported media types and similar framework-level client errors.
       return reply
-        .code(400)
+        .code(error.statusCode)
         .send(envelope({ code: 'VALIDATION_FAILED', message: 'Malformed request', requestId }));
     }
 

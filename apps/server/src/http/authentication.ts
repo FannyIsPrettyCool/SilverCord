@@ -61,6 +61,8 @@ export function registerAuthentication(
   });
 
   app.addHook('onRequest', async (request) => {
+    // Unknown paths answer 404 to everyone instead of leaking an auth requirement.
+    if (request.is404) return;
     const requirement = request.routeOptions.config.auth ?? 'user';
     const token = bearerToken(request);
     if (token === null) {
