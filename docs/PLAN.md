@@ -46,6 +46,8 @@ security checklist test passes; threat model written.
 - [ ] Auth: access JWT + rotating refresh with reuse detection; sessions list/revoke
 - [ ] Auth: email verification + password reset (Mailpit in dev)
 - [ ] Auth: TOTP + recovery codes
+- [ ] Auth: passkeys (WebAuthn via `@simplewebauthn`) as an alternative first factor
+- [ ] Auth: instance invites (admin) + new-device login email
 - [ ] Spec `docs/spec/gateway.md`; gateway opcodes in protocol
 - [ ] Gateway: HELLO/IDENTIFY/READY/HEARTBEAT/RESUME with Valkey stream buffer; conformance tests
 - [ ] Electron shell: hardened prefs, CSP, typed preload bridge, IPC validation, fuses, safeStorage token store
