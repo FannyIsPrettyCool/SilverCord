@@ -16,7 +16,7 @@ test('opens a hardened empty window', async () => {
     .toBe(true);
 
   await expect(page).toHaveTitle('SilverCord');
-  await expect(page.locator('main.app')).toBeAttached();
+  await expect(page.getByRole('heading', { name: /Sign in|Connexion/ })).toBeVisible();
 
   // Renderer must not see Node; only the typed bridge is exposed.
   const exposure = await page.evaluate(() => ({
@@ -29,7 +29,7 @@ test('opens a hardened empty window', async () => {
     hasProcess: false,
     bridgeKeys: ['config', 'auth', 'window'],
   });
-  expect(page.url()).toBe('app://bundle/index.html');
+  expect(page.url()).toBe('app://bundle/index.html#/sign-in');
 
   const prefs = await app.evaluate(({ BrowserWindow }) => {
     const [win] = BrowserWindow.getAllWindows();
