@@ -5,7 +5,8 @@
   "license": "UNLICENSED",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./brand": "./src/brand.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

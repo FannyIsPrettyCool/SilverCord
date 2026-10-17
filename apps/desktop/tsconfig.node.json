@@ -1,0 +1,11 @@
+{
+  "extends": "../../packages/config/tsconfig.node.json",
+  "include": [
+    "electron.vite.config.ts",
+    "playwright.config.ts",
+    "src/main",
+    "src/preload",
+    "e2e",
+    "src/renderer/src/env.d.ts"
+  ]
+}

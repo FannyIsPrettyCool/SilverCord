@@ -4,3 +4,5 @@ packages:
   - tools/*
 allowBuilds:
   lefthook: true
+minimumReleaseAgeExclude:
+  - electron@44.9.0
