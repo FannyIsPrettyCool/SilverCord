@@ -26,11 +26,23 @@ const REDACTED_PATHS = [
   '*.recoveryCode',
 ];
 
+export interface BuildOptions {
+  /** Log destination; defaults to stdout. Tests capture it to assert on redaction. */
+  readonly logStream?: { write(line: string): void };
+}
+
 /** Builds the HTTP app without listening, so tests can use `app.inject`. */
-export async function buildApp(context: AppContext): Promise<FastifyInstance> {
+export async function buildApp(
+  context: AppContext,
+  options: BuildOptions = {},
+): Promise<FastifyInstance> {
   const { env } = context;
   const app = Fastify({
-    logger: { level: env.LOG_LEVEL, redact: { paths: REDACTED_PATHS, censor: '[redacted]' } },
+    logger: {
+      level: env.LOG_LEVEL,
+      redact: { paths: REDACTED_PATHS, censor: '[redacted]' },
+      ...(options.logStream ? { stream: options.logStream } : {}),
+    },
     bodyLimit: 1_048_576,
     trustProxy: env.TRUST_PROXY,
   });
