@@ -1,0 +1,13 @@
+# Local development only. Keys mirror `livekit-server --dev` (devkey / secret).
+# Keys follow config-sample.yaml of livekit-server v1.13.10.
+port: 7880
+rtc:
+  tcp_port: 7881
+  # Single UDP port mode, as planned for production (BRIEF §9.2).
+  udp_port: 7882
+  use_external_ip: false
+  node_ip: 127.0.0.1
+keys:
+  devkey: secret
+logging:
+  level: info
