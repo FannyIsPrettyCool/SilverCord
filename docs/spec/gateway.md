@@ -54,6 +54,12 @@ sequence 1 of a new session.
 6. Unknown, expired or foreign sessions, or a `seq` older than the buffer, get
    `INVALID_SESSION { resumable: false }`; the client then identifies again.
 
+The desktop starts heartbeat timers only after READY or RESUMED. A missed ACK detaches the
+socket immediately and schedules a resume without waiting for the browser close handshake.
+Token requests belong to their original socket; late results cannot authenticate a replacement.
+Only terminal token errors end the login session. Network errors, rate limits and server failures
+retry with backoff, including during re-identification after INVALID_SESSION.
+
 ## Close codes
 
 | Code | Meaning | Client action |

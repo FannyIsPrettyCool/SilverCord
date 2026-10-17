@@ -61,6 +61,8 @@ security checklist test passes; threat model written.
 - [x] i18n setup (EN + FR, ICU)
 - [x] Login/register screens + live gateway status
 - [x] `docs/DESIGN-CHECKLIST.md` review of phase screens
+- [x] Renderer gateway review: ready-only heartbeats, retryable token errors, immediate reconnect,
+      stale socket result protection and handled re-identification failures
 
 ## Phase 2 — Social & messaging
 

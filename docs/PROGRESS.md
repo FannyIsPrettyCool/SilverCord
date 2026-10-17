@@ -3,6 +3,17 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — Phase 1 final review and VPS preparation
+
+- Renderer gateway recovery fixed with eight new regressions: heartbeats wait for READY,
+  temporary token failures retry, dead sockets detach immediately, and stale async results are ignored.
+- Baseline and full lint/type/unit verification pass. Final server integration, Electron visual
+  verification, follow-up security fixes and CI remain before merge/tag; phase 1 is not released yet.
+- Original `D:\SilverCord` checkout has only line-ending changes and is preserved. Work continues
+  in `D:\SilverCord-phase1` on `fix/phase1-review`; use native Windows Git before MSYS Git in PATH.
+- VPS SSH works via the IslandMon key; Docker installed, private test stack running on loopback.
+  User selected `silvercord.islandmon.cloud` and added its A record. SMTP is not configured.
+
 ## 2026-10-17 — Phase 1 review fixes in progress (branch `fix/phase1-review`)
 
 - Reviewer (24 findings) and security audit (18 findings) ran at phase end. Fixed and pushed:

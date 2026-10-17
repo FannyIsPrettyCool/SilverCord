@@ -1,5 +1,6 @@
 import { GatewayClose, GatewayOp } from '@silvercord/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DesktopError } from '../desktop.ts';
 import { createGatewayClient, type GatewaySocket } from './gateway-client.ts';
 
 class FakeSocket implements GatewaySocket {
@@ -133,13 +134,121 @@ describe('gateway client', () => {
     expect(states.at(-1)).toBe('closed');
   });
 
-  it('signs out when no token can be obtained', async () => {
+  it('signs out when the login session is rejected', async () => {
     const { last, onUnauthenticated } = setup(
-      vi.fn(async () => Promise.reject(new Error('revoked'))),
+      vi.fn(async () => Promise.reject(new DesktopError('TOKEN_REUSED', 'revoked'))),
     );
     last().receive({ op: GatewayOp.HELLO, d: { heartbeatIntervalMs: 1000 } });
     await flush();
     expect(onUnauthenticated).toHaveBeenCalledOnce();
+  });
+
+  it('waits for READY before starting heartbeats even with a slow token request', async () => {
+    let resolveToken: (token: string) => void = () => {};
+    const { last } = setup(
+      vi.fn(
+        () =>
+          new Promise<string>((resolve) => {
+            resolveToken = resolve;
+          }),
+      ),
+    );
+    last().receive({ op: GatewayOp.HELLO, d: { heartbeatIntervalMs: 1000 } });
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(last().sent).toEqual([]);
+    resolveToken('token');
+    await flush();
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(last().sent.map((frame) => frame.op)).toEqual([GatewayOp.IDENTIFY]);
+  });
+
+  it.each(['NETWORK', 'RATE_LIMITED', 'INTERNAL'])(
+    'retries %s token failures without signing out',
+    async (code) => {
+      const { last, onUnauthenticated } = setup(
+        vi.fn(async () => {
+          throw new DesktopError(code, 'temporary');
+        }),
+      );
+      const failed = last();
+      failed.receive({ op: GatewayOp.HELLO, d: { heartbeatIntervalMs: 1000 } });
+      await flush();
+      expect(failed.readyState).toBe(3);
+      expect(onUnauthenticated).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(sockets).toHaveLength(2);
+    },
+  );
+
+  it('detaches a zombie without waiting for the WebSocket close handshake', async () => {
+    const { last, client } = setup();
+    await handshake(last());
+    const zombie = last();
+    zombie.close = vi.fn();
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(zombie.close).toHaveBeenCalledWith(4000);
+    expect(client.state).toBe('connecting');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(sockets).toHaveLength(2);
+  });
+
+  it('handles token failure when re-identifying after INVALID_SESSION', async () => {
+    const getToken = vi.fn(async () => 'token');
+    const { last, onUnauthenticated } = setup(getToken);
+    await handshake(last());
+    getToken.mockRejectedValueOnce(new DesktopError('NETWORK', 'temporary'));
+    last().receive({ op: GatewayOp.INVALID_SESSION, d: { resumable: false } });
+    await flush();
+    expect(onUnauthenticated).not.toHaveBeenCalled();
+    expect(last().readyState).toBe(3);
+    await vi.advanceTimersByTimeAsync(1000);
+    last().receive({ op: GatewayOp.HELLO, d: { heartbeatIntervalMs: 1000 } });
+    await flush();
+    expect(last().sent[0]?.op).toBe(GatewayOp.IDENTIFY);
+  });
+
+  it('discards a token result from a socket that closed while it was pending', async () => {
+    let resolveToken: (token: string) => void = () => {};
+    const { last, getToken } = setup(
+      vi.fn(
+        () =>
+          new Promise<string>((resolve) => {
+            resolveToken = resolve;
+          }),
+      ),
+    );
+    last().receive({ op: GatewayOp.HELLO, d: { heartbeatIntervalMs: 1000 } });
+    last().close(1006);
+    await vi.advanceTimersByTimeAsync(1000);
+    getToken.mockResolvedValueOnce('new-token');
+    last().receive({ op: GatewayOp.HELLO, d: { heartbeatIntervalMs: 1000 } });
+    await flush();
+    resolveToken('old-token');
+    await flush();
+    expect(last().sent).toHaveLength(1);
+    expect(last().sent[0]?.d['token']).toBe('new-token');
+  });
+
+  it('ignores rejection from an obsolete socket', async () => {
+    let rejectToken: (error: Error) => void = () => {};
+    const { last, getToken, onUnauthenticated } = setup(
+      vi.fn(
+        () =>
+          new Promise<string>((_resolve, reject) => {
+            rejectToken = reject;
+          }),
+      ),
+    );
+    last().receive({ op: GatewayOp.HELLO, d: { heartbeatIntervalMs: 1000 } });
+    last().close(1006);
+    await vi.advanceTimersByTimeAsync(1000);
+    getToken.mockResolvedValueOnce('new-token');
+    await handshake(last());
+    rejectToken(new DesktopError('UNAUTHENTICATED', 'obsolete'));
+    await flush();
+    expect(onUnauthenticated).not.toHaveBeenCalled();
+    expect(last().readyState).toBe(1);
+    expect(states.at(-1)).toBe('ready');
   });
 
   it('backs off between failed connects', async () => {
