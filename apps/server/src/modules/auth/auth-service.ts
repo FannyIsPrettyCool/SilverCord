@@ -165,9 +165,15 @@ export function createAuthService(deps: AuthServiceDependencies) {
             if (mode === 'closed')
               throw new AppError('REGISTRATION_CLOSED', 'Registration is closed');
             if (mode === 'invite_only') {
-              if (!input.inviteCode) throw new AppError('INVITE_REQUIRED', 'An invite is required');
+              if (!input.inviteCode) {
+                throw new AppError('INVITE_REQUIRED', 'An invite is required', {
+                  field: 'inviteCode',
+                });
+              }
               if (!(await admin.consumeInvite(tx, input.inviteCode))) {
-                throw new AppError('INVITE_REQUIRED', 'Invite is invalid or expired');
+                throw new AppError('INVITE_REQUIRED', 'Invite is invalid or expired', {
+                  field: 'inviteCode',
+                });
               }
             }
           }
@@ -187,10 +193,12 @@ export function createAuthService(deps: AuthServiceDependencies) {
         return tokens;
       } catch (error) {
         const constraint = uniqueViolation(error);
-        if (constraint === 'users_email_unique')
-          throw new AppError('CONFLICT', 'Email already registered');
-        if (constraint === 'users_username_unique')
-          throw new AppError('CONFLICT', 'Username taken');
+        if (constraint === 'users_email_unique') {
+          throw new AppError('CONFLICT', 'Email already registered', { field: 'email' });
+        }
+        if (constraint === 'users_username_unique') {
+          throw new AppError('CONFLICT', 'Username taken', { field: 'username' });
+        }
         throw error;
       }
     },

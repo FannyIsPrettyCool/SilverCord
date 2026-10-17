@@ -53,6 +53,9 @@ export function registerErrorHandling(app: FastifyInstance): void {
           ...(error.retryAfterSeconds === undefined
             ? {}
             : { retryAfterSeconds: error.retryAfterSeconds }),
+          ...(error.field === undefined
+            ? {}
+            : { issues: [{ path: error.field, message: error.message }] }),
         }),
       );
     }

@@ -22,6 +22,8 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
 
 export interface AppErrorOptions {
   readonly retryAfterSeconds?: number;
+  /** Request field the error is about, surfaced as `issues[0].path` (e.g. a taken email). */
+  readonly field?: string;
   readonly cause?: unknown;
 }
 
@@ -33,6 +35,7 @@ export class AppError extends Error {
   readonly code: ErrorCode;
   readonly statusCode: number;
   readonly retryAfterSeconds: number | undefined;
+  readonly field: string | undefined;
 
   constructor(code: ErrorCode, message: string, options: AppErrorOptions = {}) {
     super(message, options.cause === undefined ? undefined : { cause: options.cause });
@@ -40,5 +43,6 @@ export class AppError extends Error {
     this.code = code;
     this.statusCode = STATUS_BY_CODE[code];
     this.retryAfterSeconds = options.retryAfterSeconds;
+    this.field = options.field;
   }
 }

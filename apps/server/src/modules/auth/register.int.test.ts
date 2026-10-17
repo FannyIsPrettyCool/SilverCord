@@ -67,7 +67,11 @@ describe('POST /api/v1/auth/register', () => {
 
   it('reports email and username conflicts case-insensitively', async () => {
     const { account } = await register(t);
-    expectError(await post(newAccount({ email: account.email.toUpperCase() })), 409, 'CONFLICT');
+    const taken = await post(newAccount({ email: account.email.toUpperCase() }));
+    expectError(taken, 409, 'CONFLICT');
+    expect(taken.json<{ error: { issues: { path: string }[] } }>().error.issues[0]?.path).toBe(
+      'email',
+    );
     expectError(
       await post(newAccount({ username: account.username.toUpperCase() })),
       409,
