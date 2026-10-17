@@ -3,6 +3,10 @@ packages:
   - packages/*
   - tools/*
 allowBuilds:
+  cpu-features: false
+  esbuild: true
   lefthook: true
+  protobufjs: false
+  ssh2: false
 minimumReleaseAgeExclude:
   - electron@44.9.0
