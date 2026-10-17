@@ -1,14 +1,14 @@
-import type { HealthResponse } from '@silvercord/protocol';
+import { healthResponseSchema } from '@silvercord/protocol';
 import type { FastifyInstance } from 'fastify';
+import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 
 export function registerHealthRoutes(app: FastifyInstance, version: string): void {
-  app.get(
-    '/health',
-    async (): Promise<HealthResponse> => ({
-      status: 'ok',
+  app
+    .withTypeProvider<ZodTypeProvider>()
+    .get('/health', { schema: { response: { 200: healthResponseSchema } } }, async () => ({
+      status: 'ok' as const,
       service: 'api',
       version,
       uptimeSeconds: process.uptime(),
-    }),
-  );
+    }));
 }

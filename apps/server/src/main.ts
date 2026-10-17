@@ -3,7 +3,7 @@ import { buildApp } from './app.ts';
 import { loadEnv } from './config/env.ts';
 
 const env = loadEnv();
-const app = buildApp(env);
+const app = await buildApp(env);
 
 closeWithGrace({ delay: 10_000 }, async ({ err }) => {
   if (err) app.log.error({ err }, 'shutting down after error');
