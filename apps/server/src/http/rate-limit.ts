@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { BucketPolicy, RateLimiter } from '../infra/rate-limiter.ts';
 import { AppError } from './app-error.ts';
+import { clientSubject } from './client-subject.ts';
 
 export interface RateLimitRule {
   /** Bucket namespace, e.g. `auth.login`. Buckets with the same name share state across routes. */
@@ -21,7 +23,7 @@ declare module 'fastify' {
 }
 
 export function perIp(name: string, policy: BucketPolicy): RateLimitRule {
-  return { name, policy, key: (request) => request.ip };
+  return { name, policy, key: (request) => clientSubject(request.ip) };
 }
 
 /** Keyed by the authenticated user; skipped for anonymous requests. */
@@ -41,10 +43,17 @@ export function perBodyField(name: string, policy: BucketPolicy, field: string):
       const body: unknown = request.body;
       if (typeof body !== 'object' || body === null || !(field in body)) return null;
       const value: unknown = (body as Record<string, unknown>)[field];
-      return typeof value === 'string' && value.length > 0 ? value.trim().toLowerCase() : null;
+      if (typeof value !== 'string' || value.length === 0) return null;
+      // Unvalidated input: hash it so a huge value can't become a huge Valkey key, and send
+      // anything far over every schema limit to one shared bucket.
+      if (value.length > MAX_KEYED_FIELD_LENGTH) return 'oversize';
+      return createHash('sha256').update(value.trim().toLowerCase()).digest('base64url');
     },
   };
 }
+
+/** Longer than any field a body-keyed rule is used on (emails 254, tickets ~600). */
+const MAX_KEYED_FIELD_LENGTH = 4096;
 
 /** Applies to every request before route rules: coarse flood protection per client IP. */
 export const GLOBAL_IP_POLICY: BucketPolicy = { capacity: 120, refillPerSecond: 20 };
