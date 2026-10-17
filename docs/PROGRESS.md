@@ -3,6 +3,23 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-17 — Phase 1 started
+
+Plan (each step = branch `feat/<scope>-<slug>`, merged `--no-ff`, pushed):
+1. `docs/spec/threat-model.md`.
+2. protocol: snowflake ids, error envelope + codes, pagination/common schemas.
+3. server foundations: error handler, OpenAPI at `/api/v1/openapi.json`, Drizzle + migrations +
+   Testcontainers harness, Valkey client + token-bucket rate limiter.
+4. `docs/spec/auth.md` → auth: register modes, Argon2id, login, JWT + rotating refresh with
+   reuse detection, sessions, email verify + reset (Mailpit), TOTP + recovery codes.
+5. `docs/spec/gateway.md` → gateway: HELLO/IDENTIFY/READY/HEARTBEAT/RESUME, Valkey stream buffer,
+   conformance tests.
+6. desktop shell: CSP, typed IPC with Zod + sender checks, fuses, safeStorage, titlebar, tray,
+   security checklist test.
+7. ui: tokens, 3 themes, fonts, `<Glass>` tiers + governor, ambient layer, Storybook + snapshots.
+8. i18n EN/FR, login/register screens, gateway status, `pnpm ui:shots`, design review.
+Escalations expected: none for phase 1 (SMTP is Mailpit locally).
+
 ## 2026-10-17 — Phase 0 complete (pending tag)
 
 - Done: monorepo + hooks, docs/ADRs 0001–0004, CLAUDE.md, `.claude/` agents/commands/hooks,

@@ -35,7 +35,7 @@ Accept: fresh clone → `pnpm i && pnpm dev` boots server + empty Electron windo
 Accept: sign up, log in, see live gateway connection; glass renders in all tiers;
 security checklist test passes; threat model written.
 
-- [ ] `docs/spec/threat-model.md`
+- [x] `docs/spec/threat-model.md`
 - [ ] Snowflake id generator (+ property tests) in `packages/protocol`
 - [ ] Error envelope + machine codes in `packages/protocol`
 - [ ] REST schema conventions, OpenAPI generation at `/api/v1/openapi.json`
