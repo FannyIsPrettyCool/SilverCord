@@ -432,6 +432,10 @@ export function createAuthService(deps: AuthServiceDependencies) {
       });
     },
 
+    async isSessionActive(sessionId: bigint): Promise<boolean> {
+      return repo.isSessionActive(db, sessionId);
+    },
+
     async isInstanceAdmin(userId: bigint): Promise<boolean> {
       return (await users.findById(db, userId))?.isInstanceAdmin === true;
     },

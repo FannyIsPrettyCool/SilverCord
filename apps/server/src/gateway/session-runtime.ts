@@ -19,6 +19,8 @@ export interface SessionRuntime {
   dispatch(t: DispatchEventName, d: unknown): Promise<void>;
   attach(socket: AttachedSocket): void;
   detach(socket: AttachedSocket): void;
+  /** Whether a socket currently receives this session's events. */
+  isAttached(): boolean;
   dispose(): Promise<void>;
 }
 
@@ -65,6 +67,7 @@ export async function createSessionRuntime(
       clearTimeout(expiry);
       attached = socket;
     },
+    isAttached: () => attached !== null,
     detach(socket) {
       if (attached !== socket) return;
       attached = null;

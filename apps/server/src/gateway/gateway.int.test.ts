@@ -1,5 +1,6 @@
 import { connect } from 'node:net';
 import { GatewayClose, GatewayOp, readyEventSchema } from '@silvercord/protocol';
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bearer, openRegistration, register, tokenFromLink } from '../../test/auth-helpers.ts';
 import { TestGatewayClient } from '../../test/gateway-client.ts';
@@ -264,5 +265,32 @@ describe('gateway upgrade hardening', () => {
     });
     const health = await fetch(`${baseUrl}/health`);
     expect(health.status).toBe(200);
+  });
+});
+
+describe('gateway session revalidation', () => {
+  let t: TestApp;
+  let baseUrl: string;
+  beforeAll(async () => {
+    t = await createTestApp({ gateway: { heartbeatIntervalMs: 300 } });
+    await openRegistration(t);
+    baseUrl = await t.app.listen({ host: '127.0.0.1', port: 0 });
+  });
+  afterAll(() => t.close());
+
+  it('closes a socket whose session was revoked even if the kick was lost', async () => {
+    const { tokens } = await register(t, { username: `reval_${Date.now() % 100_000}` });
+    const client = await TestGatewayClient.connect(baseUrl);
+    client.identify(tokens.accessToken);
+    await client.dispatch('READY');
+    // Revoke in the database only: no pub/sub kick is published.
+    await t.context.database.db.execute(
+      sql`update sessions set revoked_at = now() where user_id = ${BigInt(tokens.user.id)}`,
+    );
+    for (let i = 0; i < 5; i++) {
+      client.send({ op: GatewayOp.HEARTBEAT, d: { seq: 1 } });
+      await client.next((f) => f.op === GatewayOp.HEARTBEAT_ACK);
+    }
+    expect(await client.closed).toBe(GatewayClose.AUTHENTICATION_FAILED);
   });
 });

@@ -100,6 +100,7 @@ export async function buildApp(
       sessions: createSessionStore(context.valkey),
       subscriber,
       loadUser: auth.me,
+      isAuthSessionActive: auth.isSessionActive,
       log: app.log,
       rateLimiter: context.rateLimiter,
       trustProxy: env.TRUST_PROXY,

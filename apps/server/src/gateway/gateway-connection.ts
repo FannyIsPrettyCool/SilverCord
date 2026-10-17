@@ -38,9 +38,14 @@ export interface ConnectionDependencies {
   readonly sessions: SessionStore;
   readonly subscriber: EventSubscriber;
   readonly loadUser: (userId: bigint) => Promise<CurrentUser>;
+  /** Authoritative (database) check that the REST session behind a socket is still valid. */
+  readonly isAuthSessionActive: (sessionId: bigint) => Promise<boolean>;
   readonly state: GatewayState;
   readonly log: { warn(object: object, message: string): void };
 }
+
+/** ~3.5 minutes at the default 41.25 s interval. */
+const REVALIDATE_EVERY_HEARTBEATS = 5;
 
 /** Local token bucket: the connection is pinned to this process, so no shared state is needed. */
 function createOpBudget(perMinute: number) {
@@ -85,6 +90,7 @@ export function handleConnection(
   };
 
   let heartbeatTimer: NodeJS.Timeout | undefined;
+  let heartbeats = 0;
   const armHeartbeatDeadline = () => {
     clearTimeout(heartbeatTimer);
     heartbeatTimer = setTimeout(
@@ -131,12 +137,24 @@ export function handleConnection(
     return claims;
   }
 
+  /**
+   * Detached runtimes stay alive for the resume window; cap how many one user may accumulate so
+   * reconnect loops can't grow memory without bound (ADR-0006). Oldest detached go first.
+   */
+  function evictDetachedRuntimes(userId: bigint) {
+    const mine = [...runtimes.values()].filter((candidate) => candidate.session.userId === userId);
+    const detached = mine.filter((candidate) => !candidate.isAttached());
+    const excess = mine.length - options.maxConnectionsPerUser * 2 + 1;
+    for (const stale of detached.slice(0, Math.max(0, excess))) void stale.dispose();
+  }
+
   /** The socket may close during any await of a handshake; every step re-checks. */
   const isClosed = () => state === 'closed' || socket.readyState !== socket.OPEN;
 
   async function identify(frame: Extract<ClientFrame, { op: 2 }>) {
     const claims = await authenticate(frame.d.token);
     if (!claims || isClosed()) return;
+    evictDetachedRuntimes(claims.userId);
     const session = await deps.sessions.create(claims.userId, claims.sessionId);
     const created = await createSessionRuntime(session, {
       sessions: deps.sessions,
@@ -221,6 +239,13 @@ export function handleConnection(
       send({ op: GatewayOp.HEARTBEAT_ACK, d: {} });
       const current = runtime;
       if (current) void current.run(() => deps.sessions.touch(current.session.id));
+      heartbeats += 1;
+      // A kick can be lost while Valkey pub/sub reconnects: re-check the session now and then.
+      if (current && heartbeats % REVALIDATE_EVERY_HEARTBEATS === 0) {
+        void deps.isAuthSessionActive(current.session.authSessionId).then((active) => {
+          if (!active) close(GatewayClose.AUTHENTICATION_FAILED);
+        });
+      }
       return;
     }
     if (state !== 'awaiting-auth') return close(GatewayClose.ALREADY_AUTHENTICATED);

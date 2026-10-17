@@ -48,6 +48,15 @@ export const authRepository = {
     return row !== undefined;
   },
 
+  async isSessionActive(ex: Executor, sessionId: bigint): Promise<boolean> {
+    const [row] = await ex
+      .select({ id: sessions.id })
+      .from(sessions)
+      .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt)))
+      .limit(1);
+    return row !== undefined;
+  },
+
   async listActiveSessions(ex: Executor, userId: bigint): Promise<SessionRow[]> {
     return ex
       .select()
