@@ -2,6 +2,7 @@ import fastifySwagger from '@fastify/swagger';
 import { BRAND } from '@silvercord/protocol';
 import type { FastifyInstance } from 'fastify';
 import { jsonSchemaTransform } from 'fastify-type-provider-zod';
+import { perIp } from './rate-limit.ts';
 
 /**
  * Generates the OpenAPI document from the same Zod schemas that validate requests, and serves it
@@ -18,5 +19,12 @@ export async function registerOpenApi(app: FastifyInstance, version: string): Pr
     },
     transform: jsonSchemaTransform,
   });
-  app.get('/api/v1/openapi.json', { schema: { hide: true } }, () => app.swagger());
+  app.get(
+    '/api/v1/openapi.json',
+    {
+      schema: { hide: true },
+      config: { rateLimit: [perIp('openapi', { capacity: 10, refillPerSecond: 0.2 })] },
+    },
+    () => app.swagger(),
+  );
 }

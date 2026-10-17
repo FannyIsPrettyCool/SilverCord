@@ -1,13 +1,16 @@
 import { healthResponseSchema } from '@silvercord/protocol';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createMemoryRateLimiter } from '../test/memory-rate-limiter.ts';
 import { buildApp } from './app.ts';
 import { loadEnv } from './config/env.ts';
 
 describe('GET /health', () => {
   let app: FastifyInstance;
   beforeAll(async () => {
-    app = await buildApp(loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'silent' }));
+    app = await buildApp(loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'silent' }), {
+      rateLimiter: createMemoryRateLimiter(),
+    });
   });
   afterAll(() => app.close());
 
@@ -20,7 +23,9 @@ describe('GET /health', () => {
 
 describe('GET /api/v1/openapi.json', () => {
   it('publishes an OpenAPI 3.1 document that includes /health', async () => {
-    const app = await buildApp(loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'silent' }));
+    const app = await buildApp(loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'silent' }), {
+      rateLimiter: createMemoryRateLimiter(),
+    });
     const response = await app.inject({ method: 'GET', url: '/api/v1/openapi.json' });
     await app.close();
     expect(response.statusCode).toBe(200);

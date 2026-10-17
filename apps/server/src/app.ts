@@ -4,6 +4,8 @@ import { registerHealthRoutes } from './api/health-routes.ts';
 import type { Env } from './config/env.ts';
 import { registerErrorHandling } from './http/error-handler.ts';
 import { registerOpenApi } from './http/openapi.ts';
+import { registerRateLimiting } from './http/rate-limit.ts';
+import type { RateLimiter } from './infra/rate-limiter.ts';
 
 export const VERSION = '0.0.0';
 
@@ -17,8 +19,12 @@ const REDACTED_PATHS = [
   '*.code',
 ];
 
+export interface AppDependencies {
+  readonly rateLimiter: RateLimiter;
+}
+
 /** Builds the HTTP app without listening, so tests can use `app.inject`. */
-export async function buildApp(env: Env): Promise<FastifyInstance> {
+export async function buildApp(env: Env, deps: AppDependencies): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: env.LOG_LEVEL, redact: { paths: REDACTED_PATHS, censor: '[redacted]' } },
     bodyLimit: 1_048_576,
@@ -27,6 +33,7 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   registerErrorHandling(app);
+  registerRateLimiting(app, deps.rateLimiter);
   await registerOpenApi(app, VERSION);
   registerHealthRoutes(app, VERSION);
   return app;
