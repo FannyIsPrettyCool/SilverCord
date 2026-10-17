@@ -57,3 +57,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Electron end-to-end
         run: xvfb-run --auto-servernum pnpm turbo run test:e2e
+      - name: Package and verify fuses
+        run: pnpm --filter @silvercord/desktop test:package
