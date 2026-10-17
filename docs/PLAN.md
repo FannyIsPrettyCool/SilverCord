@@ -26,8 +26,8 @@ Accept: fresh clone → `pnpm i && pnpm dev` boots server + empty Electron windo
 - [x] `infra/docker-compose.dev.yml`: Postgres, Valkey, LiveKit (dev), Mailpit, local storage dir
 - [x] Root scripts: `dev`, `verify`, `verify:full`, `ui:shots`, `db:migrate`, `db:seed`, `release`
 - [x] `.github/workflows/ci.yml` (thin): lint, typecheck, unit tests, commit-message check
-- [ ] Acceptance run: fresh clone → install → dev boots server + window; verify green
-- [ ] Tag `v0.0.0`
+- [x] Acceptance run: fresh clone → install → dev boots server + window; verify green
+- [x] Tag `v0.0.0`
 - [x] CI run on GitHub Actions confirmed green
 
 ## Phase 1 — Core platform + design system v1

@@ -50,6 +50,8 @@ Full brief: `docs/BRIEF.md` (verbatim, never edit). Keep this file ≤200 lines.
 - Fastify 5.12: `disableRequestLogging` top-level option is deprecated.
 - Postgres 18 image: mount the volume at `/var/lib/postgresql` (not `/data`).
 - LiveKit config keys: check `config-sample.yaml` at the pinned tag on GitHub; docs.livekit.io moved paths.
+- The workstation's global gitignore excludes `**/.claude/`; repo `.gitignore` re-includes it. Always check `git status` shows new `.claude/` files before committing; verify on a fresh clone at phase end.
+- `.claude/hooks/guard-bash.ts` is live in this session: it strips quoted text before matching, so messages may mention forbidden flags.
 - Biome `useLiteralKeys` is off (conflicts with `noPropertyAccessFromIndexSignature`).
 
 ## Agents & commands (`.claude/`)

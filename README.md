@@ -12,7 +12,7 @@
 
 <p align="center">
   <img alt="Status: pre-alpha" src="https://img.shields.io/badge/status-pre--alpha-8B7BFF?style=flat-square&labelColor=0A0C16">
-  <img alt="Phase 0 of 9" src="https://img.shields.io/badge/phase-0%20%2F%209-4FD8FF?style=flat-square&labelColor=0A0C16">
+  <img alt="Phase 1 of 9" src="https://img.shields.io/badge/phase-1%20%2F%209-4FD8FF?style=flat-square&labelColor=0A0C16">
   <img alt="Electron 44" src="https://img.shields.io/badge/electron-44-6C8CFF?style=flat-square&labelColor=0A0C16&logo=electron&logoColor=white">
   <img alt="Node 24 LTS" src="https://img.shields.io/badge/node-24%20LTS-6C8CFF?style=flat-square&labelColor=0A0C16&logo=nodedotjs&logoColor=white">
   <img alt="TypeScript 7" src="https://img.shields.io/badge/typescript-7-6C8CFF?style=flat-square&labelColor=0A0C16&logo=typescript&logoColor=white">
@@ -22,7 +22,7 @@
 ---
 
 > [!NOTE]
-> SilverCord is being built in the open, phase by phase. Today it's the foundation: a
+> SilverCord is being built in the open, phase by phase. Phase 0 (foundations) is done: a
 > hardened Electron shell, a Fastify server and the tooling around them. The sections
 > below describe where it's going. The roadmap shows where it is.
 
