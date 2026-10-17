@@ -50,9 +50,16 @@ export async function verifyTotp(
 
 /** Ten single-use codes shown once, formatted `xxxxx-xxxxx`. */
 export function generateRecoveryCodes(count = 10): string[] {
+  // Rejection sampling: `byte % 31` would favour the first characters of the alphabet.
+  const limit = 256 - (256 % RECOVERY_ALPHABET.length);
   return Array.from({ length: count }, () => {
-    const bytes = randomBytes(10);
-    const chars = Array.from(bytes, (byte) => RECOVERY_ALPHABET[byte % RECOVERY_ALPHABET.length]);
+    const chars: string[] = [];
+    while (chars.length < 10) {
+      for (const byte of randomBytes(16)) {
+        if (byte < limit && chars.length < 10)
+          chars.push(RECOVERY_ALPHABET[byte % RECOVERY_ALPHABET.length] ?? '');
+      }
+    }
     return `${chars.slice(0, 5).join('')}-${chars.slice(5).join('')}`;
   });
 }

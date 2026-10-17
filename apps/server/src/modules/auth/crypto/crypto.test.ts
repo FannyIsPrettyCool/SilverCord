@@ -81,3 +81,17 @@ describe('token issuer', () => {
     expect(await codeOf(issuer.verifyAccessToken('garbage'))).toBe('TOKEN_INVALID');
   });
 });
+
+describe('recovery codes', () => {
+  it('are unbiased-format codes and hash differently under different peppers', async () => {
+    const { generateRecoveryCodes } = await import('../totp.ts');
+    const { createCodeHasher } = await import('./code-hasher.ts');
+    const codes = generateRecoveryCodes();
+    expect(new Set(codes).size).toBe(10);
+    for (const code of codes) expect(code).toMatch(/^[a-z2-9]{5}-[a-z2-9]{5}$/);
+    const a = createCodeHasher(Buffer.alloc(32, 1).toString('base64'));
+    const b = createCodeHasher(Buffer.alloc(32, 2).toString('base64'));
+    expect(a('abcde12345').equals(a('abcde12345'))).toBe(true);
+    expect(a('abcde12345').equals(b('abcde12345'))).toBe(false);
+  });
+});

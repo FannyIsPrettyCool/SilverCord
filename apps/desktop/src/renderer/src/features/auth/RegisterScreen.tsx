@@ -103,7 +103,12 @@ export function RegisterScreen() {
           onChange={set('inviteCode')}
           error={errors.inviteCode}
         />
-        <Checkbox checked={age} onCheckedChange={setAge} required>
+        <Checkbox
+          checked={age}
+          onCheckedChange={setAge}
+          required
+          aria-invalid={Boolean(errors.age)}
+        >
           {t('register.age')}
         </Checkbox>
         {errors.age ? (

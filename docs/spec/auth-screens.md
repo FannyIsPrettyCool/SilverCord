@@ -21,8 +21,8 @@ The reset-password and verify-email screens open from deep links, which arrive i
 
 - Custom title bar (40 px, draggable) across the top; native window controls are drawn by
   the OS overlay on Windows/Linux, so the right 140 px stay empty.
-- Auth screens: one level-3 glass panel, 400 px wide, placed on the left third of the window
-  (not centred) so the aurora carries the right side. Wordmark above the panel.
+- Auth screens: one level-3 glass panel, 400 px wide, centered in the window below the title bar
+  (owner preference, 2026-10-18). Tall forms scroll from their top in short windows.
 - Shell: 72 px server rail · 240 px sidebar (glass) · content (quiet content layer). User panel
   docked bottom-left of the sidebar.
 
@@ -91,6 +91,12 @@ Errors (shown under the related field, or under the submit button when not field
 - Submit buttons show a spinner and stay the same width; errors announce via `role="alert"`.
 - Keyboard: every action reachable with Tab; Enter submits; focus starts in the first field.
 - Locale: the app locale (from the OS, `en` fallback) is sent at registration.
+- The code route requires a pending MFA challenge from a completed password step. Direct
+  access, abandoned challenges and terminal ticket errors return to sign-in. Success, a new
+  password step, restore and sign-out clear the challenge; retryable errors retain it.
+- TOKEN_EXPIRED, TOKEN_REUSED and UNAUTHENTICATED use the session-expired error copy.
+- Age confirmation exposes `aria-invalid` after validation failure. Panel entrance animates
+  transform only so the glass backdrop stays composited.
 
 ## Acceptance criteria
 

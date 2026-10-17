@@ -19,6 +19,8 @@ export interface SessionRuntime {
   dispatch(t: DispatchEventName, d: unknown): Promise<void>;
   attach(socket: AttachedSocket): void;
   detach(socket: AttachedSocket): void;
+  /** Whether a socket currently receives this session's events. */
+  isAttached(): boolean;
   dispose(): Promise<void>;
 }
 
@@ -28,6 +30,10 @@ export interface RuntimeDependencies {
   readonly onError: (error: unknown) => void;
   /** Called once when the runtime ends (expiry, kick or explicit dispose). */
   readonly onDisposed: (runtime: SessionRuntime) => void;
+  /** Builds the session's first dispatch (READY) after subscriptions are live. */
+  readonly firstEvent?: () => Promise<{ t: DispatchEventName; d: unknown }>;
+  /** Socket attached from the start, so the first event cannot be dispatched to nobody. */
+  readonly initialSocket?: AttachedSocket;
 }
 
 export async function createSessionRuntime(
@@ -35,7 +41,7 @@ export async function createSessionRuntime(
   deps: RuntimeDependencies,
 ): Promise<SessionRuntime> {
   let queue: Promise<unknown> = Promise.resolve();
-  let attached: AttachedSocket | null = null;
+  let attached: AttachedSocket | null = deps.initialSocket ?? null;
   let expiry: NodeJS.Timeout | undefined;
   let disposed = false;
   const unsubscribers: (() => Promise<void>)[] = [];
@@ -61,6 +67,7 @@ export async function createSessionRuntime(
       clearTimeout(expiry);
       attached = socket;
     },
+    isAttached: () => attached !== null,
     detach(socket) {
       if (attached !== socket) return;
       attached = null;
@@ -79,10 +86,29 @@ export async function createSessionRuntime(
   function onMessage(message: BusMessage) {
     if (message.kind === 'kick') {
       attached?.kick();
-      void run(() => deps.sessions.destroy(session.id)).then(() => runtime.dispose());
+      void run(() => deps.sessions.destroy(session.id))
+        // run already reports the destroy error. Always release local subscriptions too.
+        .catch(() => undefined)
+        .then(() => runtime.dispose())
+        .catch(deps.onError);
       return;
     }
     void run(() => dispatch(message.t, message.d));
+  }
+
+  // The first event (READY) is queued before any bus message can be, and is built only once
+  // the subscriptions are live, so nothing published in between is lost and it keeps seq 1.
+  let markSubscribed: () => void = () => {};
+  const subscribed = new Promise<void>((resolve) => {
+    markSubscribed = resolve;
+  });
+  const first = deps.firstEvent;
+  if (first) {
+    void run(async () => {
+      await subscribed;
+      const { t, d } = await first();
+      await dispatch(t, d);
+    });
   }
 
   for (const channel of [
@@ -91,5 +117,6 @@ export async function createSessionRuntime(
   ]) {
     unsubscribers.push(await deps.subscriber.subscribe(channel, onMessage));
   }
+  markSubscribed();
   return runtime;
 }

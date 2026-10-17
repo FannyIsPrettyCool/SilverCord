@@ -1,4 +1,5 @@
 import { GatewayClose, GatewayOp, serverFrameSchema } from '@silvercord/protocol';
+import { DesktopError } from '../desktop.ts';
 
 export type GatewayState = 'idle' | 'connecting' | 'ready' | 'closed';
 
@@ -27,6 +28,12 @@ export interface GatewayClientOptions {
 
 const BACKOFF_MS = [1000, 2000, 5000, 10_000, 30_000] as const;
 const OPEN = 1;
+const SESSION_ENDING = new Set([
+  'TOKEN_INVALID',
+  'TOKEN_EXPIRED',
+  'TOKEN_REUSED',
+  'UNAUTHENTICATED',
+]);
 
 /** Codes after which resuming is pointless and a fresh IDENTIFY is needed. */
 const IDENTIFY_AGAIN = new Set<number>([GatewayClose.NOT_AUTHENTICATED]);
@@ -46,6 +53,7 @@ export function createGatewayClient(options: GatewayClientOptions) {
   let heartbeatTimer: ReturnType<typeof setTimeout> | undefined;
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   let acknowledged = true;
+  let heartbeatIntervalMs = 0;
   let attempt = 0;
   let authFailures = 0;
   let stopped = false;
@@ -71,7 +79,7 @@ export function createGatewayClient(options: GatewayClientOptions) {
     const beat = () => {
       if (!acknowledged) {
         // No ACK since the last beat: the connection is a zombie. Drop it and resume.
-        socket?.close(4000);
+        if (socket) drop(socket, 4000);
         return;
       }
       acknowledged = false;
@@ -82,17 +90,31 @@ export function createGatewayClient(options: GatewayClientOptions) {
     heartbeatTimer = setTimeout(beat, intervalMs * random());
   }
 
-  async function authenticate() {
-    const token = await options.getToken();
-    const client = options.client ?? { name: 'desktop', version: '0.0.0', os: 'unknown' };
-    if (sessionId !== null && seq !== null) {
-      send({ op: GatewayOp.RESUME, d: { token, sessionId, seq } });
-    } else {
-      send({ op: GatewayOp.IDENTIFY, d: { token, client } });
+  async function authenticate(current: GatewaySocket) {
+    try {
+      const token = await options.getToken();
+      // Token refresh can outlive the connection that requested it.
+      if (stopped || socket !== current || current.readyState !== OPEN) return;
+      const client = options.client ?? { name: 'desktop', version: '0.0.0', os: 'unknown' };
+      if (sessionId !== null && seq !== null) {
+        send({ op: GatewayOp.RESUME, d: { token, sessionId, seq } });
+      } else {
+        send({ op: GatewayOp.IDENTIFY, d: { token, client } });
+      }
+    } catch (error) {
+      if (stopped || socket !== current) return;
+      if (error instanceof DesktopError && SESSION_ENDING.has(error.code)) {
+        stopped = true;
+        drop(current, 1000);
+        options.onUnauthenticated?.();
+      } else {
+        // Network errors, rate limits and server failures leave the login session intact.
+        drop(current, 4000);
+      }
     }
   }
 
-  function handleMessage(raw: unknown) {
+  function handleMessage(current: GatewaySocket, raw: unknown) {
     let json: unknown;
     try {
       json = JSON.parse(String(raw));
@@ -104,12 +126,8 @@ export function createGatewayClient(options: GatewayClientOptions) {
     const frame = parsed.data;
     switch (frame.op) {
       case GatewayOp.HELLO:
-        startHeartbeat(frame.d.heartbeatIntervalMs);
-        authenticate().catch(() => {
-          stopped = true;
-          socket?.close(1000);
-          options.onUnauthenticated?.();
-        });
+        heartbeatIntervalMs = frame.d.heartbeatIntervalMs;
+        void authenticate(current);
         return;
       case GatewayOp.HEARTBEAT_ACK:
         acknowledged = true;
@@ -117,10 +135,12 @@ export function createGatewayClient(options: GatewayClientOptions) {
       case GatewayOp.INVALID_SESSION:
         sessionId = null;
         seq = null;
-        void authenticate();
+        stopHeartbeat();
+        setState('connecting');
+        void authenticate(current);
         return;
       case GatewayOp.RECONNECT:
-        socket?.close(4000);
+        drop(current, 4000);
         return;
       case GatewayOp.DISPATCH:
         seq = frame.s;
@@ -132,15 +152,26 @@ export function createGatewayClient(options: GatewayClientOptions) {
           attempt = 0;
           authFailures = 0;
           setState('ready');
+          startHeartbeat(heartbeatIntervalMs);
         }
         options.onDispatch?.(frame.t, frame.d);
     }
   }
 
   function scheduleReconnect() {
+    clearTimeout(reconnectTimer);
     const base = BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)] ?? 30_000;
     attempt += 1;
     reconnectTimer = setTimeout(open, base * (0.75 + random() * 0.5));
+  }
+
+  function drop(current: GatewaySocket, code: number) {
+    if (socket !== current) return;
+    // Detach immediately: the browser's close handshake can take many seconds on a dead link.
+    current.onmessage = null;
+    current.onclose = null;
+    handleClose(code);
+    current.close(code);
   }
 
   function handleClose(code: number) {
@@ -170,12 +201,14 @@ export function createGatewayClient(options: GatewayClientOptions) {
   }
 
   function open() {
+    reconnectTimer = undefined;
     if (stopped) return;
     setState('connecting');
     const current = createSocket(options.url);
     socket = current;
+    heartbeatIntervalMs = 0;
     current.onmessage = (event) => {
-      if (socket === current) handleMessage(event.data);
+      if (socket === current) handleMessage(current, event.data);
     };
     current.onclose = (event) => {
       if (socket === current) handleClose(event.code);
@@ -187,12 +220,14 @@ export function createGatewayClient(options: GatewayClientOptions) {
       return state;
     },
     start() {
+      if (socket || reconnectTimer !== undefined) return;
       stopped = false;
       open();
     },
     stop() {
       stopped = true;
       clearTimeout(reconnectTimer);
+      reconnectTimer = undefined;
       stopHeartbeat();
       socket?.close(1000);
       socket = null;

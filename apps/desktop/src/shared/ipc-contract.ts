@@ -5,9 +5,12 @@ import type { CurrentUser, ErrorCode } from '@silvercord/protocol';
  * process holds them and talks to the auth API itself (threat model T5).
  * Type-only module, so the sandboxed preload bundle stays free of runtime dependencies.
  */
+/** Server error codes plus the one failure only the client can see. */
+export type DesktopErrorCode = ErrorCode | 'NETWORK';
+
 export type IpcResult<T> =
   | { ok: true; value: T }
-  | { ok: false; error: { code: ErrorCode | 'NETWORK'; message: string; field?: string } };
+  | { ok: false; error: { code: DesktopErrorCode; message: string; field?: string } };
 
 export interface SessionSnapshot {
   readonly user: CurrentUser;
@@ -40,14 +43,15 @@ export interface DesktopConfig {
 
 /** Channel name → [input, output]. */
 export interface IpcChannels {
-  'config:get': [void, DesktopConfig];
-  'auth:restore': [void, SessionSnapshot | null];
+  'config:get': [undefined, DesktopConfig];
+  'auth:restore': [undefined, SessionSnapshot | null];
   'auth:register': [RegisterInput, SessionSnapshot];
   'auth:login': [{ login: string; password: string }, LoginOutcome];
   'auth:login-second-factor': [{ code: string } | { recoveryCode: string }, SessionSnapshot];
-  'auth:access-token': [void, SessionSnapshot];
-  'auth:logout': [void, null];
-  'window:toggle-maximize': [void, boolean];
+  'auth:access-token': [undefined, SessionSnapshot];
+  'auth:logout': [undefined, null];
+  'auth:forgot-password': [{ email: string }, null];
+  'window:toggle-maximize': [undefined, boolean];
 }
 
 export type IpcChannel = keyof IpcChannels;
@@ -62,5 +66,6 @@ export const IPC_CHANNELS = [
   'auth:login-second-factor',
   'auth:access-token',
   'auth:logout',
+  'auth:forgot-password',
   'window:toggle-maximize',
 ] as const satisfies readonly IpcChannel[];

@@ -27,6 +27,7 @@ for (const theme of THEMES) {
       cwd: join(import.meta.dirname, '../..'),
     });
     const page = await app.firstWindow();
+    await page.setViewportSize({ width: 1280, height: 960 });
     const base = `app://bundle/index.html?theme=${theme}&tier=high&still`;
     const shoot = async (name: string) => {
       await page.evaluate(() => document.fonts.ready);
@@ -38,12 +39,23 @@ for (const theme of THEMES) {
       ['/sign-in', 'sign-in'],
       ['/register', 'register'],
       ['/forgot-password', 'forgot-password'],
-      ['/sign-in/code', 'code'],
     ] as const) {
       await page.goto(`${base}#${route}`);
       await expect(page.getByRole('heading')).toBeVisible();
       await shoot(name);
     }
+
+    // A direct code URL must stay inaccessible without the password step.
+    await page.goto(`${base}#/sign-in/code`);
+    await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
+    await page.getByLabel(/Email or username/).fill('mfa_preview');
+    await page.getByLabel(/^Password/).fill('silvercord-dev-password');
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Verification code' })).toBeVisible();
+    await expect(page.getByLabel('6-digit code')).toBeVisible();
+    await shoot('code');
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
 
     await page.goto(`${base}#/sign-in`);
     await page

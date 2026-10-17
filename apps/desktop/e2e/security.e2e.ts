@@ -122,6 +122,16 @@ test('permissions outside the allow-list are denied', async () => {
   expect(['denied', 'error']).toContain(states.midi);
 });
 
+test('the app origin can request notifications', async () => {
+  const permission = await page.evaluate(() => Notification.requestPermission());
+  expect(permission).toBe('granted');
+  expect(
+    await page.evaluate(
+      async () => (await navigator.permissions.query({ name: 'notifications' })).state,
+    ),
+  ).toBe('granted');
+});
+
 test('ipc rejects invalid input', async () => {
   const result = await page.evaluate(() =>
     (

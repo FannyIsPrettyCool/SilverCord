@@ -28,8 +28,9 @@ IPs are kept on `sessions` only and cleared after 90 days by a cleanup job (§8.
 
 - **Access token:** JWT HS256 (`jose`), 10 minutes, claims `sub` (user id string), `sid`
   (session id string), `iat`, `exp`, `iss = silvercord`. Sent as `Authorization: Bearer`.
-  Every authenticated request checks that `sid` is not revoked (Valkey set
-  `revoked-sessions`, populated on revoke, TTL = access lifetime; DB is the source of truth).
+  Every authenticated request checks `revoked-session:<sid>` in Valkey and, unless already
+  rejected there, confirms the database session is active. A missing cache marker after failed
+  publication or cache loss must never restore a revoked token. Gateway handshakes do the same.
 - **Refresh token:** 32 random bytes, base64url, prefixed `scr_`. Only its SHA-256 is stored.
   30-day lifetime. **Rotation:** each refresh marks the presented token used and issues a new
   one in the same session. **Reuse detection:** presenting an already-used token revokes the
@@ -38,6 +39,10 @@ IPs are kept on `sessions` only and cleared after 90 days by a cleanup job (§8.
   client never presents the same token twice.
 - **MFA ticket:** JWT, 5 minutes, `typ = mfa`, `sub`, used only by `/auth/login/totp`.
 - **Email tokens:** 32 random bytes, SHA-256 stored; verify 48 h, reset 30 min; single use.
+
+The desktop binds login, registration, MFA and restore results to the generation that started
+them. Logout invalidates older results; serialized token-store writes ensure its clear finishes
+after prior saves. Delayed network responses or disk operations cannot restore a logged-out user.
 
 ## Passwords
 
@@ -61,7 +66,7 @@ behind `HIBP_ENABLED` (default off: it calls an external service).
 | `POST /auth/email/resend` | bearer | → `204` | 3/h per user |
 | `POST /auth/password/forgot` | – | `{ email }` → `202` always | 3/h per IP, 3/h per email |
 | `POST /auth/password/reset` | – | `{ token, password }` → `204`, revokes all sessions | 10/h per IP |
-| `POST /auth/totp/setup` | bearer | → `{ secret, otpauthUri }` (unconfirmed) | 5/h per user |
+| `POST /auth/totp/setup` | bearer | `{ password }` → `{ secret, otpauthUri }` (unconfirmed; re-auth so a stolen access token can't enrol) | 5/h per user |
 | `POST /auth/totp/enable` | bearer | `{ code }` → `{ recoveryCodes: string[10] }` | 10/h per user |
 | `POST /auth/totp/disable` | bearer | `{ password, code }` → `204` | 10/h per user |
 | `GET /users/@me` | bearer | → `CurrentUser` | default |

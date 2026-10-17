@@ -21,6 +21,11 @@ describe('loadEnv', () => {
     expect(loadEnv(production).NODE_ENV).toBe('production');
   });
 
+  it('refuses development secrets when bound beyond loopback, whatever NODE_ENV says', () => {
+    expect(() => loadEnv({ HOST: '0.0.0.0' })).toThrow(/non-loopback/);
+    expect(loadEnv({ HOST: '::1' }).HOST).toBe('::1');
+  });
+
   it('validates key length', () => {
     expect(() => loadEnv({ TOTP_ENCRYPTION_KEY: Buffer.alloc(16).toString('base64') })).toThrow(
       /32 bytes/,

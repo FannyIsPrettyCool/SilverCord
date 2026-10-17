@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { GlassQuality, GlassTier } from '../tokens/theme.ts';
 import { createFrameGovernor } from './frame-governor.ts';
+import { startFrameSampling } from './frame-sampler.ts';
 
 /** Concurrent refractive elements are capped: each costs a full-size SVG filter pass. */
 export const MAX_REFRACTIVE_ELEMENTS = 10;
@@ -44,36 +45,10 @@ function useGovernedTier(enabled: boolean): GlassTier {
   useEffect(() => {
     if (!enabled) return;
     const governor = createFrameGovernor('high');
-    let frame = 0;
-    let last = 0;
-    const tick = (now: number) => {
-      if (last) {
-        const next = governor.record(now - last);
-        setTier((current) => (current === next ? current : next));
-      }
-      last = now;
-      frame = requestAnimationFrame(tick);
-    };
-    const start = () => {
-      if (frame || document.hidden || !document.hasFocus()) return;
-      last = 0;
-      frame = requestAnimationFrame(tick);
-    };
-    const stop = () => {
-      cancelAnimationFrame(frame);
-      frame = 0;
-    };
-    const onVisibility = () => (document.hidden ? stop() : start());
-    start();
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('focus', start);
-    window.addEventListener('blur', stop);
-    return () => {
-      stop();
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('focus', start);
-      window.removeEventListener('blur', stop);
-    };
+    return startFrameSampling((frameMs) => {
+      const next = governor.record(frameMs);
+      setTier((current) => (current === next ? current : next));
+    });
   }, [enabled]);
   return tier;
 }

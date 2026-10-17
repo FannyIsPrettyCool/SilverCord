@@ -9,6 +9,8 @@ const DEV_SECRETS = {
   TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
 } as const;
 
+const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['127.0.0.1', '::1', 'localhost']);
+
 const base64Key32 = z.base64().refine((value) => Buffer.from(value, 'base64').length === 32, {
   message: 'must be 32 bytes, base64-encoded',
 });
@@ -55,13 +57,18 @@ const envSchema = z
     HIBP_ENABLED: booleanFlag,
   })
   .superRefine((env, context) => {
-    if (env.NODE_ENV !== 'production') return;
+    // Public dev secrets are tolerated only on a loopback-bound, non-production server, so a
+    // forgotten NODE_ENV on a VPS can't boot with a JWT key anyone can read in the repo.
+    const loopback = LOOPBACK_HOSTS.has(env.HOST);
+    if (env.NODE_ENV !== 'production' && loopback) return;
     for (const [key, devValue] of Object.entries(DEV_SECRETS)) {
       if (env[key as keyof typeof DEV_SECRETS] === devValue) {
         context.addIssue({
           code: 'custom',
           path: [key],
-          message: 'development secret in production',
+          message: loopback
+            ? 'development secret in production'
+            : 'development secret on a non-loopback HOST',
         });
       }
     }

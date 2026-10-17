@@ -30,7 +30,12 @@ export type RegisterRequest = z.input<typeof registerRequestSchema>;
 export const loginRequestSchema = z.object({
   /** Email or username. */
   login: z.string().trim().toLowerCase().min(1).max(254),
-  password: z.string().min(1).max(PASSWORD_MAX),
+  // Same normalisation as passwordSchema, or non-NFKC passwords could never match their hash.
+  password: z
+    .string()
+    .min(1)
+    .max(PASSWORD_MAX)
+    .transform((value) => value.normalize('NFKC')),
   deviceName: deviceNameSchema,
 });
 export type LoginRequest = z.input<typeof loginRequestSchema>;
@@ -88,10 +93,23 @@ export const resetPasswordRequestSchema = z.object({
 });
 
 export const totpSetupResponseSchema = z.object({ secret: z.string(), otpauthUri: z.string() });
+/** Re-authentication: a stolen access token alone must not be able to enrol an authenticator. */
+export const totpSetupRequestSchema = z.object({
+  password: z
+    .string()
+    .min(1)
+    .max(PASSWORD_MAX)
+    .transform((value) => value.normalize('NFKC')),
+});
 export const totpEnableRequestSchema = z.object({ code: totpCodeSchema });
 export const totpEnableResponseSchema = z.object({ recoveryCodes: z.array(z.string()) });
 export const totpDisableRequestSchema = z.object({
-  password: z.string().min(1).max(PASSWORD_MAX),
+  // Same normalisation as passwordSchema, or non-NFKC passwords could never match their hash.
+  password: z
+    .string()
+    .min(1)
+    .max(PASSWORD_MAX)
+    .transform((value) => value.normalize('NFKC')),
   code: totpCodeSchema,
 });
 

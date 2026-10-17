@@ -15,8 +15,9 @@ export function AuthLayout({ title, onSubmit, children }: AuthLayoutProps) {
   return (
     <main className={styles['stage']}>
       <motion.div
-        initial={{ opacity: 0, y: 12, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        className={styles['surface']}
+        initial={{ y: 12, scale: 0.98 }}
+        animate={{ y: 0, scale: 1 }}
         transition={spring}
       >
         <Glass

@@ -61,6 +61,19 @@ security checklist test passes; threat model written.
 - [x] i18n setup (EN + FR, ICU)
 - [x] Login/register screens + live gateway status
 - [x] `docs/DESIGN-CHECKLIST.md` review of phase screens
+- [x] Renderer gateway review: ready-only heartbeats, retryable token errors, immediate reconnect,
+      stale socket result protection and handled re-identification failures
+- [x] Ambient lifecycle review: React remount cleanup and WebGL context-loss fallback
+- [x] Auto glass governor review: burst sampling with no idle RAF loop
+- [x] Auth screen review: MFA guard, token error copy, age accessibility and panel motion
+- [x] Logout races: generation-bound login/register/MFA/restore and serialized token persistence
+- [x] Gateway follow-up review: malformed/aborted upgrades, validation outages and active shutdown
+- [x] Gateway kick cleanup: dispose after Valkey errors without unhandled rejection
+- [x] Durable revocation: authoritative session checks when cache markers are missing
+- [x] Positive Electron notifications permission regression, including serialized app origin
+- [x] Centered auth panels (owner request), short-window scrolling and real MFA screenshot flow
+- [x] Phase-end reviewer and security auditor: all confirmed high/medium findings resolved
+- [ ] Release gate: latest CI, merge review → UI → main, tag `v0.1.0`
 
 ## Phase 2 — Social & messaging
 
