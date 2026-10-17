@@ -14,7 +14,12 @@ export function AuthLayout({ title, onSubmit, children }: AuthLayoutProps) {
   const spring = useSpring('surface');
   return (
     <main className={styles['stage']}>
-      <motion.div initial={{ y: 12, scale: 0.98 }} animate={{ y: 0, scale: 1 }} transition={spring}>
+      <motion.div
+        className={styles['surface']}
+        initial={{ y: 12, scale: 0.98 }}
+        animate={{ y: 0, scale: 1 }}
+        transition={spring}
+      >
         <Glass
           as="form"
           level={3}

@@ -25,6 +25,9 @@ able to continue from the top entry alone.
   exact app-origin variants are accepted and foreign/path origins remain denied. Real E2E passes.
 - Removed pre-existing IPC lint warnings and pinned LF text checkout behavior for Windows;
   all-package lint/type/unit verification now passes without warnings.
+- Owner requested centered auth panels. Centered layout now scrolls tall forms in short windows;
+  10 Electron E2E tests and all three theme screenshot tours pass, including a real MFA step.
+  Screenshot tour uses a dedicated private seed account and a fixed viewport. Turbo forwards API URLs.
 - Baseline and full lint/type/unit verification pass. Final server integration, Electron visual
   verification, follow-up security fixes and CI remain before merge/tag; phase 1 is not released yet.
 - Original `D:\SilverCord` checkout has only line-ending changes and is preserved. Work continues

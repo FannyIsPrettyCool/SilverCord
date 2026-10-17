@@ -21,8 +21,8 @@ The reset-password and verify-email screens open from deep links, which arrive i
 
 - Custom title bar (40 px, draggable) across the top; native window controls are drawn by
   the OS overlay on Windows/Linux, so the right 140 px stay empty.
-- Auth screens: one level-3 glass panel, 400 px wide, placed on the left third of the window
-  (not centred) so the aurora carries the right side. Wordmark above the panel.
+- Auth screens: one level-3 glass panel, 400 px wide, centered in the window below the title bar
+  (owner preference, 2026-10-18). Tall forms scroll from their top in short windows.
 - Shell: 72 px server rail · 240 px sidebar (glass) · content (quiet content layer). User panel
   docked bottom-left of the sidebar.
 
