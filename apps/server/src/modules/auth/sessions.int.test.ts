@@ -30,6 +30,27 @@ describe('login, refresh and sessions', () => {
     }
   });
 
+  it('accepts passwords that change under NFKC normalisation', async () => {
+    const password = 'ｆｕｌｌｗｉｄｔｈ ｐａｓｓ ﬁ';
+    const { account } = await register(t, { password });
+    const response = await login({ login: account.email, password, deviceName: 'Laptop' });
+    expect(response.statusCode, response.body).toBe(200);
+  });
+
+  it('answers 404 to unauthenticated requests on unknown paths', async () => {
+    expectError(await t.request({ method: 'GET', url: '/api/v1/nope' }), 404, 'NOT_FOUND');
+  });
+
+  it('maps unsupported media types to a 415 envelope', async () => {
+    const response = await t.request({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      headers: { 'content-type': 'application/xml' },
+      payload: '<login/>',
+    });
+    expectError(response, 415, 'VALIDATION_FAILED');
+  });
+
   it('gives the same error for unknown accounts and wrong passwords', async () => {
     const { account } = await register(t);
     expectError(

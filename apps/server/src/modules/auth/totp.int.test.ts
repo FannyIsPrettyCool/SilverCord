@@ -141,4 +141,58 @@ describe('TOTP', () => {
     const { tokens } = await enrolled();
     expectError(await post('/api/v1/auth/totp/setup', undefined, bearer(tokens)), 409, 'CONFLICT');
   });
+
+  it('caps second-factor attempts per account across fresh tickets', async () => {
+    const limited = await createTestApp({ rateLimits: 'valkey' });
+    try {
+      await openRegistration(limited);
+      const { account, tokens } = await register(limited);
+      const setup = totpSetupResponseSchema.parse(
+        (
+          await limited.request({
+            method: 'POST',
+            url: '/api/v1/auth/totp/setup',
+            headers: bearer(tokens),
+          })
+        ).json(),
+      );
+      const enabled = await limited.request({
+        method: 'POST',
+        url: '/api/v1/auth/totp/enable',
+        headers: bearer(tokens),
+        payload: { code: codeFor(setup.secret, -1) },
+      });
+      expect(enabled.statusCode, enabled.body).toBe(200);
+      const statuses: number[] = [];
+      let ticket = '';
+      for (let i = 0; i < 11; i++) {
+        if (i < 10) {
+          const login = await limited.request({
+            method: 'POST',
+            url: '/api/v1/auth/login',
+            payload: {
+              // Alternate identifiers: each has its own 5/min login bucket.
+              login: i % 2 === 0 ? account.email : account.username,
+              password: account.password,
+              deviceName: 'Desk',
+            },
+            remoteAddress: `10.9.${i}.1`,
+          });
+          ticket = mfaChallengeSchema.parse(login.json()).ticket;
+        }
+        // The 11th attempt reuses a ticket with budget left: only the account ceiling can stop it.
+        const attempt = await limited.request({
+          method: 'POST',
+          url: '/api/v1/auth/login/totp',
+          payload: { ticket, code: '000000' },
+          remoteAddress: `10.9.${i}.2`,
+        });
+        statuses.push(attempt.statusCode);
+      }
+      expect(statuses.slice(0, 10)).toEqual(Array(10).fill(401));
+      expect(statuses[10]).toBe(429);
+    } finally {
+      await limited.close();
+    }
+  });
 });

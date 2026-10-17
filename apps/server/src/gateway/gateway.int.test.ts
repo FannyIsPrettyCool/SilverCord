@@ -164,3 +164,77 @@ describe('gateway conformance', () => {
     await client.close();
   });
 });
+
+describe('gateway handshake races and limits', () => {
+  let t: TestApp;
+  let baseUrl: string;
+
+  beforeAll(async () => {
+    t = await createTestApp({
+      rateLimits: 'valkey',
+      gateway: { heartbeatIntervalMs: 300, identifyTimeoutMs: 400 },
+    });
+    await openRegistration(t);
+    baseUrl = await t.app.listen({ host: '127.0.0.1', port: 0 });
+  });
+  afterAll(() => t.close());
+
+  const subscribers = async (channel: string) => {
+    const [, count] = (await t.context.valkey.pubsub('NUMSUB', channel)) as [string, number];
+    return count;
+  };
+
+  it('leaves no subscriptions behind when the socket closes mid-IDENTIFY', async () => {
+    const { tokens } = await register(t, { username: `race_${Date.now() % 100_000}` });
+    const client = await TestGatewayClient.connect(baseUrl);
+    client.identify(tokens.accessToken);
+    await client.close();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(await subscribers(channels.user(BigInt(tokens.user.id)))).toBe(0);
+  });
+
+  it('accepts heartbeats while IDENTIFY is in flight', async () => {
+    const { tokens } = await register(t, { username: `hb_${Date.now() % 100_000}` });
+    const client = await TestGatewayClient.connect(baseUrl);
+    client.identify(tokens.accessToken);
+    client.send({ op: GatewayOp.HEARTBEAT, d: { seq: null } });
+    await client.next((f) => f.op === GatewayOp.HEARTBEAT_ACK);
+    expect((await client.dispatch('READY')).s).toBe(1);
+    await client.close();
+  });
+
+  it('refuses to resume a session owned by another auth session of the same user', async () => {
+    const { account, tokens } = await register(t, { username: `own_${Date.now() % 100_000}` });
+    const first = await TestGatewayClient.connect(baseUrl);
+    first.identify(tokens.accessToken);
+    const ready = readyEventSchema.parse((await first.dispatch('READY')).d);
+    await first.close();
+    const other = await t.request({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { login: account.email, password: account.password, deviceName: 'Other' },
+    });
+    const otherToken = other.json<{ accessToken: string }>().accessToken;
+    const thief = await TestGatewayClient.connect(baseUrl);
+    thief.resume(otherToken, ready.sessionId, 1);
+    expect((await thief.next((f) => f.op === GatewayOp.INVALID_SESSION)).d).toEqual({
+      resumable: false,
+    });
+    await thief.close();
+  });
+
+  it('limits upgrades per IP', async () => {
+    const sockets: TestGatewayClient[] = [];
+    let refused = 0;
+    for (let i = 0; i < 32; i++) {
+      try {
+        sockets.push(await TestGatewayClient.connect(baseUrl));
+      } catch {
+        refused += 1;
+      }
+    }
+    expect(refused).toBeGreaterThan(0);
+    expect(sockets.length).toBeLessThanOrEqual(30);
+    await Promise.all(sockets.map((socket) => socket.close()));
+  });
+});
