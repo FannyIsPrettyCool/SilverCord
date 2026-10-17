@@ -24,6 +24,28 @@ export function perIp(name: string, policy: BucketPolicy): RateLimitRule {
   return { name, policy, key: (request) => request.ip };
 }
 
+/** Keyed by the authenticated user; skipped for anonymous requests. */
+export function perUser(name: string, policy: BucketPolicy): RateLimitRule {
+  return { name, policy, key: (request) => request.auth?.userId.toString() ?? null };
+}
+
+/**
+ * Keyed by a string field of the (not yet validated) JSON body, lowercased, e.g. the login
+ * identifier, so one account can't be brute-forced from many IPs.
+ */
+export function perBodyField(name: string, policy: BucketPolicy, field: string): RateLimitRule {
+  return {
+    name,
+    policy,
+    key: (request) => {
+      const body: unknown = request.body;
+      if (typeof body !== 'object' || body === null || !(field in body)) return null;
+      const value: unknown = (body as Record<string, unknown>)[field];
+      return typeof value === 'string' && value.length > 0 ? value.trim().toLowerCase() : null;
+    },
+  };
+}
+
 /** Applies to every request before route rules: coarse flood protection per client IP. */
 export const GLOBAL_IP_POLICY: BucketPolicy = { capacity: 120, refillPerSecond: 20 };
 
@@ -42,10 +64,8 @@ export function registerRateLimiting(app: FastifyInstance, limiter: RateLimiter)
     }
   });
 
-  app.addHook('onRequest', async (request) => {
-    const rules = request.routeOptions.config.rateLimit ?? [];
-    const global = { name: 'global', policy: GLOBAL_IP_POLICY, key: (r: FastifyRequest) => r.ip };
-    for (const rule of [global, ...rules]) {
+  async function enforce(request: FastifyRequest, rules: readonly RateLimitRule[]) {
+    for (const rule of rules) {
       const subject = rule.key(request);
       if (subject === null) continue;
       const result = await limiter.consume(`${rule.name}:${subject}`, rule.policy);
@@ -55,5 +75,13 @@ export function registerRateLimiting(app: FastifyInstance, limiter: RateLimiter)
         });
       }
     }
-  });
+  }
+
+  // Global flood guard before anything else runs.
+  app.addHook('onRequest', (request) => enforce(request, [perIp('global', GLOBAL_IP_POLICY)]));
+  // Route rules after body parsing (body-keyed rules) and authentication (user-keyed rules),
+  // but before validation and the handler.
+  app.addHook('preValidation', (request) =>
+    enforce(request, request.routeOptions.config.rateLimit ?? []),
+  );
 }
