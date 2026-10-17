@@ -1,0 +1,40 @@
+import type { ThemeTokens } from '../tokens/theme.ts';
+
+/** Light theme: cool white-blue with a sky and lilac ambient, desaturated accent (BRIEF §7.5). */
+export const frost: ThemeTokens = {
+  id: 'frost',
+  name: 'Frost',
+  scheme: 'light',
+  color: {
+    base: '#E9EFF9',
+    content: 'rgba(250, 252, 255, 0.82)',
+    contentRaised: 'rgba(255, 255, 255, 0.92)',
+    text: '#0F1630',
+    textMuted: '#4A5578',
+    textFaint: '#77809F',
+    accent: '#4C64C9',
+    onAccent: '#FFFFFF',
+    danger: '#C8264C',
+    success: '#13865A',
+    warning: '#A86400',
+    field: 'rgba(255, 255, 255, 0.55)',
+    fieldBorder: 'rgba(30, 45, 90, 0.14)',
+    focusRing: '#4C64C9',
+  },
+  ambient: ['#94D3FF', '#C3B6FF', '#FFC6EA', '#A8BCFF'],
+  glass: {
+    tint: '#FFFFFF',
+    tintAlpha: 0.42,
+    blur: [16, 28, 44],
+    saturate: 1.65,
+    brightness: 1.02,
+    rimAlpha: 0.7,
+    shadow: '#6D80B8',
+    grainAlpha: 0.03,
+    solid: '#F6F8FD',
+  },
+  radiusScale: 1,
+  motionIntensity: 1,
+  fontScale: 1,
+  density: 'cozy',
+};

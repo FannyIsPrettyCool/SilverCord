@@ -1,0 +1,40 @@
+import type { ThemeTokens } from '../tokens/theme.ts';
+
+/** Warm dark theme: near-black plum with an ember-orange to rose aurora. */
+export const midnightEmber: ThemeTokens = {
+  id: 'midnight-ember',
+  name: 'Midnight Ember',
+  scheme: 'dark',
+  color: {
+    base: '#0D090D',
+    content: 'rgba(22, 14, 20, 0.86)',
+    contentRaised: 'rgba(34, 22, 30, 0.92)',
+    text: '#FFF1EC',
+    textMuted: '#D3AFA6',
+    textFaint: '#9A7A74',
+    accent: '#FF8A5C',
+    onAccent: '#1A0B06',
+    danger: '#FF5C7A',
+    success: '#5FE0A0',
+    warning: '#FFC65C',
+    field: 'rgba(16, 8, 12, 0.45)',
+    fieldBorder: 'rgba(255, 220, 205, 0.12)',
+    focusRing: '#FFB08F',
+  },
+  ambient: ['#FF7A45', '#FF3D6E', '#FFB547', '#B23AFF'],
+  glass: {
+    tint: '#140A10',
+    tintAlpha: 0.44,
+    blur: [16, 28, 44],
+    saturate: 1.55,
+    brightness: 0.96,
+    rimAlpha: 0.28,
+    shadow: '#1A0508',
+    grainAlpha: 0.05,
+    solid: '#22151D',
+  },
+  radiusScale: 1,
+  motionIntensity: 1,
+  fontScale: 1,
+  density: 'cozy',
+};

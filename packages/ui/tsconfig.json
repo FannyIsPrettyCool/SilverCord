@@ -1,4 +1,7 @@
 {
   "extends": "../config/tsconfig.react.json",
-  "include": ["src"]
+  "include": ["src", ".storybook"],
+  "compilerOptions": {
+    "types": ["vite/client"]
+  }
 }
