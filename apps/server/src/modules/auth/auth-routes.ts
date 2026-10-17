@@ -16,6 +16,7 @@ import {
   totpDisableRequestSchema,
   totpEnableRequestSchema,
   totpEnableResponseSchema,
+  totpSetupRequestSchema,
   totpSetupResponseSchema,
 } from '@silvercord/protocol';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -234,10 +235,10 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
   r.post(
     '/api/v1/auth/totp/setup',
     {
-      schema: { tags, response: { 200: totpSetupResponseSchema } },
+      schema: { tags, body: totpSetupRequestSchema, response: { 200: totpSetupResponseSchema } },
       config: { auth: 'user', rateLimit: totpLimit('setup', 5) },
     },
-    async (request) => auth.setupTotp(requireAuth(request).userId),
+    async (request) => auth.setupTotp(requireAuth(request).userId, request.body.password),
   );
 
   r.post(

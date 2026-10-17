@@ -61,7 +61,7 @@ behind `HIBP_ENABLED` (default off: it calls an external service).
 | `POST /auth/email/resend` | bearer | → `204` | 3/h per user |
 | `POST /auth/password/forgot` | – | `{ email }` → `202` always | 3/h per IP, 3/h per email |
 | `POST /auth/password/reset` | – | `{ token, password }` → `204`, revokes all sessions | 10/h per IP |
-| `POST /auth/totp/setup` | bearer | → `{ secret, otpauthUri }` (unconfirmed) | 5/h per user |
+| `POST /auth/totp/setup` | bearer | `{ password }` → `{ secret, otpauthUri }` (unconfirmed; re-auth so a stolen access token can't enrol) | 5/h per user |
 | `POST /auth/totp/enable` | bearer | `{ code }` → `{ recoveryCodes: string[10] }` | 10/h per user |
 | `POST /auth/totp/disable` | bearer | `{ password, code }` → `204` | 10/h per user |
 | `GET /users/@me` | bearer | → `CurrentUser` | default |

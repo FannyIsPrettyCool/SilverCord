@@ -38,7 +38,9 @@ describe('TOTP', () => {
   async function enrolled() {
     const { account, tokens } = await register(t);
     const setup = totpSetupResponseSchema.parse(
-      (await post('/api/v1/auth/totp/setup', undefined, bearer(tokens))).json(),
+      (
+        await post('/api/v1/auth/totp/setup', { password: account.password }, bearer(tokens))
+      ).json(),
     );
     expect(setup.otpauthUri).toMatch(/^otpauth:\/\/totp\/SilverCord:/);
     expectError(
@@ -65,6 +67,25 @@ describe('TOTP', () => {
     });
     return mfaChallengeSchema.parse(response.json()).ticket;
   }
+
+  it('requires the password to start setup and mails the owner when 2FA turns on', async () => {
+    const { tokens } = await register(t);
+    expectError(
+      await post('/api/v1/auth/totp/setup', { password: 'wrong password!' }, bearer(tokens)),
+      401,
+      'INVALID_CREDENTIALS',
+    );
+    expectError(
+      await post('/api/v1/auth/totp/setup', {}, bearer(tokens)),
+      400,
+      'VALIDATION_FAILED',
+    );
+    const { account } = await enrolled();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(
+      t.mailer.sent.some((m) => m.to === account.email && m.subject.includes('turned on')),
+    ).toBe(true);
+  });
 
   it('requires a second factor once enabled and refuses replayed codes', async () => {
     const { account, secret } = await enrolled();
@@ -139,7 +160,15 @@ describe('TOTP', () => {
 
   it('refuses a second setup while enabled', async () => {
     const { tokens } = await enrolled();
-    expectError(await post('/api/v1/auth/totp/setup', undefined, bearer(tokens)), 409, 'CONFLICT');
+    expectError(
+      await post(
+        '/api/v1/auth/totp/setup',
+        { password: 'correct horse battery staple' },
+        bearer(tokens),
+      ),
+      409,
+      'CONFLICT',
+    );
   });
 
   it('caps second-factor attempts per account across fresh tickets', async () => {
@@ -153,6 +182,7 @@ describe('TOTP', () => {
             method: 'POST',
             url: '/api/v1/auth/totp/setup',
             headers: bearer(tokens),
+            payload: { password: account.password },
           })
         ).json(),
       );

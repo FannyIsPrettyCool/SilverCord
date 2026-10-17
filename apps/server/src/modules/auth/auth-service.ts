@@ -364,8 +364,11 @@ export function createAuthService(deps: AuthServiceDependencies) {
       await revoke(ids);
     },
 
-    async setupTotp(userId: bigint) {
+    async setupTotp(userId: bigint, password: string) {
       const user = requireUser(await users.findById(db, userId));
+      if (!(await verifyPassword(user.passwordHash, password)).valid) {
+        throw new AppError('INVALID_CREDENTIALS', 'Invalid password');
+      }
       if (await mfaEnabled(db, userId))
         throw new AppError('CONFLICT', 'Two-factor authentication is already on');
       const { secretBase32, otpauthUri } = generateTotpSecret(user.username);
@@ -394,6 +397,8 @@ export function createAuthService(deps: AuthServiceDependencies) {
         );
       });
       await publishUserUpdate(userId);
+      const owner = await users.findById(db, userId);
+      if (owner) sendMail(buildEmail('mfaOn', owner.locale, owner.email, ''));
       return { recoveryCodes: codes };
     },
 
@@ -409,6 +414,7 @@ export function createAuthService(deps: AuthServiceDependencies) {
         throw new AppError('INVALID_TOTP', 'Invalid code');
       await repo.deleteTotp(db, userId);
       await publishUserUpdate(userId);
+      sendMail(buildEmail('mfaOff', user.locale, user.email, ''));
     },
 
     async createInstanceInvite(
