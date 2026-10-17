@@ -70,6 +70,7 @@ security checklist test passes; threat model written.
 - [x] Gateway follow-up review: malformed/aborted upgrades, validation outages and active shutdown
 - [x] Gateway kick cleanup: dispose after Valkey errors without unhandled rejection
 - [x] Durable revocation: authoritative session checks when cache markers are missing
+- [x] Positive Electron notifications permission regression, including serialized app origin
 
 ## Phase 2 — Social & messaging
 

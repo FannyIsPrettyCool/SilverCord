@@ -21,6 +21,8 @@ able to continue from the top entry alone.
   derived promise rejections. Two session-runtime regressions pass without unhandled errors.
 - REST access tokens now check authoritative session state after a cache miss; lost revocation
   markers cannot restore access. Unit regressions and 68 real Postgres/Valkey integration tests pass.
+- Positive notification permission test found Electron's trailing-slash origin serialization;
+  exact app-origin variants are accepted and foreign/path origins remain denied. Real E2E passes.
 - Baseline and full lint/type/unit verification pass. Final server integration, Electron visual
   verification, follow-up security fixes and CI remain before merge/tag; phase 1 is not released yet.
 - Original `D:\SilverCord` checkout has only line-ending changes and is preserved. Work continues

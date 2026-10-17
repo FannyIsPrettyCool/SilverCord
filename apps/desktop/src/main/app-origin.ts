@@ -16,7 +16,9 @@ export const RENDERER_ORIGIN = DEV_RENDERER_URL ? new URL(DEV_RENDERER_URL).orig
 
 /** Chromium reports `app://bundle` for frames; use this for frame and permission origins. */
 export function isRendererOrigin(origin: string | undefined | null): boolean {
-  return origin === RENDERER_ORIGIN;
+  // Electron permission checks serialize custom origins with a trailing slash; frame origins
+  // omit it. Accept those two serializations without treating arbitrary renderer URLs as origins.
+  return origin === RENDERER_ORIGIN || origin === `${RENDERER_ORIGIN}/`;
 }
 
 /**

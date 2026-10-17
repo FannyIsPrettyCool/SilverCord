@@ -14,5 +14,14 @@ describe('renderer origin checks', () => {
   it('never treats an opaque origin as the renderer', () => {
     expect(isRendererOrigin('null')).toBe(false);
     expect(isRendererOrigin('app://bundle')).toBe(true);
+    expect(isRendererOrigin('app://bundle/')).toBe(true);
+    for (const origin of [
+      'app://bundle.evil/',
+      'app://bundle//',
+      'app://bundle/index.html',
+      'app://bundle:443/',
+    ]) {
+      expect(isRendererOrigin(origin)).toBe(false);
+    }
   });
 });
