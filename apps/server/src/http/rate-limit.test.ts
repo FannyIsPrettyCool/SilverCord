@@ -3,7 +3,7 @@ import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
 import { createMemoryRateLimiter as memoryLimiter } from '../../test/memory-rate-limiter.ts';
 import { registerErrorHandling } from './error-handler.ts';
-import { MissingRateLimitError, perIp, registerRateLimiting } from './rate-limit.ts';
+import { MissingRateLimitError, perBodyField, perIp, registerRateLimiting } from './rate-limit.ts';
 
 describe('rate limiting plugin', () => {
   it('rejects routes without a rateLimit declaration', async () => {
@@ -44,6 +44,22 @@ describe('rate limiting plugin', () => {
     const never = { name: 'user', policy: { capacity: 0, refillPerSecond: 1 }, key: () => null };
     app.get('/anon', { config: { rateLimit: [never] } }, () => 'ok');
     expect((await app.inject({ method: 'GET', url: '/anon' })).statusCode).toBe(200);
+    await app.close();
+  });
+
+  it('keys rules on a body field across IPs', async () => {
+    const app = Fastify({ logger: false });
+    const limiter = memoryLimiter();
+    registerRateLimiting(app, limiter);
+    const rule = perBodyField('auth.login.account', { capacity: 1, refillPerSecond: 1 }, 'login');
+    app.post('/login', { config: { rateLimit: [rule] } }, () => 'ok');
+    const send = (login: unknown, ip: string) =>
+      app.inject({ method: 'POST', url: '/login', payload: { login }, remoteAddress: ip });
+    expect((await send('Fanny', '10.0.0.1')).statusCode).toBe(200);
+    expect((await send(' fanny', '10.0.0.2')).statusCode).toBe(429);
+    expect((await send('other', '10.0.0.3')).statusCode).toBe(200);
+    expect((await send(42, '10.0.0.4')).statusCode).toBe(200);
+    expect(limiter.keys).toContain('auth.login.account:fanny');
     await app.close();
   });
 });

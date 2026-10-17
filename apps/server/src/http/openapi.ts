@@ -23,7 +23,10 @@ export async function registerOpenApi(app: FastifyInstance, version: string): Pr
     '/api/v1/openapi.json',
     {
       schema: { hide: true },
-      config: { rateLimit: [perIp('openapi', { capacity: 10, refillPerSecond: 0.2 })] },
+      config: {
+        auth: 'public',
+        rateLimit: [perIp('openapi', { capacity: 10, refillPerSecond: 0.2 })],
+      },
     },
     () => app.swagger(),
   );

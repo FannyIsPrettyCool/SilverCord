@@ -41,11 +41,13 @@ security checklist test passes; threat model written.
 - [x] REST schema conventions, OpenAPI generation at `/api/v1/openapi.json`
 - [x] DB: Drizzle setup, migrations pipeline, `db:migrate`, Testcontainers harness
 - [x] Valkey client, token-bucket rate limiter (+ tests)
-- [ ] Spec `docs/spec/auth.md`
-- [ ] Auth: register (invite-only/open/closed; first user = admin), Argon2id, login
-- [ ] Auth: access JWT + rotating refresh with reuse detection; sessions list/revoke
-- [ ] Auth: email verification + password reset (Mailpit in dev)
-- [ ] Auth: TOTP + recovery codes
+- [x] Spec `docs/spec/auth.md`
+- [x] Auth: register (invite-only/open/closed; first user = admin), Argon2id, login
+- [x] Auth: access JWT + rotating refresh with reuse detection; sessions list/revoke
+- [x] Auth: email verification + password reset (Mailpit in dev)
+- [x] Auth: TOTP + recovery codes
+- [ ] Auth: passkeys (WebAuthn via `@simplewebauthn`) as an alternative first factor
+- [x] Auth: instance invites (admin) + new-device login email
 - [ ] Spec `docs/spec/gateway.md`; gateway opcodes in protocol
 - [ ] Gateway: HELLO/IDENTIFY/READY/HEARTBEAT/RESUME with Valkey stream buffer; conformance tests
 - [ ] Electron shell: hardened prefs, CSP, typed preload bridge, IPC validation, fuses, safeStorage token store

@@ -1,20 +1,58 @@
 import { z } from 'zod';
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  HOST: z.string().min(1).default('127.0.0.1'),
-  PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
-  /** Set to true only behind Caddy so `request.ip` reflects the real client. */
-  TRUST_PROXY: z
-    .enum(['true', 'false'])
-    .default('false')
-    .transform((value) => value === 'true'),
-  DATABASE_URL: z
-    .url({ protocol: /^postgres(ql)?$/ })
-    .default('postgres://silvercord:silvercord@localhost:5432/silvercord'),
-  VALKEY_URL: z.url({ protocol: /^rediss?$/ }).default('redis://localhost:6379'),
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+/**
+ * Development-only secrets so a fresh clone boots without setup. Production refuses to start
+ * while any of these is still in use.
+ */
+const DEV_SECRETS = {
+  JWT_SECRET: 'dev-only-jwt-secret-change-me-0123456789abcdef',
+  TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+} as const;
+
+const base64Key32 = z.base64().refine((value) => Buffer.from(value, 'base64').length === 32, {
+  message: 'must be 32 bytes, base64-encoded',
 });
+
+const booleanFlag = z
+  .enum(['true', 'false'])
+  .default('false')
+  .transform((value) => value === 'true');
+
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    HOST: z.string().min(1).default('127.0.0.1'),
+    PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
+    /** Set to true only behind Caddy so `request.ip` reflects the real client. */
+    TRUST_PROXY: booleanFlag,
+    LOG_LEVEL: z
+      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+      .default('info'),
+    /** Snowflake worker id; unique per running API/worker process. */
+    WORKER_ID: z.coerce.number().int().min(0).max(1023).default(0),
+    DATABASE_URL: z
+      .url({ protocol: /^postgres(ql)?$/ })
+      .default('postgres://silvercord:silvercord@localhost:5432/silvercord'),
+    VALKEY_URL: z.url({ protocol: /^rediss?$/ }).default('redis://localhost:6379'),
+    JWT_SECRET: z.string().min(32).default(DEV_SECRETS.JWT_SECRET),
+    TOTP_ENCRYPTION_KEY: base64Key32.default(DEV_SECRETS.TOTP_ENCRYPTION_KEY),
+    SMTP_URL: z.url({ protocol: /^smtps?$/ }).default('smtp://localhost:1025'),
+    MAIL_FROM: z.string().min(3).default('SilverCord <no-reply@silvercord.localhost>'),
+    /** Optional k-anonymity check against Have I Been Pwned; calls an external service. */
+    HIBP_ENABLED: booleanFlag,
+  })
+  .superRefine((env, context) => {
+    if (env.NODE_ENV !== 'production') return;
+    for (const [key, devValue] of Object.entries(DEV_SECRETS)) {
+      if (env[key as keyof typeof DEV_SECRETS] === devValue) {
+        context.addIssue({
+          code: 'custom',
+          path: [key],
+          message: 'development secret in production',
+        });
+      }
+    }
+  });
 
 export type Env = z.infer<typeof envSchema>;
 

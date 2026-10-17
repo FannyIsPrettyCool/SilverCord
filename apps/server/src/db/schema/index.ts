@@ -1,2 +1,4 @@
-// Tables are added per module (BRIEF §4) and re-exported here for drizzle-kit and typed queries.
-export {};
+// Every module's tables, re-exported for drizzle-kit and typed queries.
+export * from '../../modules/admin/admin-schema.ts';
+export * from '../../modules/auth/auth-schema.ts';
+export * from '../../modules/users/users-schema.ts';

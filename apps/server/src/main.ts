@@ -1,18 +1,16 @@
 import closeWithGrace from 'close-with-grace';
 import { buildApp } from './app.ts';
 import { loadEnv } from './config/env.ts';
-import { createRateLimiter } from './infra/rate-limiter.ts';
-import { createValkey } from './infra/valkey.ts';
+import { closeAppContext, createAppContext } from './context.ts';
 
 const env = loadEnv();
-const valkey = createValkey(env.VALKEY_URL);
-await valkey.connect();
-const app = await buildApp(env, { rateLimiter: createRateLimiter(valkey) });
+const context = await createAppContext(env);
+const app = await buildApp(context);
 
 closeWithGrace({ delay: 10_000 }, async ({ err }) => {
   if (err) app.log.error({ err }, 'shutting down after error');
   await app.close();
-  await valkey.quit();
+  await closeAppContext(context);
 });
 
 await app.listen({ host: env.HOST, port: env.PORT });
