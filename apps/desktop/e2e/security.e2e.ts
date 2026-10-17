@@ -74,10 +74,32 @@ test('bundle paths cannot escape the renderer directory', async () => {
   }
 });
 
-test('popups are denied and foreign navigation is blocked', async () => {
-  const opened = await page.evaluate(() => window.open('https://example.com') !== null);
-  expect(opened).toBe(false);
+test('popups are denied; only https links go to the OS browser', async () => {
+  // Stub the OS hand-off so the test has no side effects (CI's xdg-open would hang teardown).
+  await app.evaluate(({ shell }) => {
+    const calls: string[] = [];
+    (globalThis as { openedExternally?: string[] }).openedExternally = calls;
+    shell.openExternal = async (url: string) => {
+      calls.push(url);
+    };
+  });
+  const opened = await page.evaluate(() =>
+    [
+      'https://example.com/a',
+      'http://example.com/b',
+      'file:///etc/passwd',
+      'javascript:alert(1)',
+    ].map((url) => window.open(url) !== null),
+  );
+  expect(opened).toEqual([false, false, false, false]);
   expect(app.windows()).toHaveLength(1);
+  const external = await app.evaluate(
+    () => (globalThis as { openedExternally?: string[] }).openedExternally,
+  );
+  expect(external).toEqual(['https://example.com/a']);
+});
+
+test('foreign navigation is blocked', async () => {
   await page.evaluate(() => {
     window.location.href = 'https://example.com';
   });
