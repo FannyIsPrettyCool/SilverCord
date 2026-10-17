@@ -1,3 +1,4 @@
+import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { registerHealthRoutes } from './api/health-routes.ts';
@@ -52,6 +53,14 @@ export async function buildApp(
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   registerErrorHandling(app);
+  // Bearer tokens only, no cookies: CORS is about which renderer origins may read responses.
+  await app.register(cors, {
+    origin: env.CORS_ORIGINS,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+    allowedHeaders: ['authorization', 'content-type', 'idempotency-key'],
+    credentials: false,
+    maxAge: 600,
+  });
 
   const auth = createAuthService({
     db: context.database.db,

@@ -1,8 +1,33 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
+import type { IpcChannel, IpcInput, IpcOutput, IpcResult } from '../shared/ipc-contract.ts';
 
-/** Minimal typed bridge; every capability added here must be validated in main (BRIEF §8.2). */
+function invoke<C extends IpcChannel>(
+  channel: C,
+  ...input: IpcInput<C> extends void ? [] : [IpcInput<C>]
+) {
+  return ipcRenderer.invoke(channel, ...input) as Promise<IpcResult<IpcOutput<C>>>;
+}
+
+/**
+ * The renderer's whole view of the OS: named, typed calls, each validated again in main
+ * (BRIEF §8.2). No generic `invoke`, no `ipcRenderer`, no Node.
+ */
 const bridge = {
-  platform: process.platform,
+  config: () => invoke('config:get'),
+  auth: {
+    restore: () => invoke('auth:restore'),
+    register: (input: IpcInput<'auth:register'>) => invoke('auth:register', input),
+    login: (input: IpcInput<'auth:login'>) => invoke('auth:login', input),
+    loginSecondFactor: (input: IpcInput<'auth:login-second-factor'>) =>
+      invoke('auth:login-second-factor', input),
+    accessToken: () => invoke('auth:access-token'),
+    logout: () => invoke('auth:logout'),
+  },
+  window: {
+    minimize: () => invoke('window:minimize'),
+    toggleMaximize: () => invoke('window:toggle-maximize'),
+    close: () => invoke('window:close'),
+  },
 } as const;
 
 export type DesktopBridge = typeof bridge;

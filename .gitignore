@@ -19,3 +19,4 @@ playwright-report/
 # Shared agent config is part of the repo even if a global ignore excludes it.
 !.claude/
 .claude/settings.local.json
+release/

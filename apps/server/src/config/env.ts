@@ -38,6 +38,19 @@ const envSchema = z
     TOTP_ENCRYPTION_KEY: base64Key32.default(DEV_SECRETS.TOTP_ENCRYPTION_KEY),
     SMTP_URL: z.url({ protocol: /^smtps?$/ }).default('smtp://localhost:1025'),
     MAIL_FROM: z.string().min(3).default('SilverCord <no-reply@silvercord.localhost>'),
+    /**
+     * Comma-separated browser origins allowed to call the API: the packaged desktop renderer
+     * (`app://bundle`) and, in development, the Vite dev server.
+     */
+    CORS_ORIGINS: z
+      .string()
+      .default('app://bundle,http://localhost:5173')
+      .transform((value) =>
+        value
+          .split(',')
+          .map((origin) => origin.trim())
+          .filter(Boolean),
+      ),
     /** Optional k-anonymity check against Have I Been Pwned; calls an external service. */
     HIBP_ENABLED: booleanFlag,
   })

@@ -8,6 +8,12 @@ test('opens a hardened empty window', async () => {
   const app = await electron.launch({ args: ['.'], cwd: join(import.meta.dirname, '..') });
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
+  // The window stays hidden until `ready-to-show`; screenshots of hidden windows hang.
+  await expect
+    .poll(() =>
+      app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible() ?? false),
+    )
+    .toBe(true);
 
   await expect(page).toHaveTitle('SilverCord');
   await expect(page.locator('main.app')).toBeAttached();
@@ -18,7 +24,12 @@ test('opens a hardened empty window', async () => {
     hasProcess: typeof (globalThis as { process?: unknown }).process !== 'undefined',
     bridgeKeys: Object.keys((globalThis as unknown as { desktop: object }).desktop),
   }));
-  expect(exposure).toEqual({ hasRequire: false, hasProcess: false, bridgeKeys: ['platform'] });
+  expect(exposure).toEqual({
+    hasRequire: false,
+    hasProcess: false,
+    bridgeKeys: ['config', 'auth', 'window'],
+  });
+  expect(page.url()).toBe('app://bundle/index.html');
 
   const prefs = await app.evaluate(({ BrowserWindow }) => {
     const [win] = BrowserWindow.getAllWindows();

@@ -4,6 +4,7 @@ packages:
   - tools/*
 allowBuilds:
   cpu-features: false
+  electron-winstaller: false
   esbuild: true
   lefthook: true
   protobufjs: false
