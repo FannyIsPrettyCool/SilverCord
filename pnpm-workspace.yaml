@@ -11,3 +11,6 @@ allowBuilds:
   ssh2: false
 minimumReleaseAgeExclude:
   - electron@44.9.0
+  - i18next-icu@2.6.1
+  - i18next@26.5.0
+  - react-i18next@17.1.0

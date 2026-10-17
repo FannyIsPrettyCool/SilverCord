@@ -1,0 +1,72 @@
+{
+  "brand": "SilverCord",
+  "signIn": {
+    "title": "Sign in",
+    "login": "Email or username",
+    "password": "Password",
+    "submit": "Sign in",
+    "register": "Create account",
+    "forgot": "Forgot password?"
+  },
+  "code": {
+    "title": "Verification code",
+    "code": "6-digit code",
+    "recovery": "Recovery code",
+    "useRecovery": "Use a recovery code",
+    "useApp": "Use an authenticator code",
+    "submit": "Verify",
+    "back": "Back"
+  },
+  "register": {
+    "title": "Create account",
+    "email": "Email",
+    "username": "Username",
+    "displayName": "Display name",
+    "password": "Password",
+    "invite": "Invite code",
+    "age": "I am at least 15 years old",
+    "submit": "Create account",
+    "signIn": "I have an account"
+  },
+  "forgot": {
+    "title": "Reset password",
+    "email": "Email",
+    "submit": "Send link",
+    "sent": "Check your inbox",
+    "back": "Back to sign in"
+  },
+  "session": {
+    "notRemembered": "Not remembered on this device"
+  },
+  "shell": {
+    "home": "Home",
+    "signOut": "Sign out"
+  },
+  "connection": {
+    "connected": "Connected",
+    "connecting": "Connecting",
+    "offline": "Offline"
+  },
+  "window": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "close": "Close"
+  },
+  "errors": {
+    "INVALID_CREDENTIALS": "Wrong login or password",
+    "INVALID_TOTP": "Wrong code",
+    "RATE_LIMITED": "Too many attempts, try again later",
+    "NETWORK": "Server unreachable",
+    "CONFLICT": "Already taken",
+    "INVITE_REQUIRED": "Valid invite required",
+    "REGISTRATION_CLOSED": "Registration is closed",
+    "TOKEN_INVALID": "Session expired, sign in again",
+    "fallback": "Something went wrong"
+  },
+  "field": {
+    "required": "Required",
+    "passwordLength": "At least 10 characters",
+    "username": "2–32 letters, digits, _ or .",
+    "email": "Invalid email"
+  }
+}
