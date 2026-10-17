@@ -50,9 +50,9 @@ security checklist test passes; threat model written.
 - [x] Auth: instance invites (admin) + new-device login email
 - [x] Spec `docs/spec/gateway.md`; gateway opcodes in protocol
 - [x] Gateway: HELLO/IDENTIFY/READY/HEARTBEAT/RESUME with Valkey stream buffer; conformance tests
-- [ ] Electron shell: hardened prefs, CSP, typed preload bridge, IPC validation, fuses, safeStorage token store
-- [ ] Electron security checklist test (§8.2)
-- [ ] Electron: custom titlebar (Win11 `backgroundMaterial`, Linux frameless), tray, single-instance
+- [x] Electron shell: hardened prefs, CSP, typed preload bridge, IPC validation, fuses, safeStorage token store
+- [x] Electron security checklist test (§8.2)
+- [x] Electron: custom titlebar (Win11 `backgroundMaterial`, Linux frameless), tray, single-instance
 - [ ] UI: tokens, 3 themes (Aurora, Frost, Midnight Ember), fonts bundled (Figtree, JetBrains Mono)
 - [ ] UI: `<Glass>` + `useGlass` with tiers High/Low/Solid/Auto + frame governor
 - [ ] UI: ambient layer (`ogl`) + CSS fallback
