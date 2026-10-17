@@ -67,7 +67,7 @@ Full brief: `docs/BRIEF.md` (verbatim, never edit). Keep this file ≤200 lines.
 - WebAuthn is unavailable on `app://` (ADR-0007). Playwright `evaluate` bypasses page CSP.
 - Vite React refresh needs inline scripts → dev-only `'unsafe-inline'` in script-src.
 - `#root` needs `height: 100%` (renderer `app/app.css`) or layouts collapse.
-- CI uses `concurrency: cancel-in-progress`: a newer push cancels the older run; check the latest SHA. Check runs with the scratchpad `ci-status.sh` (annotations are public; logs need admin).
+- CI uses `concurrency: cancel-in-progress`: a newer push cancels the older run; check the latest SHA. Check runs with `tools/scripts/ci-status.sh <sha>` (annotations are public; logs need admin).
 - Biome `useLiteralKeys` is off (conflicts with `noPropertyAccessFromIndexSignature`).
 
 ## Agents & commands (`.claude/`)
