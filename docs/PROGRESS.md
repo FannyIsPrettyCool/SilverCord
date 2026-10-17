@@ -28,8 +28,11 @@ able to continue from the top entry alone.
 - Owner requested centered auth panels. Centered layout now scrolls tall forms in short windows;
   10 Electron E2E tests and all three theme screenshot tours pass, including a real MFA step.
   Screenshot tour uses a dedicated private seed account and a fixed viewport. Turbo forwards API URLs.
-- Baseline and full lint/type/unit verification pass. Final server integration, Electron visual
-  verification, follow-up security fixes and CI remain before merge/tag; phase 1 is not released yet.
+- All confirmed follow-up review/security findings resolved. Verification: lint/type/unit clean
+  (45 desktop, 33 server, 37 protocol, 26 UI, 17 commitlint), 68 integration, 10 Electron E2E,
+  three theme screenshot tours and real WebGL-loss fallback. Latest CI and release merge/tag remain.
+- Windows unpacked `v0.1.0` build verifies all seven security fuses; production dependency audit
+  reports no known vulnerabilities. README roadmap art advances to phase 2.
 - Original `D:\SilverCord` checkout has only line-ending changes and is preserved. Work continues
   in `D:\SilverCord-phase1` on `fix/phase1-review`; use native Windows Git before MSYS Git in PATH.
 - VPS SSH works via the IslandMon key; Docker installed, private test stack running on loopback.

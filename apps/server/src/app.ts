@@ -16,7 +16,7 @@ import { createAuthService } from './modules/auth/auth-service.ts';
 import { createCodeHasher } from './modules/auth/crypto/code-hasher.ts';
 import { createUsersService } from './modules/users/users-service.ts';
 
-export const VERSION = '0.0.0';
+export const VERSION = '0.1.0';
 
 const REDACTED_PATHS = [
   'req.headers.authorization',
