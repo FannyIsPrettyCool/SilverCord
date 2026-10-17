@@ -1,6 +1,9 @@
 import { createSnowflakeGenerator } from '@silvercord/protocol';
 import type { Env } from './config/env.ts';
 import { createDatabase, type DatabaseHandle } from './db/client.ts';
+import { createEventPublisher, type EventPublisher } from './gateway/event-bus.ts';
+import type { GatewayOptions } from './gateway/gateway-connection.ts';
+import { DEFAULT_GATEWAY_OPTIONS } from './gateway/gateway-server.ts';
 import { createSmtpMailer, type Mailer } from './infra/mailer.ts';
 import { createRateLimiter, type RateLimiter } from './infra/rate-limiter.ts';
 import { createValkey, type Valkey } from './infra/valkey.ts';
@@ -22,6 +25,8 @@ export interface AppContext {
   readonly tokens: TokenIssuer;
   readonly revocations: SessionRevocations;
   readonly secretBox: SecretBox;
+  readonly events: EventPublisher;
+  readonly gateway: GatewayOptions;
 }
 
 export async function createAppContext(
@@ -40,6 +45,8 @@ export async function createAppContext(
     tokens: overrides.tokens ?? createTokenIssuer(env.JWT_SECRET),
     revocations: overrides.revocations ?? createSessionRevocations(valkey),
     secretBox: overrides.secretBox ?? createSecretBox(env.TOTP_ENCRYPTION_KEY),
+    events: overrides.events ?? createEventPublisher(valkey),
+    gateway: overrides.gateway ?? DEFAULT_GATEWAY_OPTIONS,
   };
 }
 

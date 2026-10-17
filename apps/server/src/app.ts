@@ -2,6 +2,9 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { registerHealthRoutes } from './api/health-routes.ts';
 import type { AppContext } from './context.ts';
+import { createEventSubscriber } from './gateway/event-bus.ts';
+import { registerGateway } from './gateway/gateway-server.ts';
+import { createSessionStore } from './gateway/session-store.ts';
 import { registerAuthentication } from './http/authentication.ts';
 import { registerErrorHandling } from './http/error-handler.ts';
 import { registerOpenApi } from './http/openapi.ts';
@@ -60,6 +63,7 @@ export async function buildApp(
     mailer: context.mailer,
     users: createUsersService(),
     admin: createAdminService(),
+    events: context.events,
     log: app.log,
   });
 
@@ -72,5 +76,20 @@ export async function buildApp(
   await registerOpenApi(app, VERSION);
   registerHealthRoutes(app, VERSION);
   registerAuthRoutes(app, auth);
+
+  const subscriber = await createEventSubscriber(context.valkey);
+  app.addHook('onClose', () => subscriber.close());
+  registerGateway(
+    app,
+    {
+      tokens: context.tokens,
+      revocations: context.revocations,
+      sessions: createSessionStore(context.valkey),
+      subscriber,
+      loadUser: auth.me,
+      log: app.log,
+    },
+    context.gateway,
+  );
   return app;
 }
