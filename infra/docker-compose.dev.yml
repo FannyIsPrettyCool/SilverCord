@@ -43,6 +43,11 @@ services:
       - 127.0.0.1:7882:7882/udp
     volumes:
       - ./livekit/livekit.dev.yaml:/etc/livekit.yaml:ro
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:7880]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
   mailpit:
