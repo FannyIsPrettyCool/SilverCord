@@ -1,0 +1,22 @@
+{
+  "name": "@silvercord/server",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/main.ts",
+    "start": "node src/main.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@silvercord/protocol": "workspace:*",
+    "close-with-grace": "2.5.0",
+    "fastify": "5.12.7",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@silvercord/config": "workspace:*"
+  }
+}
