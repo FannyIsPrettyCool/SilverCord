@@ -61,6 +61,8 @@ export interface AuthServiceDependencies {
   readonly admin: AdminService;
   readonly events: EventPublisher;
   readonly rateLimiter: RateLimiter;
+  /** Peppered hash for recovery codes (see crypto/code-hasher.ts). */
+  readonly hashRecoveryCode: (code: string) => Buffer;
   readonly log: { warn(object: object, message: string): void };
 }
 
@@ -113,7 +115,7 @@ export function createAuthService(deps: AuthServiceDependencies) {
   ) {
     const seen =
       alertNewDevice &&
-      (await repo.hasSeenDevice(ex, user.id, client.deviceName, client.userAgent));
+      (await repo.hasSeenDevice(ex, user.id, client.deviceName, client.userAgent, client.ip));
     const session = await repo.insertSession(ex, { id: deps.nextId(), userId: user.id, ...client });
     const refreshToken = await issueRefreshToken(ex, session.id);
     if (alertNewDevice && !seen) {
@@ -253,7 +255,7 @@ export function createAuthService(deps: AuthServiceDependencies) {
               deps.secretBox.open(totp.secretEncrypted).toString(),
               factor.code,
             )
-          : await repo.consumeRecoveryCode(db, userId, hashOpaqueToken(factor.recoveryCode));
+          : await repo.consumeRecoveryCode(db, userId, deps.hashRecoveryCode(factor.recoveryCode));
       if (!valid) throw new AppError('INVALID_TOTP', 'Invalid code');
       return db.transaction((tx) => startSession(tx, user, { ...client, deviceName }, true));
     },
@@ -392,7 +394,7 @@ export function createAuthService(deps: AuthServiceDependencies) {
           userId,
           codes.map((plain) => ({
             id: deps.nextId(),
-            codeHash: hashOpaqueToken(plain.replace('-', '')),
+            codeHash: deps.hashRecoveryCode(plain.replace('-', '')),
           })),
         );
       });
