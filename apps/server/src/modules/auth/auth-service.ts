@@ -9,6 +9,7 @@ import type {
 import { sql } from 'drizzle-orm';
 import type { Database } from '../../db/client.ts';
 import { type Executor, uniqueViolation } from '../../db/executor.ts';
+import { channels, type EventPublisher } from '../../gateway/event-bus.ts';
 import { AppError } from '../../http/app-error.ts';
 import type { Mailer } from '../../infra/mailer.ts';
 import type { Valkey } from '../../infra/valkey.ts';
@@ -55,6 +56,7 @@ export interface AuthServiceDependencies {
   readonly mailer: Mailer;
   readonly users: UsersService;
   readonly admin: AdminService;
+  readonly events: EventPublisher;
   readonly log: { warn(object: object, message: string): void };
 }
 
@@ -129,8 +131,20 @@ export function createAuthService(deps: AuthServiceDependencies) {
       sendMail(buildEmail('verify', user.locale, user.email, appLink('verify-email', token)));
   }
 
+  /** Blocks the sessions' access tokens and closes their gateway sockets. */
   async function revoke(ids: readonly bigint[]) {
-    await Promise.all(ids.map((id) => deps.revocations.revoke(id)));
+    await Promise.all(
+      ids.flatMap((id) => [
+        deps.revocations.revoke(id),
+        deps.events.kick(channels.authSession(id)),
+      ]),
+    );
+  }
+
+  async function publishUserUpdate(userId: bigint) {
+    const row = await users.findById(db, userId);
+    if (row)
+      await deps.events.dispatch(channels.user(userId), 'USER_UPDATE', await currentUser(db, row));
   }
 
   function requireUser(row: UserRow | undefined): UserRow {
@@ -291,6 +305,7 @@ export function createAuthService(deps: AuthServiceDependencies) {
       const userId = await repo.consumeEmailToken(db, hashOpaqueToken(token), 'verify_email');
       if (userId === undefined) throw new AppError('TOKEN_INVALID', 'Invalid or expired link');
       await users.markEmailVerified(db, userId);
+      await publishUserUpdate(userId);
     },
 
     async resendVerification(userId: bigint) {
@@ -356,6 +371,7 @@ export function createAuthService(deps: AuthServiceDependencies) {
           })),
         );
       });
+      await publishUserUpdate(userId);
       return { recoveryCodes: codes };
     },
 
@@ -370,6 +386,7 @@ export function createAuthService(deps: AuthServiceDependencies) {
       if (!(await verifyTotp(deps.valkey, userId, secret, code)))
         throw new AppError('INVALID_TOTP', 'Invalid code');
       await repo.deleteTotp(db, userId);
+      await publishUserUpdate(userId);
     },
 
     async createInstanceInvite(

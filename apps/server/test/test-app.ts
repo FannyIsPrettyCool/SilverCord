@@ -3,6 +3,8 @@ import { inject } from 'vitest';
 import { buildApp } from '../src/app.ts';
 import { loadEnv } from '../src/config/env.ts';
 import { type AppContext, closeAppContext, createAppContext } from '../src/context.ts';
+import type { GatewayOptions } from '../src/gateway/gateway-connection.ts';
+import { DEFAULT_GATEWAY_OPTIONS } from '../src/gateway/gateway-server.ts';
 import type { Mailer, MailMessage } from '../src/infra/mailer.ts';
 import type { RateLimiter } from '../src/infra/rate-limiter.ts';
 import { createValkey } from '../src/infra/valkey.ts';
@@ -50,7 +52,11 @@ const unlimited: RateLimiter = {
  * `rateLimits: 'valkey'` (the real limiter) is requested by a rate-limit test.
  */
 export async function createTestApp(
-  options: { rateLimits?: 'off' | 'valkey'; logLines?: string[] } = {},
+  options: {
+    rateLimits?: 'off' | 'valkey';
+    logLines?: string[];
+    gateway?: Partial<GatewayOptions>;
+  } = {},
 ): Promise<TestApp> {
   const database = await createTestDatabase();
   const valkey = createValkey(inject('valkeyUrl'));
@@ -66,6 +72,7 @@ export async function createTestApp(
     valkey,
     mailer,
     ...(options.rateLimits === 'valkey' ? {} : { rateLimiter: unlimited }),
+    gateway: { ...DEFAULT_GATEWAY_OPTIONS, ...options.gateway },
   });
   const lines = options.logLines;
   const app = await buildApp(

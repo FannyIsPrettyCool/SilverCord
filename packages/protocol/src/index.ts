@@ -8,6 +8,7 @@ export {
   errorEnvelopeSchema,
   fieldIssueSchema,
 } from './errors.ts';
+export * from './gateway.ts';
 export { type HealthResponse, healthResponseSchema } from './health.ts';
 export {
   type CursorPageQuery,
