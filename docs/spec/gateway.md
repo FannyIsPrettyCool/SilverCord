@@ -74,6 +74,8 @@ sequence 1 of a new session.
 - `gw:session:<id>:events` stream: each dispatched frame (`seq`, serialized frame), trimmed to
   the last 5 minutes (`MINID`) and 1 000 entries, TTL as the hash.
 - Session ids: 128-bit random, base64url. Resume requires the same user as the token.
+- A per-session runtime keeps the session's subscriptions and keeps buffering for the resume
+  window after the socket closes; the resuming socket adopts it (ADR-0006).
 
 ## Fan-out
 

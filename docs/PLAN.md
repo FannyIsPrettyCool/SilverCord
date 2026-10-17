@@ -48,8 +48,8 @@ security checklist test passes; threat model written.
 - [x] Auth: TOTP + recovery codes
 - [ ] Auth: passkeys (WebAuthn via `@simplewebauthn`) as an alternative first factor
 - [x] Auth: instance invites (admin) + new-device login email
-- [ ] Spec `docs/spec/gateway.md`; gateway opcodes in protocol
-- [ ] Gateway: HELLO/IDENTIFY/READY/HEARTBEAT/RESUME with Valkey stream buffer; conformance tests
+- [x] Spec `docs/spec/gateway.md`; gateway opcodes in protocol
+- [x] Gateway: HELLO/IDENTIFY/READY/HEARTBEAT/RESUME with Valkey stream buffer; conformance tests
 - [ ] Electron shell: hardened prefs, CSP, typed preload bridge, IPC validation, fuses, safeStorage token store
 - [ ] Electron security checklist test (§8.2)
 - [ ] Electron: custom titlebar (Win11 `backgroundMaterial`, Linux frameless), tray, single-instance
