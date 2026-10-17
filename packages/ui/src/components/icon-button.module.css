@@ -1,0 +1,24 @@
+.iconButton {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-4);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease-out,
+    color 140ms ease-out;
+
+  &:hover {
+    color: var(--color-text);
+    background: var(--color-field);
+  }
+
+  &[aria-pressed="true"] {
+    color: var(--color-text);
+    background: var(--color-accent-soft);
+  }
+}

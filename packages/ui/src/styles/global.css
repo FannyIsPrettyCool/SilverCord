@@ -1,0 +1,82 @@
+@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/jetbrains-mono";
+
+/*
+ * Base layer: typography on a 4px baseline, spacing tokens, focus rings that read on glass.
+ * Colour and glass variables come from the active theme (applyTheme).
+ */
+:root {
+  --font-ui: "Figtree Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  /* Type scale (size / line height), all on the 4px baseline. */
+  --text-xs: calc(12px * var(--font-scale, 1));
+  --text-sm: calc(13px * var(--font-scale, 1));
+  --text-md: calc(15px * var(--font-scale, 1));
+  --text-lg: calc(18px * var(--font-scale, 1));
+  --text-xl: calc(24px * var(--font-scale, 1));
+  --text-2xl: calc(32px * var(--font-scale, 1));
+  --leading-xs: 16px;
+  --leading-sm: 20px;
+  --leading-md: 24px;
+  --leading-lg: 24px;
+  --leading-xl: 32px;
+  --leading-2xl: 40px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --focus-ring: 0 0 0 2px var(--color-base), 0 0 0 4px var(--color-focus-ring);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-base);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  user-select: none;
+}
+
+input,
+textarea,
+button,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+}
