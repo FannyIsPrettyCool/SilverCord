@@ -17,18 +17,18 @@ Accept: fresh clone → `pnpm i && pnpm dev` boots server + empty Electron windo
 - [x] Verify toolchain versions; ADR-0003
 - [x] ADR-0001 assumptions, ADR-0002 Electron vs Tauri
 - [x] git init; lefthook + commitlint gitmoji rule enforced from first commit
-- [ ] `docs/PLAN.md`, `docs/PROGRESS.md`, `docs/PLATFORM-LIMITS.md`, `docs/DESIGN-CHECKLIST.md`, `docs/RUNBOOK.md`
-- [ ] `CLAUDE.md` index
-- [ ] `.claude/` agents (architect, reviewer, security-auditor, design-critic, test-engineer), commands (`/verify`, `/phase-start`, `/ship-phase`), settings hooks
-- [ ] Package skeletons: protocol (incl. `brand.ts`), permissions, markdown, ui, widgets, config
-- [ ] `apps/server`: Fastify boot, validated `env.ts`, `/health`, pino logging, graceful shutdown
-- [ ] `apps/desktop`: electron-vite app opening an empty hardened window
-- [ ] `infra/docker-compose.dev.yml`: Postgres, Valkey, LiveKit (dev), Mailpit, local storage dir
-- [ ] Root scripts: `dev`, `verify`, `verify:full`, `ui:shots`, `db:migrate`, `db:seed`, `release`
-- [ ] `.github/workflows/ci.yml` (thin): lint, typecheck, unit tests, commit-message check
+- [x] `docs/PLAN.md`, `docs/PROGRESS.md`, `docs/PLATFORM-LIMITS.md`, `docs/DESIGN-CHECKLIST.md`, `docs/RUNBOOK.md`
+- [x] `CLAUDE.md` index
+- [x] `.claude/` agents (architect, reviewer, security-auditor, design-critic, test-engineer), commands (`/verify`, `/phase-start`, `/ship-phase`), settings hooks
+- [x] Package skeletons: protocol (incl. `brand.ts`), permissions, markdown, ui, widgets, config
+- [x] `apps/server`: Fastify boot, validated `env.ts`, `/health`, pino logging, graceful shutdown
+- [x] `apps/desktop`: electron-vite app opening an empty hardened window
+- [x] `infra/docker-compose.dev.yml`: Postgres, Valkey, LiveKit (dev), Mailpit, local storage dir
+- [x] Root scripts: `dev`, `verify`, `verify:full`, `ui:shots`, `db:migrate`, `db:seed`, `release`
+- [x] `.github/workflows/ci.yml` (thin): lint, typecheck, unit tests, commit-message check
 - [ ] Acceptance run: fresh clone → install → dev boots server + window; verify green
 - [ ] Tag `v0.0.0`
-- [ ] CI run on GitHub Actions confirmed green
+- [x] CI run on GitHub Actions confirmed green
 
 ## Phase 1 — Core platform + design system v1
 
@@ -142,6 +142,13 @@ vN+1 works.
 - [ ] Accessibility pass
 - [ ] Tree layout
 - [ ] Auto-update, NSIS installer, AppImage/deb/rpm
+- [ ] Download site (`apps/site`): one static page served at `<DOMAIN>` (and `get.<DOMAIN>`)
+      that detects the visitor's OS and offers the matching installer (NSIS / AppImage / deb / rpm)
+      read from the `stable` update feed (`latest.yml`, `latest-linux.yml`) on `updates.<DOMAIN>`;
+      version + release date shown; other platforms listed below. Built with `packages/ui` tokens,
+      themes and ambient layer so it matches the app (glass, Aurora/Frost by `prefers-color-scheme`).
+      No tracking, no third-party requests, fonts bundled; BRIEF §7.8 copy rules apply; EN + FR.
+      Served by Caddy from the prod compose stack. Spec: `docs/spec/download-site.md`. ADR-0004.
 - [ ] Performance pass vs budgets → `docs/PERF.md`
 
 ## Phase 8 — Hardening & operations
