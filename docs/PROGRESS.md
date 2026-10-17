@@ -3,6 +3,21 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-17 — Phase 1: server + shell done, design system next
+
+- Done: threat model; protocol (snowflakes, errors, pagination, auth, gateway frames); server
+  error envelope + OpenAPI + CORS; Drizzle + Testcontainers; Valkey token-bucket limiter with
+  mandatory per-route declarations (`config.rateLimit`, `config.auth`); full auth (register modes,
+  invites, Argon2id, JWT + rotating refresh with reuse detection, sessions, email verify/reset via
+  Mailpit, TOTP + recovery codes, new-device mail); gateway (HELLO/IDENTIFY/READY/HEARTBEAT/RESUME,
+  session runtimes, ADR-0006); hardened Electron shell (app:// protocol, CSP headers, Zod IPC with
+  sender checks, auth agent in main, safeStorage, tray, titlebar overlay, fuses verified).
+- Tests: protocol 37, server unit 18 + integration 55, desktop unit 3 + e2e 7.
+- Next: `packages/ui` (tokens, themes, fonts, Glass tiers + governor, ambient layer, Storybook),
+  i18n, login/register screens + gateway status, `pnpm ui:shots`, design review; passkeys.
+- Gotchas: verify each commit compiles on its own (two intermediate commits were red); Biome
+  lints SVG/HTML too; Playwright `evaluate` bypasses page CSP.
+
 ## 2026-10-17 — Phase 1 started
 
 Plan (each step = branch `feat/<scope>-<slug>`, merged `--no-ff`, pushed):
