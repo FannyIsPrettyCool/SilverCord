@@ -50,20 +50,28 @@ const unlimited: RateLimiter = {
  * `rateLimits: 'valkey'` (the real limiter) is requested by a rate-limit test.
  */
 export async function createTestApp(
-  options: { rateLimits?: 'off' | 'valkey' } = {},
+  options: { rateLimits?: 'off' | 'valkey'; logLines?: string[] } = {},
 ): Promise<TestApp> {
   const database = await createTestDatabase();
   const valkey = createValkey(inject('valkeyUrl'));
   await valkey.connect();
   const mailer = createCapturingMailer();
-  const env = loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'silent', DATABASE_URL: database.url });
+  const env = loadEnv({
+    NODE_ENV: 'test',
+    LOG_LEVEL: options.logLines ? 'trace' : 'silent',
+    DATABASE_URL: database.url,
+  });
   const context = await createAppContext(env, {
     database,
     valkey,
     mailer,
     ...(options.rateLimits === 'valkey' ? {} : { rateLimiter: unlimited }),
   });
-  const app = await buildApp(context);
+  const lines = options.logLines;
+  const app = await buildApp(
+    context,
+    lines ? { logStream: { write: (line) => void lines.push(line) } } : {},
+  );
   await app.ready();
   return {
     app,
