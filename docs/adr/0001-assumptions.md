@@ -16,7 +16,7 @@ the defaults, recording them here, and moving on without blocking.
 | APP_SLUG | `silvercord` | Deep links: `silvercord://`. |
 | DOMAIN | `localhost` / `*.localhost` | Subdomains planned per §9.2 (`api.`, `gw.`, `cdn.`, `lk.`, `turn.`, `updates.`). Real domain needed before phase 2 deploy (escalation). |
 | VPS | 4 vCPU, 8 GB RAM, 1 Gbps, Ubuntu LTS | Capacity math in `docs/spec/voice.md` uses these numbers until real specs are given. |
-| GIT_HOST | GitLab | `.gitlab-ci.yml` stays thin; all logic lives in `pnpm` scripts. |
+| GIT_HOST | **GitHub** (`git@github.com:FannyIsPrettyCool/SilverCord.git`) | Supplied by the human after kickoff, overriding the GitLab default. CI is GitHub Actions (`.github/workflows/ci.yml`) and stays thin; all logic lives in `pnpm` scripts. Every completed step is pushed. |
 | REGISTRATION | invite-only | First account becomes instance admin and can always register. |
 | LANGUAGES | English + French | i18n from day one. |
 | LICENSE | Proprietary, all rights reserved | `"license": "UNLICENSED"` in every `package.json`. |
