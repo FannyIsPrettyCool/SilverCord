@@ -54,6 +54,7 @@ const unlimited: RateLimiter = {
 export async function createTestApp(
   options: {
     rateLimits?: 'off' | 'valkey';
+    rateLimiter?: RateLimiter;
     logLines?: string[];
     gateway?: Partial<GatewayOptions>;
   } = {},
@@ -71,7 +72,11 @@ export async function createTestApp(
     database,
     valkey,
     mailer,
-    ...(options.rateLimits === 'valkey' ? {} : { rateLimiter: unlimited }),
+    ...(options.rateLimiter
+      ? { rateLimiter: options.rateLimiter }
+      : options.rateLimits === 'valkey'
+        ? {}
+        : { rateLimiter: unlimited }),
     gateway: { ...DEFAULT_GATEWAY_OPTIONS, ...options.gateway },
   });
   const lines = options.logLines;
