@@ -1,5 +1,6 @@
 {
   "$schema": "https://turborepo.com/schema.json",
+  "globalPassThroughEnv": ["CLAUDE_PROJECT_DIR", "HOME"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
