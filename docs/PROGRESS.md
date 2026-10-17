@@ -3,6 +3,22 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-17 — Phase 1 review fixes in progress (branch `fix/phase1-review`)
+
+- Reviewer (24 findings) and security audit (18 findings) ran at phase end. Fixed and pushed:
+  all server/gateway items (handshake races, upgrade crash + limits, body-key hashing, IPv6 /64,
+  NFKC, TOTP re-auth + mails + per-account cap, peppered recovery codes, dev secrets off-loopback,
+  async forgot, IP-aware alerts, session revalidation, detached-runtime cap, route sweep tests),
+  and desktop main (origin checks, refresh/logout races, forgot via IPC).
+- Left (renderer + ui), from the review: gateway-client start heartbeat after READY, classify
+  getToken errors (don't sign out on NETWORK/RATE_LIMITED), immediate zombie close, catch +
+  socket capture on INVALID_SESSION re-identify; error-message map TOKEN_EXPIRED/REUSED/
+  UNAUTHENTICATED; mfaPending guard on /sign-in/code; checkbox aria-invalid; AuthLayout
+  transform-only entrance; AmbientLayer drop loseContext + handle context loss; governor burst
+  sampling; positive permission e2e (notifications granted). Then merge fix branch → ui branch →
+  main, tag v0.1.0, regenerate README art (`generate.py 2`).
+- Gotcha: commit 280b5f2 doesn't typecheck alone (pushed); check each commit before pushing.
+
 ## 2026-10-17 — Phase 1: server + shell done, design system next
 
 - Done: threat model; protocol (snowflakes, errors, pagination, auth, gateway frames); server
