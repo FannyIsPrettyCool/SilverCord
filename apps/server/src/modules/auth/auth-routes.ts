@@ -208,7 +208,14 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
       },
     },
     async (request, reply) => {
-      await auth.forgotPassword(request.body.email);
+      // Answer first: doing the lookup and writes before replying would reveal, by timing,
+      // whether the address has an account (threat model T2).
+      const { email } = request.body;
+      setImmediate(() => {
+        auth.forgotPassword(email).catch((error: unknown) => {
+          request.log.warn({ err: error }, 'password reset request failed');
+        });
+      });
       return reply.code(202).send(null);
     },
   );

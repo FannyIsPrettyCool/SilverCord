@@ -222,4 +222,24 @@ describe('login, refresh and sessions', () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(t.mailer.sent.filter((m) => m.to === account.email)).toHaveLength(before);
   });
+
+  it('alerts again when a known device name signs in from a new network', async () => {
+    const { account } = await register(t);
+    const first = t.mailer.next(account.email);
+    await t.request({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { login: account.email, password: account.password, deviceName: 'Laptop' },
+      remoteAddress: '198.51.100.1',
+    });
+    await first;
+    const second = t.mailer.next(account.email);
+    await t.request({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { login: account.email, password: account.password, deviceName: 'Laptop' },
+      remoteAddress: '198.51.100.2',
+    });
+    expect((await second).subject).toContain('New sign-in');
+  });
 });
