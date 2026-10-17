@@ -7,7 +7,7 @@ import type { CurrentUser, ErrorCode } from '@silvercord/protocol';
  */
 export type IpcResult<T> =
   | { ok: true; value: T }
-  | { ok: false; error: { code: ErrorCode | 'NETWORK'; message: string } };
+  | { ok: false; error: { code: ErrorCode | 'NETWORK'; message: string; field?: string } };
 
 export interface SessionSnapshot {
   readonly user: CurrentUser;
@@ -47,9 +47,7 @@ export interface IpcChannels {
   'auth:login-second-factor': [{ code: string } | { recoveryCode: string }, SessionSnapshot];
   'auth:access-token': [void, SessionSnapshot];
   'auth:logout': [void, null];
-  'window:minimize': [void, null];
   'window:toggle-maximize': [void, boolean];
-  'window:close': [void, null];
 }
 
 export type IpcChannel = keyof IpcChannels;
@@ -64,7 +62,5 @@ export const IPC_CHANNELS = [
   'auth:login-second-factor',
   'auth:access-token',
   'auth:logout',
-  'window:minimize',
   'window:toggle-maximize',
-  'window:close',
 ] as const satisfies readonly IpcChannel[];

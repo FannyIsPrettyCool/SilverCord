@@ -45,9 +45,7 @@ const inputSchemas: { [C in IpcChannel]: z.ZodType<IpcInput<C>> } = {
   ]),
   'auth:access-token': none,
   'auth:logout': none,
-  'window:minimize': none,
   'window:toggle-maximize': none,
-  'window:close': none,
 };
 
 type Handlers = { [C in IpcChannel]: (input: IpcInput<C>) => Promise<IpcOutput<C>> | IpcOutput<C> };
@@ -60,7 +58,8 @@ export interface IpcDependencies {
 
 function toError(error: unknown): IpcResult<never> {
   if (error instanceof ApiError) {
-    return { ok: false, error: { code: error.code as never, message: error.message } };
+    const field = error.field === undefined ? {} : { field: error.field };
+    return { ok: false, error: { code: error.code as never, message: error.message, ...field } };
   }
   return { ok: false, error: { code: 'INTERNAL', message: 'Unexpected error' } };
 }
@@ -77,20 +76,12 @@ export function registerIpc(deps: IpcDependencies): void {
       await deps.auth.logout();
       return null;
     },
-    'window:minimize': () => {
-      deps.window()?.minimize();
-      return null;
-    },
     'window:toggle-maximize': () => {
       const window = deps.window();
       if (!window) return false;
       if (window.isMaximized()) window.unmaximize();
       else window.maximize();
       return window.isMaximized();
-    },
-    'window:close': () => {
-      deps.window()?.close();
-      return null;
     },
   };
 

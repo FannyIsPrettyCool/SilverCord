@@ -15,10 +15,12 @@ const REFRESH_MARGIN_MS = 60_000;
 
 export class ApiError extends Error {
   readonly code: string;
-  constructor(code: string, message: string) {
+  readonly field: string | undefined;
+  constructor(code: string, message: string, field?: string) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
+    this.field = field;
   }
 }
 
@@ -61,7 +63,11 @@ export function createAuthAgent(apiUrl: string, store: TokenStore) {
     if (!response.ok) {
       const envelope = errorEnvelopeSchema.safeParse(json);
       throw envelope.success
-        ? new ApiError(envelope.data.error.code, envelope.data.error.message)
+        ? new ApiError(
+            envelope.data.error.code,
+            envelope.data.error.message,
+            envelope.data.error.issues?.[0]?.path,
+          )
         : new ApiError('INTERNAL', `Unexpected response ${response.status}`);
     }
     return schema.parse(json);

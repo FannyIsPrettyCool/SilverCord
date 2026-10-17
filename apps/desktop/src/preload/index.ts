@@ -24,9 +24,7 @@ const bridge = {
     logout: () => invoke('auth:logout'),
   },
   window: {
-    minimize: () => invoke('window:minimize'),
     toggleMaximize: () => invoke('window:toggle-maximize'),
-    close: () => invoke('window:close'),
   },
 } as const;
 
