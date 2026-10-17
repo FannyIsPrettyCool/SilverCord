@@ -1,0 +1,139 @@
+.shell {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 72px 248px 1fr;
+  gap: var(--space-2);
+  padding: 40px var(--space-2) var(--space-2);
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+}
+
+.railItem {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  padding: 0;
+  border-radius: 16px;
+  background: var(--color-accent-soft);
+  cursor: pointer;
+}
+
+.railMark {
+  width: 28px;
+  height: 28px;
+}
+
+.railPill {
+  position: absolute;
+  left: -12px;
+  top: 8px;
+  width: 4px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--color-text);
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--space-2);
+}
+
+.sidebarBody {
+  flex: 1;
+}
+
+.note {
+  margin: 0 var(--space-3) var(--space-2);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  color: var(--color-text-faint);
+}
+
+.userPanel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-3);
+  background: var(--color-field);
+}
+
+.avatar {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  /* Accent-based so the on-accent initial keeps its contrast in light themes. */
+  background: linear-gradient(
+    140deg,
+    var(--color-accent),
+    color-mix(in srgb, var(--color-accent) 65%, var(--ambient-2))
+  );
+  color: var(--color-on-accent);
+  font-weight: 700;
+  font-size: var(--text-md);
+}
+
+.presence {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--color-base);
+  background: var(--color-text-faint);
+  transition: background-color 200ms ease-out;
+
+  &[data-state="ready"] {
+    background: var(--color-success);
+  }
+
+  &[data-state="connecting"] {
+    background: var(--color-warning);
+  }
+}
+
+.identity {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.displayName {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  color: var(--color-text-muted);
+}
+
+.content {
+  min-width: 0;
+  border-radius: var(--radius-1);
+  background: var(--color-content);
+  box-shadow: inset 0 0 0 1px var(--glass-rim-faint);
+}

@@ -1,0 +1,4 @@
+/* The React root fills the window so layouts can centre and stretch. */
+#root {
+  height: 100%;
+}
