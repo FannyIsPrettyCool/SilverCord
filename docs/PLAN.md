@@ -66,6 +66,7 @@ security checklist test passes; threat model written.
 - [x] Ambient lifecycle review: React remount cleanup and WebGL context-loss fallback
 - [x] Auto glass governor review: burst sampling with no idle RAF loop
 - [x] Auth screen review: MFA guard, token error copy, age accessibility and panel motion
+- [x] Logout races: generation-bound login/register/MFA/restore and serialized token persistence
 
 ## Phase 2 — Social & messaging
 

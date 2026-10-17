@@ -39,6 +39,10 @@ IPs are kept on `sessions` only and cleared after 90 days by a cleanup job (§8.
 - **MFA ticket:** JWT, 5 minutes, `typ = mfa`, `sub`, used only by `/auth/login/totp`.
 - **Email tokens:** 32 random bytes, SHA-256 stored; verify 48 h, reset 30 min; single use.
 
+The desktop binds login, registration, MFA and restore results to the generation that started
+them. Logout invalidates older results; serialized token-store writes ensure its clear finishes
+after prior saves. Delayed network responses or disk operations cannot restore a logged-out user.
+
 ## Passwords
 
 Argon2id (`@node-rs/argon2`), m = 19456 KiB, t = 2, p = 1 (OWASP minimum), rehash on login
