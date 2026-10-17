@@ -28,8 +28,9 @@ IPs are kept on `sessions` only and cleared after 90 days by a cleanup job (§8.
 
 - **Access token:** JWT HS256 (`jose`), 10 minutes, claims `sub` (user id string), `sid`
   (session id string), `iat`, `exp`, `iss = silvercord`. Sent as `Authorization: Bearer`.
-  Every authenticated request checks that `sid` is not revoked (Valkey set
-  `revoked-sessions`, populated on revoke, TTL = access lifetime; DB is the source of truth).
+  Every authenticated request checks `revoked-session:<sid>` in Valkey and, unless already
+  rejected there, confirms the database session is active. A missing cache marker after failed
+  publication or cache loss must never restore a revoked token. Gateway handshakes do the same.
 - **Refresh token:** 32 random bytes, base64url, prefixed `scr_`. Only its SHA-256 is stored.
   30-day lifetime. **Rotation:** each refresh marks the presented token used and issues a new
   one in the same session. **Reuse detection:** presenting an already-used token revokes the

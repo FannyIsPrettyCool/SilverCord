@@ -27,6 +27,7 @@ export class MissingAuthDeclarationError extends Error {
 export interface AuthenticationDependencies {
   readonly tokens: TokenIssuer;
   readonly revocations: SessionRevocations;
+  readonly isAuthSessionActive: (sessionId: bigint) => Promise<boolean>;
   readonly isInstanceAdmin: (userId: bigint) => Promise<boolean>;
 }
 
@@ -71,7 +72,12 @@ export function registerAuthentication(
       return;
     }
     const claims = await deps.tokens.verifyAccessToken(token);
-    if (await deps.revocations.isRevoked(claims.sessionId)) {
+    // Valkey markers accelerate rejections, but can be lost on an outage or failed write.
+    // The database remains authoritative even after the cache recovers.
+    if (
+      (await deps.revocations.isRevoked(claims.sessionId)) ||
+      !(await deps.isAuthSessionActive(claims.sessionId))
+    ) {
       throw new AppError('TOKEN_INVALID', 'Session revoked');
     }
     request.auth = claims;

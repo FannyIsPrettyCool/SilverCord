@@ -86,6 +86,20 @@ describe('login, refresh and sessions', () => {
     expect(results.map((r) => r.statusCode).sort()).toEqual([200, 401]);
   });
 
+  it('keeps revoked access tokens rejected after their Valkey marker is lost', async () => {
+    const { tokens } = await register(t);
+    const claims = await t.context.tokens.verifyAccessToken(tokens.accessToken);
+    const logout = await t.request({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: bearer(tokens),
+    });
+    expect(logout.statusCode).toBe(204);
+    await t.context.valkey.del(`revoked-session:${claims.sessionId}`);
+    expectError(await me(tokens.accessToken), 401, 'TOKEN_INVALID');
+    expectError(await refresh(tokens.refreshToken), 401, 'TOKEN_INVALID');
+  });
+
   it('rejects unknown refresh tokens and malformed bodies', async () => {
     expectError(await refresh('scr_nope'), 401, 'TOKEN_INVALID');
     expectError(

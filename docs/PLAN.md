@@ -69,6 +69,7 @@ security checklist test passes; threat model written.
 - [x] Logout races: generation-bound login/register/MFA/restore and serialized token persistence
 - [x] Gateway follow-up review: malformed/aborted upgrades, validation outages and active shutdown
 - [x] Gateway kick cleanup: dispose after Valkey errors without unhandled rejection
+- [x] Durable revocation: authoritative session checks when cache markers are missing
 
 ## Phase 2 — Social & messaging
 

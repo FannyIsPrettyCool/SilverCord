@@ -85,6 +85,7 @@ export async function buildApp(
     tokens: context.tokens,
     revocations: context.revocations,
     isInstanceAdmin: auth.isInstanceAdmin,
+    isAuthSessionActive: auth.isSessionActive,
   });
   await registerOpenApi(app, VERSION);
   registerHealthRoutes(app, VERSION);
