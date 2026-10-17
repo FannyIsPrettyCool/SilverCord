@@ -19,8 +19,8 @@ export interface IssuedAccessToken {
 export interface TokenIssuer {
   issueAccessToken(claims: AccessClaims): Promise<IssuedAccessToken>;
   verifyAccessToken(token: string): Promise<AccessClaims>;
-  issueMfaTicket(userId: bigint): Promise<string>;
-  verifyMfaTicket(ticket: string): Promise<bigint>;
+  issueMfaTicket(userId: bigint, deviceName: string): Promise<string>;
+  verifyMfaTicket(ticket: string): Promise<{ userId: bigint; deviceName: string }>;
 }
 
 function parseId(value: unknown): bigint {
@@ -74,11 +74,15 @@ export function createTokenIssuer(secret: string, now: () => Date = () => new Da
       const payload = await verify(token, 'at+jwt');
       return { userId: parseId(payload.sub), sessionId: parseId(payload['sid']) };
     },
-    async issueMfaTicket(userId) {
-      return (await sign({}, userId.toString(), 'mfa+jwt', MFA_TICKET_TTL_SECONDS)).token;
+    async issueMfaTicket(userId, deviceName) {
+      return (await sign({ dev: deviceName }, userId.toString(), 'mfa+jwt', MFA_TICKET_TTL_SECONDS))
+        .token;
     },
     async verifyMfaTicket(ticket) {
-      return parseId((await verify(ticket, 'mfa+jwt')).sub);
+      const payload = await verify(ticket, 'mfa+jwt');
+      const deviceName = payload['dev'];
+      if (typeof deviceName !== 'string') throw new AppError('TOKEN_INVALID', 'Invalid token');
+      return { userId: parseId(payload.sub), deviceName };
     },
   };
 }

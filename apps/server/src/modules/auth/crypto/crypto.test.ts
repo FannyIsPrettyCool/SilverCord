@@ -75,9 +75,9 @@ describe('token issuer', () => {
     ).token;
     expect(await codeOf(issuer.verifyAccessToken(foreign))).toBe('TOKEN_INVALID');
 
-    const ticket = await issuer.issueMfaTicket(1n);
+    const ticket = await issuer.issueMfaTicket(1n, 'Desktop');
     expect(await codeOf(issuer.verifyAccessToken(ticket))).toBe('TOKEN_INVALID');
-    expect(await issuer.verifyMfaTicket(ticket)).toBe(1n);
+    expect(await issuer.verifyMfaTicket(ticket)).toEqual({ userId: 1n, deviceName: 'Desktop' });
     expect(await codeOf(issuer.verifyAccessToken('garbage'))).toBe('TOKEN_INVALID');
   });
 });
