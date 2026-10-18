@@ -2,6 +2,7 @@
 export * from '../../events/outbox-schema.ts';
 export * from '../../modules/admin/admin-schema.ts';
 export * from '../../modules/auth/auth-schema.ts';
+export * from '../../modules/badges/badges-schema.ts';
 export * from '../../modules/channels/channels-schema.ts';
 export * from '../../modules/guilds/guilds-schema.ts';
 export * from '../../modules/media/media-schema.ts';
