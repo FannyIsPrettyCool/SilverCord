@@ -3,6 +3,29 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — 0.3.0 published and installed
+
+- Released/tagged `v0.3.0` at `0a1356a`; feature branch fast-forwarded into `main`.
+  CI run 39164894141 is fully green (verify, integration and Electron e2e). Updated legacy
+  e2e expectations for Activity and guild chat; the guild UI test now sends a message.
+- Production deployed `0a1356a` with a checked database/media backup; API, worker and decoder
+  healthy, public `/health` reports 0.3.0. Staging runs identical runtime code at `6800fc1`.
+- Website EN/FR points to `/downloads/SilverCord-0.3.0-windows-x64.exe` (158,285,694 bytes).
+  Full public download SHA-256: `421c0af962360a88d2d0262b60543453685411dbafed1a8b9eb85e12e431a199`.
+  Local, uploaded and HTTP-downloaded bytes match; published SHA256SUMS includes 0.2.0/0.3.0.
+  Immutable site release: `/srv/silvercord-site/releases/6800fc1668bab53a48da42bdf1f81cd395f80591`.
+  EN/FR at 320/390/1280px pass headless layout checks; media boundaries remain API 404/CDN 401.
+- Installed the verified build per-machine with elevated NSIS `/S /allusers`, exit 0.
+  `C:\Program Files\silvercord\silvercord.exe` reports 0.3.0.0; installed `app.asar` SHA-256
+  matches the packaged file (`3668d8f12d105fdebfc96234d807e382d306c48d620ac11b8b68958e2a4a7e66`).
+  App was left closed. Installer no longer auto-launches the app. No screenshot-tour windows
+  were opened on the workstation; badge/picker checks used headless Edge, Electron e2e ran in CI.
+- All-package checks green (117 desktop unit tests); 178 real VPS integrations green;
+  seven packaged Electron fuses hardened; production dependency audit reports no known issues;
+  database migration generation shows no drift. Evidence: `.artifacts/work/`.
+- Remaining: Phase 3 invites/roles/member list/moderation, then voice and later roadmap work.
+  GIF search is excluded by explicit owner choice. Continue to respect the no-window preference.
+
 ## 2026-10-18 — 0.3.0 release candidate: guild chat and animated badges
 
 - Completed the uncommitted expressions work; added full reaction picker, custom reaction
