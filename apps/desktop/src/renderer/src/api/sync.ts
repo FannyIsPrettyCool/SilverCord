@@ -1,5 +1,10 @@
 import { dispatchEventSchemas } from '@silvercord/protocol';
-import { reconcileNewest, refreshMessage } from './chat.ts';
+import {
+  forgetChatCacheMetadata,
+  reconcileNewest,
+  refreshMessage,
+  resetMessageHistories,
+} from './chat.ts';
 import { keys, queryClient } from './query-client.ts';
 
 const SEEN_LIMIT = 500;
@@ -39,6 +44,7 @@ export function handleDispatch(t: string, d: unknown) {
     if (!event.success || !firstSighting(event.data.eventId)) return;
     invalidate(keys.relationships());
     invalidate(keys.privacy);
+    void resetMessageHistories();
     debounced('presence', 300, () => invalidate(keys.presence()));
     debounced('channels', 200, () => invalidate(keys.channels));
     return;
@@ -81,18 +87,19 @@ export function handleDispatch(t: string, d: unknown) {
  * Pub/sub delivery is at-most-once, so READY, RESUMED, focus and a 30 s timer re-read the
  * authorized state (ADR-0008).
  */
-export function reconcile() {
+export function reconcile(resetHistory = false) {
   invalidate(keys.relationships());
   invalidate(keys.channels);
   invalidate(keys.presence());
   for (const query of queryClient.getQueryCache().findAll({ queryKey: ['messages'] })) {
     const channelId = query.queryKey[1];
     if (typeof channelId === 'string' && query.getObserversCount() > 0)
-      void reconcileNewest(channelId).catch(() => undefined);
+      void reconcileNewest(channelId, resetHistory).catch(() => undefined);
   }
 }
 
 export function resetSync() {
+  forgetChatCacheMetadata();
   seen.clear();
   for (const timer of timers.values()) clearTimeout(timer);
   timers.clear();

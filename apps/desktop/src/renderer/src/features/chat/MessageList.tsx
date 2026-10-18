@@ -4,7 +4,7 @@ import { IconButton } from '@silvercord/ui';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { markRead, newer, useMessages } from '../../api/chat.ts';
+import { markRead, newer, refreshVisibleMessages, useMessages } from '../../api/chat.ts';
 import { useSession } from '../../session/session-store.ts';
 import { discardMessage, retryMessage, useChatState } from './chat-state.ts';
 import { type MessageContext, MessageItem } from './MessageItem.tsx';
@@ -105,6 +105,28 @@ export function MessageList({ channel }: { readonly channel: Channel }) {
   // New rows, or rows growing as they are measured, while reading the bottom: follow them.
   const lastKey = rows.at(-1)?.key;
   const totalSize = virtualizer.getTotalSize();
+  const visibleIds = virtualizer
+    .getVirtualItems()
+    .filter(
+      (item) =>
+        item.end > (scroller.current?.scrollTop ?? 0) &&
+        item.start < (scroller.current?.scrollTop ?? 0) + (scroller.current?.clientHeight ?? 0),
+    )
+    .flatMap((item) => {
+      const row = rows[item.index];
+      return row?.kind === 'message' ? [row.message.id] : [];
+    })
+    .join(',');
+  useEffect(() => {
+    if (!visibleIds) return;
+    const refresh = () => refreshVisibleMessages(channel.id, visibleIds.split(','));
+    const settle = setTimeout(refresh, 300);
+    const timer = setInterval(refresh, 5_000);
+    return () => {
+      clearTimeout(settle);
+      clearInterval(timer);
+    };
+  }, [visibleIds, channel.id]);
   useLayoutEffect(() => {
     if (atBottom && lastKey && totalSize > 0) scrollToEnd();
   }, [lastKey, totalSize, atBottom, scrollToEnd]);
