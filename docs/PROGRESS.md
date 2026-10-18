@@ -3,6 +3,22 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — Phase 5: expressions in progress (uncommitted desktop work)
+
+- Committed and pushed: emote/sticker server (tables, routes, token rewrite, custom reactions,
+  VPS tests green), markdown emote/sticker nodes, Noto Color Emoji font (woff2 only) in ui.
+- UNCOMMITTED in the working tree: desktop emoji picker (features/expressions/*), emote node in
+  the composer, emote/sticker/jumbo rendering in MarkdownView, api/expressions.ts, AnchoredPanel.
+  Typecheck passes; before committing fix 4 Biome errors (character-class regex in
+  MarkdownView EMOJI_TEXT, event handlers on static elements in EmojiPicker scroll divs,
+  aria-label on a span in EmoteImage) and the failing `api/sync.test.ts` (GUILD_CHANGED now
+  also invalidates expression queries; update its expectations).
+- Still to do: reaction toolbar picker (toolbar unmounts on pointer leave — keep it mounted
+  while the picker is open), custom emotes in reaction chips, custom status emoji picker, guild
+  emote/sticker management dialog, GIF (needs KLIPY_API_KEY), reviewer + security audit, and
+  real-app checks of the activity and picker screens (ask the owner first: no windows while
+  they play).
+
 ## 2026-10-18 — Phase 5: profiles, badges and activity implemented
 
 - Shipped on `feat/profile-phase-5-profiles` (pushed, CI green so far): profile media purposes
