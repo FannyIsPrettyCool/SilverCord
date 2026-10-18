@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { durableEventSchemas, transientEventSchemas } from './events.ts';
 import { currentUserSchema } from './users.ts';
 
 /** Gateway protocol v1 (docs/spec/gateway.md). Numeric values are part of the wire format. */
@@ -72,6 +73,8 @@ export const dispatchEventSchemas = {
   READY: readyEventSchema,
   RESUMED: resumedEventSchema,
   USER_UPDATE: currentUserSchema,
+  ...durableEventSchemas,
+  ...transientEventSchemas,
 } as const;
 export type DispatchEventName = keyof typeof dispatchEventSchemas;
 export type DispatchEventData<T extends DispatchEventName> = z.infer<

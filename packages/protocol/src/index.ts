@@ -8,6 +8,7 @@ export {
   errorEnvelopeSchema,
   fieldIssueSchema,
 } from './errors.ts';
+export * from './events.ts';
 export * from './gateway.ts';
 export { type HealthResponse, healthResponseSchema } from './health.ts';
 export {
@@ -16,6 +17,7 @@ export {
   PAGE_LIMIT_DEFAULT,
   PAGE_LIMIT_MAX,
 } from './pagination.ts';
+export * from './relationships.ts';
 export {
   createSnowflakeGenerator,
   SNOWFLAKE_EPOCH_MS,
