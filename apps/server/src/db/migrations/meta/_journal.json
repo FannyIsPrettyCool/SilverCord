@@ -36,6 +36,13 @@
       "when": 1792285697235,
       "tag": "0004_private_messaging",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792286424708,
+      "tag": "0005_presence_preferences",
+      "breakpoints": true
     }
   ]
 }
