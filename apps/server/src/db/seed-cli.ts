@@ -14,8 +14,8 @@ import { createDatabase } from './client.ts';
 /**
  * Development seed: opens registration and creates known accounts (BRIEF §11.3 `db:seed`).
  * The dedicated MFA account lets the screenshot tour reach the real verification screen.
- * aurora and tide are friends with a DM; SEED_MESSAGES (default 120) sets its history size, e.g.
- * 10000 for the scroll performance check. Idempotent; refuses to run in production.
+ * aurora and tide are friends with a DM of SEED_MESSAGES (default 120) messages; aurora and
+ * mfa_preview get a DM of SEED_PERF_MESSAGES (default 0, 10000 for the scroll check). Idempotent; refuses to run in production.
  */
 export const SEED_PASSWORD = 'silvercord-dev-password';
 export const SEED_ACCOUNTS = [
@@ -48,14 +48,14 @@ const LINES = [
   'Testing *italic*, ~~strike~~ and __underline__.',
 ];
 
-/** Friendship, DM and a history of `count` messages between aurora and tide. */
-async function seedConversation(count: number) {
+/** Friendship, DM and a history of `count` messages between two seed accounts. */
+async function seedConversation(first: string, second: string, count: number) {
   const rows = await handle.db
     .select({ id: users.id, username: users.username })
     .from(users)
-    .where(sql`${users.username} in ('aurora', 'tide')`);
-  const aurora = rows.find((row) => row.username === 'aurora')?.id;
-  const tide = rows.find((row) => row.username === 'tide')?.id;
+    .where(sql`${users.username} in (${first}, ${second})`);
+  const aurora = rows.find((row) => row.username === first)?.id;
+  const tide = rows.find((row) => row.username === second)?.id;
   if (!aurora || !tide) throw new Error('seed accounts missing');
   const [low, high] = aurora < tide ? [aurora, tide] : [tide, aurora];
   await handle.db
@@ -133,7 +133,9 @@ try {
         .onConflictDoNothing();
     }
   }
-  await seedConversation(Number(process.env['SEED_MESSAGES'] ?? 120));
+  await seedConversation('aurora', 'tide', Number(process.env['SEED_MESSAGES'] ?? 120));
+  // Scroll performance fixture (docs/PERF.md): a separate DM with a long history.
+  await seedConversation('aurora', 'mfa_preview', Number(process.env['SEED_PERF_MESSAGES'] ?? 0));
   process.stdout.write(
     `seeded ${SEED_ACCOUNTS.map((a) => a.username).join(', ')} (password: ${SEED_PASSWORD})\n`,
   );
