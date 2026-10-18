@@ -15,6 +15,10 @@ import { createAdminService } from './modules/admin/admin-service.ts';
 import { registerAuthRoutes } from './modules/auth/auth-routes.ts';
 import { createAuthService } from './modules/auth/auth-service.ts';
 import { createCodeHasher } from './modules/auth/crypto/code-hasher.ts';
+import { registerChannelsRoutes } from './modules/channels/channels-routes.ts';
+import { createChannelsService } from './modules/channels/channels-service.ts';
+import { registerMessagesRoutes } from './modules/messages/messages-routes.ts';
+import { createMessagesService, noMessageMedia } from './modules/messages/messages-service.ts';
 import { registerRelationshipsRoutes } from './modules/relationships/relationships-routes.ts';
 import { createRelationshipsService } from './modules/relationships/relationships-service.ts';
 import { createUsersService } from './modules/users/users-service.ts';
@@ -99,6 +103,23 @@ export async function buildApp(
   const outbox = createEventOutbox(context.nextId);
   const relationships = createRelationshipsService({ users, nextId: context.nextId, outbox });
   registerRelationshipsRoutes(app, db, relationships);
+  const channels = createChannelsService({
+    users,
+    relationships,
+    outbox,
+    nextId: context.nextId,
+    groupMaxMembers: env.GROUP_DM_MAX_MEMBERS,
+  });
+  const messages = createMessagesService({
+    users,
+    relationships,
+    channels,
+    outbox,
+    media: noMessageMedia,
+    nextId: context.nextId,
+  });
+  registerChannelsRoutes(app, db, channels, messages);
+  registerMessagesRoutes(app, db, messages);
 
   const dispatcher = createOutboxDispatcher({ db, events: context.events, log: app.log });
   app.addHook('onReady', () => dispatcher.start());
