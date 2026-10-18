@@ -144,9 +144,9 @@ Accept: profile popout and full view polished, privacy toggles honored server-si
 Started 2026-10-18 on `feat/profile-phase-5-profiles` (owner moved it ahead of guild messaging).
 
 - [x] `docs/spec/profiles.md`, ADR-0011 (profile media purposes, additive payloads)
-- [ ] Profile media purposes: avatar/banner/guild/emote/sticker/badge uploads, crop, still frame, dominant colour, liveness CDN checks
-- [ ] Profile fields (banner, avatar, pronouns, custom status, bio, accent, theme colours) + per-section privacy audiences
-- [ ] User summaries endpoint, `PROFILE_CHANGED`, private notes
+- [x] Profile media purposes: avatar/banner/guild/emote/sticker/badge uploads, crop, still frame, dominant colour, liveness CDN checks
+- [x] Profile fields (banner, avatar, pronouns, custom status, bio, accent, theme colours) + per-section privacy audiences
+- [x] User summaries endpoint, `PROFILE_CHANGED`, private notes (relationship metadata)
 - [ ] Desktop: avatars everywhere, profile popout, full profile view, profile editor with crop, custom status dialog
 - [ ] Badges (definitions, awards, rules, pinning) — `docs/spec/badges.md`
 - [ ] Per-server profiles (nickname, avatar, banner, bio, pronouns)

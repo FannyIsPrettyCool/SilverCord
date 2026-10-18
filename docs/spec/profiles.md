@@ -19,8 +19,8 @@ emotes/stickers/pickers in `expressions.md`. Presence audience rules from `prese
 - `guild_member_profiles` (PK guild+user, FK `guild_members` CASCADE): `avatar_upload_id`,
   `banner_upload_id`, `bio`, `pronouns`, `accent_color`. Nickname stays on `guild_members`.
   A null column inherits the global value. Leaving the guild deletes the row and its media.
-- `user_notes` (PK owner+target, both user FK CASCADE): private note ≤ 256 code points about
-  another user, visible only to its owner.
+- Private notes reuse relationship metadata (`relationships.md`, ≤ 1000 characters, owner-only);
+  the profile response carries the viewer's own note.
 - Display name stays on `users` (1–32, existing rules) and is edited through the profile route.
 
 ## Privacy audiences (server-enforced)
@@ -35,7 +35,8 @@ Each section has one audience: `bio`, `pronouns`, `banner`, `badges`, `member_si
   identity core: username, display name, avatar, accent and banner colour.
 - `custom_status` and `activity` are also hidden whenever the viewer's effective presence of
   the owner is offline (invisible, disconnected or presence-denied), so they cannot reveal an
-  invisible user.
+  invisible user. Until guild presence (ADR-0010 §2) lands, presence and therefore custom
+  status and activity reach friends only.
 - Hidden sections are omitted from responses (absent key), never sent as "hidden" markers, so a
   viewer cannot distinguish "not set" from "not shared".
 - Mutual lists contain only ids both sides can already see: mutual friends are accepted friends
@@ -63,7 +64,6 @@ user is 404. Buckets are per user, capacity/refillPerSecond.
 | PUT `/users/@me/custom-status` | `{text,emoji,expiresAt}` → 204; DELETE clears | status.write 10/(1/5) |
 | GET `/users/:userId/profile` | `?guildId=` optional → viewer-filtered profile | profile.read 30/1 |
 | GET `/users/summaries` | `userIds` 1–100, `guildId` optional → card summaries | summaries.read 60/2 |
-| GET/PUT `/users/:userId/note` | `{note}` (empty clears) | profile.read / profile.write |
 | GET/PATCH `/guilds/:guildId/members/@me/profile` | member overrides + nickname | profile.read / profile.write |
 
 - Summary item: `userId`, `avatar` (variant paths, animated, dominant colour) or null,
