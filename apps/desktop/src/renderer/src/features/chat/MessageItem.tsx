@@ -23,15 +23,21 @@ export interface MessageContext {
   readonly onJump: (messageId: string) => void;
 }
 
+/** Formatter construction is costly; rows mount constantly while scrolling. */
+const formatters = new Map<string, { short: Intl.DateTimeFormat; full: Intl.DateTimeFormat }>();
+
 function useTime(iso: string) {
   const { i18n } = useTranslation();
+  let formatter = formatters.get(i18n.language);
+  if (!formatter) {
+    formatter = {
+      short: new Intl.DateTimeFormat(i18n.language, { timeStyle: 'short' }),
+      full: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full', timeStyle: 'short' }),
+    };
+    formatters.set(i18n.language, formatter);
+  }
   const date = new Date(iso);
-  return {
-    short: new Intl.DateTimeFormat(i18n.language, { timeStyle: 'short' }).format(date),
-    full: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full', timeStyle: 'short' }).format(
-      date,
-    ),
-  };
+  return { short: formatter.short.format(date), full: formatter.full.format(date) };
 }
 
 function Editor({
@@ -150,8 +156,19 @@ function Reactions({
   readonly message: VisibleMessage;
   readonly context: MessageContext;
 }) {
-  const actions = useMessageActions(context.channelId);
+  // Most rows have no reactions: skip the mutation hooks entirely for them.
   if (message.reactions.length === 0) return null;
+  return <ReactionChips message={message} context={context} />;
+}
+
+function ReactionChips({
+  message,
+  context,
+}: {
+  readonly message: VisibleMessage;
+  readonly context: MessageContext;
+}) {
+  const actions = useMessageActions(context.channelId);
   return (
     <div className={styles['reactions']}>
       {message.reactions.map((reaction) => (
@@ -249,6 +266,17 @@ export const MessageItem = memo(function MessageItem({
 }) {
   const { t } = useTranslation();
   const time = useTime(message.hidden ? new Date().toISOString() : message.createdAt);
+  // The action toolbar mounts only while the row is hovered or focused: rows mount constantly
+  // during scrolling and the toolbar (glass, popover, mutations) is the heaviest part.
+  const [active, setActive] = useState(false);
+  const activity = {
+    onPointerEnter: () => setActive(true),
+    onPointerLeave: () => setActive(false),
+    onFocus: () => setActive(true),
+    onBlur: (event: React.FocusEvent<HTMLElement>) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setActive(false);
+    },
+  };
   if (message.hidden) {
     return (
       <div className={styles['hidden']} data-message-id={message.id}>
@@ -269,6 +297,7 @@ export const MessageItem = memo(function MessageItem({
         data-grouped={grouped || undefined}
         data-message-id={message.id}
         aria-label={`${name}, ${time.full}`}
+        {...activity}
       >
         <div className={styles['bubble']} data-own={own || undefined}>
           <Body message={message} context={context} />
@@ -276,7 +305,7 @@ export const MessageItem = memo(function MessageItem({
             {time.short}
           </time>
         </div>
-        <Toolbar message={message} context={context} />
+        {active ? <Toolbar message={message} context={context} /> : null}
       </article>
     );
   }
@@ -289,6 +318,7 @@ export const MessageItem = memo(function MessageItem({
       data-mentioned={mentioned || undefined}
       data-message-id={message.id}
       aria-label={`${name}, ${time.full}`}
+      {...activity}
     >
       {context.density === 'compact' ? (
         <time className={styles['compactTime']} dateTime={message.createdAt} title={time.full}>
@@ -316,7 +346,7 @@ export const MessageItem = memo(function MessageItem({
         ) : null}
         <Body message={message} context={context} />
       </div>
-      <Toolbar message={message} context={context} />
+      {active ? <Toolbar message={message} context={context} /> : null}
     </article>
   );
 });

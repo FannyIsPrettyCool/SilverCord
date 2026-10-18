@@ -1,4 +1,10 @@
-import { type BlockNode, type InlineNode, parse, type TimestampStyle } from '@silvercord/markdown';
+import {
+  type BlockNode,
+  type Document,
+  type InlineNode,
+  parse,
+  type TimestampStyle,
+} from '@silvercord/markdown';
 import type { PublicUser } from '@silvercord/protocol';
 import { type ReactNode, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -209,6 +215,23 @@ function Block({
   }
 }
 
+/** Parsed documents by source text; virtualized rows re-mount often while scrolling. */
+const parsed = new Map<string, Document>();
+const PARSE_CACHE_LIMIT = 2000;
+
+function parseCached(content: string): Document {
+  let document = parsed.get(content);
+  if (!document) {
+    document = parse(content);
+    parsed.set(content, document);
+    if (parsed.size > PARSE_CACHE_LIMIT) {
+      const [oldest] = parsed.keys();
+      if (oldest !== undefined) parsed.delete(oldest);
+    }
+  }
+  return document;
+}
+
 /** Renders chat markdown from its AST; there is no HTML path (docs/spec/messaging.md). */
 export function MarkdownView({
   content,
@@ -217,7 +240,7 @@ export function MarkdownView({
   readonly content: string;
   readonly context: MarkdownContext;
 }) {
-  const document = useMemo(() => parse(content), [content]);
+  const document = useMemo(() => parseCached(content), [content]);
   return (
     <div className={styles['markdown']}>
       {document.children.map((block, index) => (
