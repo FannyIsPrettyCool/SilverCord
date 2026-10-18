@@ -1,0 +1,11 @@
+.panel {
+  position: fixed;
+  z-index: 85;
+  outline: none;
+}
+
+.glass {
+  border-radius: var(--radius-2);
+  padding: 0;
+  overflow: hidden;
+}

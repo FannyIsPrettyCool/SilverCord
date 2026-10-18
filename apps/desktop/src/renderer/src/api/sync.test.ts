@@ -19,8 +19,10 @@ it('rechecks guild access and visible channels after either membership event', (
   expect(invalidate.mock.calls.map(([filter]) => filter?.queryKey)).toEqual([
     keys.guild('20'),
     keys.guildChannels('20'),
+    keys.guildExpressions('20'),
     keys.guild('20'),
     keys.guildChannels('20'),
+    keys.guildExpressions('20'),
     keys.guilds,
   ]);
 });

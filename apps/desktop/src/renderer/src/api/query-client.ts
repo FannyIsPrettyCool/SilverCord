@@ -46,5 +46,9 @@ export const keys = {
   ownActivity: ['own-activity'],
   activityGames: ['activity-games'],
   rpcApps: ['rpc-apps'],
+  usableExpressions: ['usable-expressions'],
+  guildExpressions: (guildId: string) => ['guild-expressions', guildId],
+  emote: (emoteId: string) => ['emote', emoteId],
+  sticker: (stickerId: string) => ['sticker', stickerId],
   guildProfile: (guildId: string) => ['guild-profile', guildId],
 } as const;

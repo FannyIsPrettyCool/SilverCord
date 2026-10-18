@@ -43,8 +43,11 @@ export function handleDispatch(t: string, d: unknown) {
   if (t === 'GUILD_CHANGED' || t === 'GUILD_MEMBERS_CHANGED') {
     const event = dispatchEventSchemas[t].safeParse(d);
     if (!event.success || !firstSighting(event.data.eventId)) return;
+    void resetMessageHistories();
     invalidate(keys.guild(event.data.guildId));
     invalidate(keys.guildChannels(event.data.guildId));
+    invalidate(keys.guildExpressions(event.data.guildId));
+    debounced('expressions', 300, () => invalidate(keys.usableExpressions));
     debounced('guilds', 200, () => invalidate(keys.guilds));
     return;
   }
@@ -72,12 +75,14 @@ export function handleDispatch(t: string, d: unknown) {
     if (queryClient.getQueryData(keys.messages(channelId)))
       void refreshMessage(channelId, messageId).catch(() => undefined);
     debounced('channels', 200, () => invalidate(keys.channels));
+    debounced('guild-read-state', 200, () => invalidate(keys.guildChannels()));
     return;
   }
   if (t === 'READ_STATE_CHANGED') {
     const event = dispatchEventSchemas.READ_STATE_CHANGED.safeParse(d);
     if (!event.success || !firstSighting(event.data.eventId)) return;
     invalidate(keys.channel(event.data.channelId));
+    debounced('guild-read-state', 200, () => invalidate(keys.guildChannels()));
     debounced('channels', 200, () => invalidate(keys.channels));
     return;
   }
@@ -107,6 +112,7 @@ export function reconcile(resetHistory = false) {
   invalidate(keys.guilds);
   invalidate(['guild']);
   invalidate(keys.guildChannels());
+  invalidate(keys.usableExpressions);
   invalidate(keys.presence());
   invalidate(['summary']);
   invalidate(['profile']);
