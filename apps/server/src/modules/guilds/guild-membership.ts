@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { Executor } from '../../db/executor.ts';
-import { guildMembers, memberRoles } from './guilds-schema.ts';
+import { guildMembers, guilds, memberRoles } from './guilds-schema.ts';
 
 /**
  * Read-only membership questions other modules ask about guilds (profiles audiences, profile
@@ -71,6 +71,15 @@ export function createGuildMembership() {
         .where(and(eq(memberRoles.guildId, guildId), eq(memberRoles.userId, userId)))
         .orderBy(asc(memberRoles.roleId));
       return { ...row, roleIds: roles.map((role) => role.roleId) };
+    },
+
+    async ownsGuild(ex: Executor, userId: bigint): Promise<boolean> {
+      const [row] = await ex
+        .select({ id: guilds.id })
+        .from(guilds)
+        .where(eq(guilds.ownerId, userId))
+        .limit(1);
+      return row !== undefined;
     },
 
     async setNickname(ex: Executor, guildId: bigint, userId: bigint, nickname: string | null) {

@@ -1,5 +1,7 @@
 import type { AppContext } from './context.ts';
 import { createEventOutbox } from './events/outbox.ts';
+import { authFacts } from './modules/auth/auth-facts.ts';
+import { createBadgesService } from './modules/badges/badges-service.ts';
 import { createChannelsService } from './modules/channels/channels-service.ts';
 import { createGuildChannelsService } from './modules/guilds/guild-channels-service.ts';
 import { createGuildMembership } from './modules/guilds/guild-membership.ts';
@@ -16,7 +18,10 @@ import { createRelationshipsService } from './modules/relationships/relationship
 import { createUsersService } from './modules/users/users-service.ts';
 
 export interface ServiceOptions {
-  readonly log: { warn(object: object, message: string): void };
+  readonly log: {
+    info(object: object, message: string): void;
+    warn(object: object, message: string): void;
+  };
   /** Queues media processing; the API passes its BullMQ producer. */
   readonly enqueueMedia: (uploadId: bigint) => Promise<void>;
 }
@@ -92,6 +97,17 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     events,
     log: options.log,
   });
+  const badges = createBadgesService({
+    db,
+    nextId,
+    users,
+    guildMembership,
+    authFacts,
+    media,
+    // Resolved at call time: profiles are built below and read badges.
+    changed: (userId) => profiles.invalidate(userId),
+    log: options.log,
+  });
   const profiles = createProfilesService({
     db,
     users,
@@ -101,6 +117,7 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     guildPermissions,
     presence,
     media,
+    badges,
     events,
     log: options.log,
   });
@@ -119,6 +136,7 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     presence,
     typing,
     guildMembership,
+    badges,
     profiles,
   };
 }

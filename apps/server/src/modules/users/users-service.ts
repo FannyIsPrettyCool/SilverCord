@@ -1,5 +1,5 @@
 import type { CurrentUser, Locale, PublicUser } from '@silvercord/protocol';
-import { eq, inArray, or, sql } from 'drizzle-orm';
+import { eq, inArray, lt, or, sql } from 'drizzle-orm';
 import type { Executor } from '../../db/executor.ts';
 import { type UserRow, users } from './users-schema.ts';
 
@@ -26,6 +26,8 @@ export interface UsersService {
   markEmailVerified(ex: Executor, id: bigint): Promise<void>;
   setPasswordHash(ex: Executor, id: bigint, passwordHash: string): Promise<void>;
   setDisplayName(ex: Executor, id: bigint, displayName: string | null): Promise<void>;
+  /** How many accounts were created before this one (0 for the first). */
+  rankOf(ex: Executor, id: bigint): Promise<number>;
   toCurrentUser(row: UserRow, mfaEnabled: boolean): CurrentUser;
 }
 
@@ -88,6 +90,13 @@ export function createUsersService(): UsersService {
           updatedAt: sql`now()`,
         })
         .where(eq(users.id, id));
+    },
+    async rankOf(ex, id) {
+      const [row] = await ex
+        .select({ count: sql<number>`count(*)::int` })
+        .from(users)
+        .where(lt(users.id, id));
+      return row?.count ?? 0;
     },
     async setDisplayName(ex, id, displayName) {
       await ex.update(users).set({ displayName, updatedAt: sql`now()` }).where(eq(users.id, id));

@@ -21,6 +21,7 @@ import type { Database } from '../../db/client.ts';
 import type { Executor, Transaction } from '../../db/executor.ts';
 import { channels as buses, type EventPublisher } from '../../gateway/event-bus.ts';
 import { AppError } from '../../http/app-error.ts';
+import type { BadgesService } from '../badges/badges-service.ts';
 import type { ChannelsService } from '../channels/channels-service.ts';
 import type { GuildMembership } from '../guilds/guild-membership.ts';
 import type { GuildPermissionsService } from '../guilds/guild-permissions.ts';
@@ -44,6 +45,7 @@ export interface ProfilesDependencies {
   readonly guildPermissions: GuildPermissionsService;
   readonly presence: PresenceService;
   readonly media: MediaService;
+  readonly badges: BadgesService;
   readonly events: EventPublisher;
   readonly log: { warn(object: object, message: string): void };
   readonly timings?: { readonly coalesceMs: number; readonly sweepMs: number };
@@ -424,6 +426,8 @@ export function createProfilesService(deps: ProfilesDependencies) {
         if (sees(level, privacy, 'pronouns'))
           profile.pronouns = override?.pronouns ?? row?.pronouns ?? null;
         if (sees(level, privacy, 'memberSince')) profile.memberSince = user.createdAt.toISOString();
+        if (sees(level, privacy, 'badges'))
+          profile.badges = await deps.badges.forProfile(tx, targetId);
         if (
           sees(level, privacy, 'customStatus') &&
           (await onlineFor(tx, viewerId, [targetId])).has(targetId)
