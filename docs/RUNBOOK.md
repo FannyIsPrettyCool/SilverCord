@@ -83,6 +83,14 @@ From the workstation: `ssh -N -L 127.0.0.1:4000:127.0.0.1:14100 -i ~/.ssh/island
 ubuntu@145.239.79.30`, then `pnpm ui:shots` or the live Playwright config use localhost:4000.
 Stop it with `docker compose ... down` (keeps volumes) when not needed.
 
+Cross-machine acceptance: from Windows Git Bash, run
+`bash tools/scripts/cross-machine-acceptance.sh`. It starts one real Windows Electron
+and a disposable Linux Electron/Xvfb container against private staging (dedicated tunnel
+on port 14400), records only event names and screenshots, then removes the test container,
+remote checkout and tunnel. Evidence stays under `.artifacts/cross-machine/`; the test
+image and dependency cache remain reusable. It requires the development seed accounts,
+never production accounts. This verifies separate machines, not separate home networks.
+
 ## Media
 
 Uploads live in the `silvercord-prod_media-storage` volume; the worker copies one job at a time
