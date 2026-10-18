@@ -39,6 +39,14 @@ const invalidate = (queryKey: readonly unknown[]) =>
 
 /** Maps content-free gateway invalidations onto the REST cache. */
 export function handleDispatch(t: string, d: unknown) {
+  if (t === 'GUILD_CHANGED' || t === 'GUILD_MEMBERS_CHANGED') {
+    const event = dispatchEventSchemas[t].safeParse(d);
+    if (!event.success || !firstSighting(event.data.eventId)) return;
+    invalidate(keys.guild(event.data.guildId));
+    invalidate(keys.guildChannels(event.data.guildId));
+    debounced('guilds', 200, () => invalidate(keys.guilds));
+    return;
+  }
   if (t === 'RELATIONSHIPS_CHANGED') {
     const event = dispatchEventSchemas.RELATIONSHIPS_CHANGED.safeParse(d);
     if (!event.success || !firstSighting(event.data.eventId)) return;
@@ -90,6 +98,9 @@ export function handleDispatch(t: string, d: unknown) {
 export function reconcile(resetHistory = false) {
   invalidate(keys.relationships());
   invalidate(keys.channels);
+  invalidate(keys.guilds);
+  invalidate(['guild']);
+  invalidate(keys.guildChannels());
   invalidate(keys.presence());
   for (const query of queryClient.getQueryCache().findAll({ queryKey: ['messages'] })) {
     const channelId = query.queryKey[1];

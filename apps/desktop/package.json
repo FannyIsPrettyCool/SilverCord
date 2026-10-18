@@ -33,6 +33,7 @@
   "dependencies": {
     "@phosphor-icons/react": "2.1.10",
     "@silvercord/markdown": "workspace:*",
+    "@silvercord/permissions": "workspace:*",
     "@silvercord/protocol": "workspace:*",
     "@silvercord/ui": "workspace:*",
     "@tanstack/react-query": "5.104.1",

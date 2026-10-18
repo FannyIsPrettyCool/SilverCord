@@ -17,6 +17,10 @@
 !packages/markdown/package.json
 !packages/markdown/src/
 !packages/markdown/src/**
+!packages/permissions/
+!packages/permissions/package.json
+!packages/permissions/src/
+!packages/permissions/src/**
 !packages/config/
 !packages/config/package.json
 !tools/

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { guildChangedSchema } from './guilds.ts';
 import { snowflakeSchema } from './snowflake.ts';
 
 /*
@@ -23,6 +24,8 @@ export const readStateChangedSchema = z.strictObject({
 });
 
 export const durableEventSchemas = {
+  GUILD_CHANGED: guildChangedSchema,
+  GUILD_MEMBERS_CHANGED: guildChangedSchema,
   RELATIONSHIPS_CHANGED: relationshipsChangedSchema,
   CHANNEL_CHANGED: channelChangedSchema,
   MESSAGE_CHANGED: messageChangedSchema,

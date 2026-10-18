@@ -16,12 +16,17 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { Database } from '../../db/client.ts';
+import { AppError } from '../../http/app-error.ts';
 import { requireAuth } from '../../http/authentication.ts';
 import { perUser } from '../../http/rate-limit.ts';
 import type { MessagesService } from '../messages/messages-service.ts';
 import type { TypingService } from '../presence/typing-service.ts';
 import type { ChannelBase, ChannelsService } from './channels-service.ts';
 
+const nonGuildAccess = {
+  scope: 'none',
+  reason: 'Private conversations enforce membership and owner checks in the service',
+} as const;
 const errors = {
   400: errorEnvelopeSchema,
   401: errorEnvelopeSchema,
@@ -42,6 +47,8 @@ const EMPTY_READ_STATE: ReadStateView = {
 
 function toChannel(base: ChannelBase, readState: ReadStateView | undefined): Channel {
   const { row } = base;
+  if (row.type !== 'dm' && row.type !== 'group_dm')
+    throw new AppError('INTERNAL', 'Invalid private channel');
   return {
     id: row.id.toString(),
     type: row.type,
@@ -82,7 +89,11 @@ export function registerChannelsRoutes(
         querystring: channelListQuerySchema,
         response: { ...errors, 200: channelPageSchema },
       },
-      config: { auth: 'user', rateLimit: chatRead },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: chatRead,
+      },
     },
     async (request) => {
       const { userId } = requireAuth(request);
@@ -96,6 +107,7 @@ export function registerChannelsRoutes(
     {
       schema: { tags, body: openChannelRequestSchema, response: { ...errors, 200: channelSchema } },
       config: {
+        permission: nonGuildAccess,
         auth: 'user',
         rateLimit: [perUser('channel.open', { capacity: 10, refillPerSecond: 10 / 60 })],
       },
@@ -111,7 +123,11 @@ export function registerChannelsRoutes(
     '/api/v1/channels/:channelId',
     {
       schema: { tags, params: channelParamsSchema, response: { ...errors, 200: channelSchema } },
-      config: { auth: 'user', rateLimit: chatRead },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: chatRead,
+      },
     },
     async (request) => {
       const { userId } = requireAuth(request);
@@ -130,7 +146,11 @@ export function registerChannelsRoutes(
         body: channelPatchSchema,
         response: { ...errors, 200: channelSchema },
       },
-      config: { auth: 'user', rateLimit: channelWrite },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: channelWrite,
+      },
     },
     async (request) => {
       const { userId } = requireAuth(request);
@@ -154,7 +174,11 @@ export function registerChannelsRoutes(
         body: empty,
         response: { ...errors, 204: z.null() },
       },
-      config: { auth: 'user', rateLimit: channelWrite },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: channelWrite,
+      },
     },
     async (request, reply) => {
       const { userId } = requireAuth(request);
@@ -168,7 +192,11 @@ export function registerChannelsRoutes(
     '/api/v1/channels/:channelId/members/:userId',
     {
       schema: { tags, params: channelMemberParamsSchema, response: { ...errors, 204: z.null() } },
-      config: { auth: 'user', rateLimit: channelWrite },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: channelWrite,
+      },
     },
     async (request, reply) => {
       const { userId } = requireAuth(request);
@@ -191,6 +219,7 @@ export function registerChannelsRoutes(
         response: { ...errors, 200: readStateSchema },
       },
       config: {
+        permission: nonGuildAccess,
         auth: 'user',
         rateLimit: [perUser('read.write', { capacity: 30, refillPerSecond: 2 })],
       },

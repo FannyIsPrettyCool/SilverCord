@@ -26,6 +26,12 @@ import { requireAuth } from '../../http/authentication.ts';
 import { perBodyField, perIp, perUser } from '../../http/rate-limit.ts';
 import type { AuthService } from './auth-service.ts';
 
+const publicAuth = { scope: 'none', reason: 'Public authentication and recovery flow' } as const;
+const ownAccount = { scope: 'none', reason: 'Authenticated own-account operation' } as const;
+const instanceAdministration = {
+  scope: 'none',
+  reason: 'Instance-wide operation protected by instance-admin authentication',
+} as const;
 const PER_HOUR = 1 / 3600;
 const PER_MINUTE = 1 / 60;
 const noContent = { 204: z.null() };
@@ -48,6 +54,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     {
       schema: { tags, body: registerRequestSchema, response: { 201: authTokensSchema } },
       config: {
+        permission: publicAuth,
         auth: 'public',
         rateLimit: [perIp('auth.register', { capacity: 5, refillPerSecond: 5 * PER_HOUR })],
       },
@@ -63,6 +70,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     {
       schema: { tags, body: loginRequestSchema, response: { 200: loginResponseSchema } },
       config: {
+        permission: publicAuth,
         auth: 'public',
         rateLimit: [
           perIp('auth.login', { capacity: 10, refillPerSecond: 10 * PER_MINUTE }),
@@ -85,6 +93,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     {
       schema: { tags, body: loginTotpRequestSchema, response: { 200: authTokensSchema } },
       config: {
+        permission: publicAuth,
         auth: 'public',
         rateLimit: [
           perIp('auth.totp', { capacity: 5, refillPerSecond: 5 * PER_MINUTE }),
@@ -103,6 +112,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     {
       schema: { tags, body: refreshRequestSchema, response: { 200: authTokensSchema } },
       config: {
+        permission: publicAuth,
         auth: 'public',
         rateLimit: [perIp('auth.refresh', { capacity: 30, refillPerSecond: 30 * PER_MINUTE })],
       },
@@ -114,7 +124,11 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     '/api/v1/auth/logout',
     {
       schema: { tags, response: noContent },
-      config: { auth: 'user', rateLimit: DEFAULT_USER_LIMIT },
+      config: {
+        permission: ownAccount,
+        auth: 'user',
+        rateLimit: DEFAULT_USER_LIMIT,
+      },
     },
     async (request, reply) => {
       const { userId, sessionId } = requireAuth(request);
@@ -127,7 +141,11 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     '/api/v1/auth/sessions',
     {
       schema: { tags, response: { 200: z.array(sessionSchema) } },
-      config: { auth: 'user', rateLimit: DEFAULT_USER_LIMIT },
+      config: {
+        permission: ownAccount,
+        auth: 'user',
+        rateLimit: DEFAULT_USER_LIMIT,
+      },
     },
     async (request) => {
       const { userId, sessionId } = requireAuth(request);
@@ -139,7 +157,11 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     '/api/v1/auth/sessions/:sessionId',
     {
       schema: { tags, params: z.object({ sessionId: snowflakeSchema }), response: noContent },
-      config: { auth: 'user', rateLimit: DEFAULT_USER_LIMIT },
+      config: {
+        permission: ownAccount,
+        auth: 'user',
+        rateLimit: DEFAULT_USER_LIMIT,
+      },
     },
     async (request, reply) => {
       const { userId } = requireAuth(request);
@@ -152,7 +174,11 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     '/api/v1/auth/sessions/revoke-others',
     {
       schema: { tags, response: noContent },
-      config: { auth: 'user', rateLimit: DEFAULT_USER_LIMIT },
+      config: {
+        permission: ownAccount,
+        auth: 'user',
+        rateLimit: DEFAULT_USER_LIMIT,
+      },
     },
     async (request, reply) => {
       const { userId, sessionId } = requireAuth(request);
@@ -166,6 +192,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     {
       schema: { tags, body: emailTokenRequestSchema, response: noContent },
       config: {
+        permission: publicAuth,
         auth: 'public',
         rateLimit: [perIp('auth.email.verify', { capacity: 10, refillPerSecond: 10 * PER_MINUTE })],
       },
@@ -181,6 +208,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     {
       schema: { tags, response: noContent },
       config: {
+        permission: ownAccount,
         auth: 'user',
         rateLimit: [perUser('auth.email.resend', { capacity: 3, refillPerSecond: 3 * PER_HOUR })],
       },
@@ -196,6 +224,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     {
       schema: { tags, body: forgotPasswordRequestSchema, response: { 202: z.null() } },
       config: {
+        permission: publicAuth,
         auth: 'public',
         rateLimit: [
           perIp('auth.forgot', { capacity: 3, refillPerSecond: 3 * PER_HOUR }),
@@ -225,6 +254,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     {
       schema: { tags, body: resetPasswordRequestSchema, response: noContent },
       config: {
+        permission: publicAuth,
         auth: 'public',
         rateLimit: [perIp('auth.reset', { capacity: 10, refillPerSecond: 10 * PER_HOUR })],
       },
@@ -243,7 +273,11 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     '/api/v1/auth/totp/setup',
     {
       schema: { tags, body: totpSetupRequestSchema, response: { 200: totpSetupResponseSchema } },
-      config: { auth: 'user', rateLimit: totpLimit('setup', 5) },
+      config: {
+        permission: ownAccount,
+        auth: 'user',
+        rateLimit: totpLimit('setup', 5),
+      },
     },
     async (request) => auth.setupTotp(requireAuth(request).userId, request.body.password),
   );
@@ -252,7 +286,11 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     '/api/v1/auth/totp/enable',
     {
       schema: { tags, body: totpEnableRequestSchema, response: { 200: totpEnableResponseSchema } },
-      config: { auth: 'user', rateLimit: totpLimit('enable', 10) },
+      config: {
+        permission: ownAccount,
+        auth: 'user',
+        rateLimit: totpLimit('enable', 10),
+      },
     },
     async (request) => auth.enableTotp(requireAuth(request).userId, request.body.code),
   );
@@ -261,7 +299,11 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     '/api/v1/auth/totp/disable',
     {
       schema: { tags, body: totpDisableRequestSchema, response: noContent },
-      config: { auth: 'user', rateLimit: totpLimit('disable', 10) },
+      config: {
+        permission: ownAccount,
+        auth: 'user',
+        rateLimit: totpLimit('disable', 10),
+      },
     },
     async (request, reply) => {
       await auth.disableTotp(requireAuth(request).userId, request.body.password, request.body.code);
@@ -273,7 +315,11 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
     '/api/v1/users/@me',
     {
       schema: { tags: ['users'], response: { 200: currentUserSchema } },
-      config: { auth: 'user', rateLimit: DEFAULT_USER_LIMIT },
+      config: {
+        permission: ownAccount,
+        auth: 'user',
+        rateLimit: DEFAULT_USER_LIMIT,
+      },
     },
     async (request) => auth.me(requireAuth(request).userId),
   );
@@ -287,6 +333,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService): voi
         response: { 201: instanceInviteSchema },
       },
       config: {
+        permission: instanceAdministration,
         auth: 'instance-admin',
         rateLimit: [perUser('admin.invites', { capacity: 30, refillPerSecond: 30 * PER_HOUR })],
       },

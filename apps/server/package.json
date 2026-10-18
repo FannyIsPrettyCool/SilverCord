@@ -19,6 +19,7 @@
     "@fastify/swagger": "9.9.2",
     "@node-rs/argon2": "2.2.2",
     "@silvercord/markdown": "workspace:*",
+    "@silvercord/permissions": "workspace:*",
     "@silvercord/protocol": "workspace:*",
     "blurhash": "2.0.5",
     "bullmq": "6.3.11",

@@ -106,10 +106,14 @@ stays 60 fps on 10k-message seed.
 Accept: permission matrix test suite green; route-without-permission-declaration CI
 check in place; invite flow works end to end.
 
-- [ ] `docs/spec/permissions.md`
-- [ ] `packages/permissions` engine + fast-check properties (monotonicity, precedence, admin bypass, hierarchy, no escalation)
-- [ ] Route permission declaration + CI check
-- [ ] Guilds, categories, channels (text/voice/announcement), drag reorder
+- [x] `docs/spec/permissions.md`
+- [x] `packages/permissions` engine + fast-check properties (monotonicity, precedence, admin bypass, hierarchy, no escalation)
+- [x] Guild/member/role/ban/audit database foundation with cross-guild FK and deferred reorder tests
+- [x] Route permission declaration + CI check (fresh checker required for future guild/channel routes)
+- [x] Initial server lifecycle, categories/text/voice/announcement metadata, channel edits and versioned reorder API
+- [x] Desktop server rail, create/rename/leave and permission-aware channel forms (EN/FR)
+- [ ] Guild message/media authorization + channel-scoped outbox fanout; connect existing chat UI
+- [ ] Channel drag reorder, server ownership transfer and deletion
 - [ ] Invites (expiry, max uses, temporary), `silvercord://` deep link
 - [ ] Roles UI (color, icon, hoist, mentionable), overwrites UI
 - [ ] Member list (lazy range subscriptions)
@@ -132,6 +136,8 @@ documented capacity numbers for the VPS.
 - [ ] Two-participant fake-media automated test
 
 ## Phase 5 — Profiles & expression
+
+Next targeted phase after phase 3 (owner decision, 2026-10-18); phase 4 voice waits until after it.
 
 Accept: profile popout and full view polished, privacy toggles honored server-side.
 

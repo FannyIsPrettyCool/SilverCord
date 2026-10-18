@@ -158,5 +158,34 @@
     "PAYLOAD_TOO_LARGE": "File too large or storage full",
     "VALIDATION_FAILED": "Check what you entered",
     "fallback": "Something went wrong"
+  },
+  "guilds": {
+    "createServer": "Create server",
+    "renameServer": "Rename server",
+    "serverName": "Server name",
+    "leaveServer": "Leave server",
+    "save": "Save",
+    "channels": "Channels",
+    "createChannel": "Create channel",
+    "editChannel": "Edit channel",
+    "channelName": "Channel name",
+    "channelType": "Channel type",
+    "category": "Category",
+    "noCategory": "No category",
+    "topic": "Topic",
+    "unavailable": "Server unavailable",
+    "channelUnavailable": "Channel unavailable",
+    "loading": "Loading",
+    "memberCount": "{count, plural, one {# member} other {# members}}",
+    "chooseChannel": "Choose a channel",
+    "messagingUnavailable": "Messaging unavailable",
+    "voiceUnavailable": "Voice unavailable",
+    "types": {
+      "guild_text": "Text channel",
+      "guild_voice": "Voice channel",
+      "guild_category": "Category",
+      "announcement": "Announcements",
+      "thread": "Thread"
+    }
   }
 }

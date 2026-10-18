@@ -17,6 +17,10 @@ import { requireAuth } from '../../http/authentication.ts';
 import { perUser } from '../../http/rate-limit.ts';
 import type { RelationshipsService } from './relationships-service.ts';
 
+const nonGuildAccess = {
+  scope: 'none',
+  reason: 'Own-account relationships and privacy checks are enforced in the service',
+} as const;
 const ROOT = '/api/v1/users/@me';
 const errors = {
   400: errorEnvelopeSchema,
@@ -28,10 +32,12 @@ const errors = {
 const tags = ['relationships'];
 const empty = z.strictObject({}).optional();
 const read = {
+  permission: nonGuildAccess,
   auth: 'user',
   rateLimit: [perUser('social.read', { capacity: 60, refillPerSecond: 2 })],
 } as const;
 const write = {
+  permission: nonGuildAccess,
   auth: 'user',
   rateLimit: [perUser('social.write', { capacity: 20, refillPerSecond: 1 })],
 } as const;
@@ -63,6 +69,7 @@ export function registerRelationshipsRoutes(
         response: { ...errors, 200: relationshipViewSchema },
       },
       config: {
+        permission: nonGuildAccess,
         auth: 'user',
         rateLimit: [perUser('social.request', { capacity: 10, refillPerSecond: 10 / 3600 })],
       },

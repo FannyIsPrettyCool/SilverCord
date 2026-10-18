@@ -3,6 +3,49 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — Guild management slice shipped; profiles are next after phase 3
+
+- Server lifecycle (create/list/view/rename/leave) and category/text/voice/announcement
+  channel management are live with database-backed permission checks (156 integration tests).
+  The desktop has the server rail, channel sidebar and permission-aware forms (EN/FR); guild
+  channels show `Messaging unavailable` until guild messaging/fanout lands.
+- `apps/server/src/modules/admin/invite-cli.ts` creates registration invites on the host
+  without signing in (RUNBOOK §VPS setup). Codes are printed once and never committed.
+- Owner decision: phase 5 (profiles) follows phase 3; phase 4 voice is deferred.
+- The production desktop install is per-machine (`C:\Program Files\silvercord`), so updating it
+  needs one UAC approval; it is never done silently from a non-elevated session.
+- Next: guild message/media authorization + channel-scoped fanout (ADR-0010), then guild
+  invites (`silvercord://invite/<code>`), roles/overwrites UI, member list, moderation.
+
+## 2026-10-18 — Phase 3 foundation ready for guild features
+
+- `feat/permissions-engine` contains the permission spec, bigint resolution/hierarchy engine,
+  property tests and guild spec/ADR-0010.
+  The engine and route guard are implemented; guild services, authoritative database
+  permission reading and UI remain unfinished.
+- Foundation security review fixed overwrite deletion/removal of denies restoring permissions,
+  non-owner assignment of administrator roles and ineffective administrator timeouts. Sequence
+  properties now apply actual accepted role positions and overwrite replacement/deletion.
+  All 19 permission tests and typecheck pass.
+- Guild/member/role/ban/audit database foundation is implemented with migration 0007.
+  Composite member-role FKs reject foreign guilds/nonmembers; role positions are unique
+  and deferrable for transactional swaps; position zero belongs only to `@everyone`.
+  Six real PostgreSQL 18.6 tests pass, including ownership RESTRICT and cascading cleanup.
+  Migration regeneration reports no drift. Guild services and routes are still pending.
+- Required route declarations and the fail-closed guild/channel guard are implemented.
+  Every existing route has an explicit non-guild reason; OpenAPI metadata is swept in CI.
+  Future guild routes must wire a fresh authoritative `BuildOptions.permissionChecker`.
+  Missing declarations fail registration; hidden resources are 404 and missing bits are 403.
+- Verification: all-package checks pass, server unit tests pass 84 cases (two Linux-only
+  groups skipped on Windows), and all 132 real PostgreSQL/Valkey integration tests pass.
+  The production image builds with the permission workspace and imports app/engine as
+  nonroot in a read-only, network-disabled container without credentials.
+- Phase 2 is tagged `v0.2.0` at main 8df91a0; its CI is green. This branch includes the
+  complete release. Working tree `D:\SilverCord-phase2-review` is on main for release operations.
+- The public homepage/Windows download fix from main b48e662 is also merged here;
+  it is live at https://silvercord.islandmon.cloud/ (details in the next entry).
+- SMTP and encrypted off-host backup storage still need external provider credentials.
+
 ## 2026-10-18 — Public homepage and Windows download
 
 - The owner found a raw API 404 at the production root on iPhone. Added `apps/site`:

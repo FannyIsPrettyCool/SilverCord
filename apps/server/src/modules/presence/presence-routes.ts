@@ -16,6 +16,11 @@ import { perUser } from '../../http/rate-limit.ts';
 import type { PresenceService } from './presence-service.ts';
 import type { TypingService } from './typing-service.ts';
 
+const nonGuildAccess = {
+  scope: 'none',
+  reason:
+    'Friend visibility and private conversation typing membership are enforced in the service',
+} as const;
 const errors = {
   400: errorEnvelopeSchema,
   401: errorEnvelopeSchema,
@@ -43,7 +48,11 @@ export function registerPresenceRoutes(
         querystring: presenceQuerySchema,
         response: { ...errors, 200: presenceSnapshotSchema },
       },
-      config: { auth: 'user', rateLimit: presenceRead },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: presenceRead,
+      },
     },
     async (request) =>
       presence.snapshot(db, requireAuth(request).userId, request.query.userIds.map(BigInt)),
@@ -53,7 +62,11 @@ export function registerPresenceRoutes(
     '/api/v1/users/@me/presence',
     {
       schema: { tags, response: { ...errors, 200: ownPresenceSchema } },
-      config: { auth: 'user', rateLimit: presenceRead },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: presenceRead,
+      },
     },
     async (request) => presence.preference(db, requireAuth(request).userId),
   );
@@ -63,6 +76,7 @@ export function registerPresenceRoutes(
     {
       schema: { tags, body: ownPresenceSchema, response: { ...errors, 200: ownPresenceSchema } },
       config: {
+        permission: nonGuildAccess,
         auth: 'user',
         rateLimit: [perUser('presence.write', { capacity: 10, refillPerSecond: 1 / 5 })],
       },
@@ -80,6 +94,7 @@ export function registerPresenceRoutes(
         response: { ...errors, 204: z.null() },
       },
       config: {
+        permission: nonGuildAccess,
         auth: 'user',
         rateLimit: [perUser('typing.write', { capacity: 5, refillPerSecond: 1 / 4 })],
       },
@@ -100,6 +115,7 @@ export function registerPresenceRoutes(
         response: { ...errors, 200: typingSnapshotSchema },
       },
       config: {
+        permission: nonGuildAccess,
         auth: 'user',
         rateLimit: [perUser('typing.read', { capacity: 30, refillPerSecond: 2 })],
       },

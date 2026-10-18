@@ -1,12 +1,13 @@
 import { SignOut } from '@phosphor-icons/react';
 import { Glass, IconButton } from '@silvercord/ui';
-import { Link, Outlet, useNavigate } from '@tanstack/react-router';
+import { Link, Outlet, useNavigate, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useOwnPresence } from '../../api/presence.ts';
 import mark from '../../assets/mark.svg';
 import { useGatewayState } from '../../gateway/use-gateway-connection.ts';
 import { useSession } from '../../session/session-store.ts';
 import { ConversationList } from '../chat/ConversationList.tsx';
+import { GuildNavigation, GuildSidebar } from '../guilds/GuildNavigation.tsx';
 import { Avatar } from '../presence/Avatar.tsx';
 import { StatusMenu } from '../presence/StatusMenu.tsx';
 import styles from './app-shell.module.css';
@@ -23,6 +24,7 @@ function ConnectionLabel({ state }: { readonly state: string }) {
 export function AppShell() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { guildId } = useParams({ strict: false });
   const user = useSession((s) => s.user);
   const persistent = useSession((s) => s.persistent);
   const signOut = useSession((s) => s.signOut);
@@ -43,15 +45,17 @@ export function AppShell() {
         <Link
           to="/app"
           className={styles['railItem']}
-          activeProps={{ 'aria-current': 'page' }}
+          activeOptions={{ exact: true }}
+          aria-current={guildId ? undefined : 'page'}
           aria-label={t('shell.home')}
         >
           <span className={styles['railPill']} aria-hidden="true" />
           <img className={styles['railMark']} src={mark} alt="" />
         </Link>
+        <GuildNavigation />
       </nav>
       <Glass as="aside" level={2} className={styles['sidebar']}>
-        <ConversationList />
+        {guildId ? <GuildSidebar key={guildId} guildId={guildId} /> : <ConversationList />}
         {persistent ? null : <p className={styles['note']}>{t('session.notRemembered')}</p>}
         <div className={styles['userPanel']}>
           <Popover

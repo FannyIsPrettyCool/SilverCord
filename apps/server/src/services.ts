@@ -1,6 +1,9 @@
 import type { AppContext } from './context.ts';
 import { createEventOutbox } from './events/outbox.ts';
 import { createChannelsService } from './modules/channels/channels-service.ts';
+import { createGuildChannelsService } from './modules/guilds/guild-channels-service.ts';
+import { createGuildPermissionsService } from './modules/guilds/guild-permissions.ts';
+import { createGuildsService } from './modules/guilds/guilds-service.ts';
 import { createMediaService } from './modules/media/media-service.ts';
 import { createLocalStorage } from './modules/media/storage.ts';
 import { createMessagesService } from './modules/messages/messages-service.ts';
@@ -22,6 +25,18 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
   const db = context.database.db;
   const users = createUsersService();
   const outbox = createEventOutbox(nextId);
+  const guildPermissions = createGuildPermissionsService();
+  const guildChannels = createGuildChannelsService({
+    nextId,
+    outbox,
+    permissions: guildPermissions,
+  });
+  const guilds = createGuildsService({
+    nextId,
+    outbox,
+    permissions: guildPermissions,
+    createDefaultChannel: guildChannels.createDefaultChannel,
+  });
   const relationships = createRelationshipsService({ users, nextId, outbox });
   const channels = createChannelsService({
     users,
@@ -72,6 +87,20 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     events,
     log: options.log,
   });
-  return { db, users, outbox, relationships, channels, storage, media, messages, presence, typing };
+  return {
+    db,
+    users,
+    outbox,
+    guildPermissions,
+    guildChannels,
+    guilds,
+    relationships,
+    channels,
+    storage,
+    media,
+    messages,
+    presence,
+    typing,
+  };
 }
 export type ChatServices = ReturnType<typeof createChatServices>;

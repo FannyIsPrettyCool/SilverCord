@@ -1,5 +1,7 @@
 /**
- * Pure permission engine (bigint bitfield). Implemented in phase 3 per
- * `docs/spec/permissions.md`; must stay dependency-free.
+ * Pure permission engine (bigint bitfield), docs/spec/permissions.md. Dependency-free: the
+ * server uses it authoritatively, the client for UI hints.
  */
-export {};
+export * from './bits.ts';
+export * from './compute.ts';
+export * from './hierarchy.ts';

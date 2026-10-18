@@ -41,6 +41,9 @@ importers:
       '@silvercord/markdown':
         specifier: workspace:*
         version: link:../../packages/markdown
+      '@silvercord/permissions':
+        specifier: workspace:*
+        version: link:../../packages/permissions
       '@silvercord/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -156,6 +159,9 @@ importers:
       '@silvercord/markdown':
         specifier: workspace:*
         version: link:../../packages/markdown
+      '@silvercord/permissions':
+        specifier: workspace:*
+        version: link:../../packages/permissions
       '@silvercord/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -255,6 +261,9 @@ importers:
       '@silvercord/config':
         specifier: workspace:*
         version: link:../config
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
 
   packages/protocol:
     dependencies:

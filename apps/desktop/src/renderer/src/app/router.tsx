@@ -11,6 +11,7 @@ import { ForgotPasswordScreen } from '../features/auth/ForgotPasswordScreen.tsx'
 import { RegisterScreen } from '../features/auth/RegisterScreen.tsx';
 import { SignInScreen } from '../features/auth/SignInScreen.tsx';
 import { ChannelView } from '../features/chat/ChannelView.tsx';
+import { GuildView } from '../features/guilds/GuildView.tsx';
 import { AppShell } from '../features/shell/AppShell.tsx';
 import { FriendsView } from '../features/social/FriendsView.tsx';
 import { useSession } from '../session/session-store.ts';
@@ -84,13 +85,24 @@ const channelRoute = createRoute({
   component: ChannelView,
 });
 
+const guildRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/guilds/$guildId',
+  component: GuildView,
+});
+const guildChannelRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/guilds/$guildId/channels/$channelId',
+  component: GuildView,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
   codeRoute,
   registerRoute,
   forgotRoute,
-  appRoute.addChildren([friendsRoute, channelRoute]),
+  appRoute.addChildren([friendsRoute, channelRoute, guildRoute, guildChannelRoute]),
 ]);
 
 /** Hash history: the packaged renderer is a single file on the app:// origin. */
