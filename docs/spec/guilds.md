@@ -58,6 +58,21 @@ Phase 3; BRIEF §6.4. Authorization per docs/spec/permissions.md; events per ADR
   attachments ATTACH_FILES, new reactions ADD_REACTIONS, deleting others' messages
   MANAGE_MESSAGES; `@everyone`/role mentions need MENTION_EVERYONE.
 - Every privileged change writes an audit row in the same transaction.
+- Channel mutations serialize on the guild row. Reorder supplies every channel exactly once,
+  dense zero-based sibling positions and `expectedVersion` from the current guild; a stale
+  version returns CONFLICT. Moving channels does not change their overwrites. Creating a child
+  copies the category's overwrites. Every channel response masks an inaccessible parent's id.
+
+## Initial management slice
+
+Create/list/view/rename/leave servers and create/list/edit/reorder categories, text, voice and
+announcement channels are implemented. Creation supplies owner membership, default role and
+`general` atomically, with user-row locks enforcing 25-owned/100-joined caps. Owners cannot
+leave. Ownership transfer, deletion, invites, role/overwrite editing, moderation and thread
+lifecycle remain separate Phase 3 work. The desktop exposes creation, selection, edits and
+leaving; drag reorder is pending. Existing private-message routes explicitly reject guild
+channels until fresh guild message/media authorization and channel-scoped fanout are connected.
+Voice channel metadata is supported; calls arrive in Phase 4.
 
 ## Events
 
