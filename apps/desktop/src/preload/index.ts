@@ -31,6 +31,15 @@ const bridge = {
   media: {
     download: (input: IpcInput<'media:download'>) => invoke('media:download', input),
   },
+  activity: {
+    configure: (input: IpcInput<'activity:configure'>) => invoke('activity:configure', input),
+    snapshot: () => invoke('activity:snapshot'),
+    games: () => invoke('activity:games'),
+    setGames: (input: IpcInput<'activity:set-games'>) => invoke('activity:set-games', input),
+    rpcApps: () => invoke('activity:rpc-apps'),
+    decide: (input: IpcInput<'activity:rpc-decide'>) => invoke('activity:rpc-decide', input),
+    forget: (input: IpcInput<'activity:rpc-forget'>) => invoke('activity:rpc-forget', input),
+  },
 } as const;
 
 export type DesktopBridge = typeof bridge;

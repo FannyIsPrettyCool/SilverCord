@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { BRAND } from '@silvercord/protocol/brand';
 import { app, type BrowserWindow, session } from 'electron';
+import { createActivityHub } from './activity/activity-hub.ts';
 import { createAuthAgent } from './auth/auth-agent.ts';
 import { createTokenStore } from './auth/token-store.ts';
 import { loadConfig } from './config.ts';
@@ -38,10 +39,16 @@ if (!app.requestSingleInstanceLock()) {
     const config = loadConfig();
     hardenSession(session.defaultSession, config);
     serveRendererBundle();
+    const activity = createActivityHub({
+      userData: app.getPath('userData'),
+      resources: RESOURCES_DIR,
+    });
+    app.on('will-quit', () => void activity.close());
     registerIpc({
       config,
       auth: createAuthAgent(config.apiUrl, createTokenStore()),
       window: () => mainWindow,
+      activity,
     });
 
     mainWindow = createMainWindow(join(RESOURCES_DIR, 'icon.png'));

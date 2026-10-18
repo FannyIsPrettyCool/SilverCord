@@ -1,4 +1,4 @@
-import type { CurrentUser, ErrorCode } from '@silvercord/protocol';
+import type { ActivityInput, CurrentUser, ErrorCode } from '@silvercord/protocol';
 
 /**
  * Renderer ↔ main contract. The renderer never sees refresh tokens or MFA tickets: the main
@@ -42,6 +42,32 @@ export interface DesktopConfig {
   readonly version: string;
 }
 
+/** Which detected activity sources run in main (docs/spec/activity.md). */
+export interface DetectorSwitches {
+  readonly game: boolean;
+  readonly rpc: boolean;
+  readonly media: boolean;
+}
+
+export interface ActivitySnapshot {
+  readonly game: ActivityInput | null;
+  readonly rpc: ActivityInput | null;
+  readonly media: ActivityInput | null;
+  /** Programs asking to use Local RPC, waiting for the user. */
+  readonly rpcRequests: readonly string[];
+  readonly rpcAddress: string | null;
+}
+
+export interface UserGameEntry {
+  readonly process: string;
+  readonly name: string;
+}
+
+export interface RpcApps {
+  readonly allowed: readonly string[];
+  readonly denied: readonly string[];
+}
+
 /** Channel name → [input, output]. */
 export interface IpcChannels {
   'config:get': [undefined, DesktopConfig];
@@ -55,6 +81,13 @@ export interface IpcChannels {
   'window:toggle-maximize': [undefined, boolean];
   /** Saves an attachment through a native dialog; false when the user cancels. */
   'media:download': [{ path: string; filename: string }, boolean];
+  'activity:configure': [DetectorSwitches, null];
+  'activity:snapshot': [undefined, ActivitySnapshot];
+  'activity:games': [undefined, readonly UserGameEntry[]];
+  'activity:set-games': [readonly UserGameEntry[], readonly UserGameEntry[]];
+  'activity:rpc-apps': [undefined, RpcApps];
+  'activity:rpc-decide': [{ client: string; allow: boolean }, RpcApps];
+  'activity:rpc-forget': [{ client: string }, RpcApps];
 }
 
 export type IpcChannel = keyof IpcChannels;
@@ -72,4 +105,11 @@ export const IPC_CHANNELS = [
   'auth:forgot-password',
   'window:toggle-maximize',
   'media:download',
+  'activity:configure',
+  'activity:snapshot',
+  'activity:games',
+  'activity:set-games',
+  'activity:rpc-apps',
+  'activity:rpc-decide',
+  'activity:rpc-forget',
 ] as const satisfies readonly IpcChannel[];

@@ -17,11 +17,18 @@ import {
   type IpcOutput,
   type IpcResult,
 } from '../../shared/ipc-contract.ts';
+import type { ActivityHub } from '../activity/activity-hub.ts';
+import { USER_GAMES_MAX } from '../activity/game-detector.ts';
 import { ApiError, type AuthAgent } from '../auth/auth-agent.ts';
 import { downloadMedia, MEDIA_PATH_PATTERN } from '../media-download.ts';
 import { isTrustedSender } from './trusted-sender.ts';
 
 const none = z.undefined();
+const rpcClient = z.string().trim().min(1).max(64);
+const gameEntry = z.object({
+  process: z.string().trim().min(1).max(128),
+  name: z.string().trim().min(1).max(128),
+});
 
 /** Runtime validation for every channel input (BRIEF §8.2). */
 const inputSchemas: { [C in IpcChannel]: z.ZodType<IpcInput<C>> } = {
@@ -52,6 +59,13 @@ const inputSchemas: { [C in IpcChannel]: z.ZodType<IpcInput<C>> } = {
     path: z.string().regex(MEDIA_PATH_PATTERN),
     filename: z.string().min(1).max(128),
   }),
+  'activity:configure': z.object({ game: z.boolean(), rpc: z.boolean(), media: z.boolean() }),
+  'activity:snapshot': none,
+  'activity:games': none,
+  'activity:set-games': z.array(gameEntry).max(USER_GAMES_MAX),
+  'activity:rpc-apps': none,
+  'activity:rpc-decide': z.object({ client: rpcClient, allow: z.boolean() }),
+  'activity:rpc-forget': z.object({ client: rpcClient }),
 };
 
 type Handlers = { [C in IpcChannel]: (input: IpcInput<C>) => Promise<IpcOutput<C>> | IpcOutput<C> };
@@ -60,6 +74,7 @@ export interface IpcDependencies {
   readonly config: DesktopConfig;
   readonly auth: AuthAgent;
   readonly window: () => BrowserWindow | null;
+  readonly activity: ActivityHub;
 }
 
 function toError(error: unknown): IpcResult<never> {
@@ -88,6 +103,13 @@ export function registerIpc(deps: IpcDependencies): void {
     },
     'media:download': ({ path, filename }) =>
       downloadMedia({ ...deps, window: deps.window() }, path, filename),
+    'activity:configure': (switches) => deps.activity.configure(switches),
+    'activity:snapshot': () => deps.activity.snapshot(),
+    'activity:games': () => deps.activity.games(),
+    'activity:set-games': (games) => deps.activity.setGames(games),
+    'activity:rpc-apps': () => deps.activity.rpcApps(),
+    'activity:rpc-decide': ({ client, allow }) => deps.activity.decide(client, allow),
+    'activity:rpc-forget': ({ client }) => deps.activity.forget(client),
     'window:toggle-maximize': () => {
       const window = deps.window();
       if (!window) return false;
