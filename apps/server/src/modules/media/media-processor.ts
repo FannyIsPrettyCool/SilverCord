@@ -1,13 +1,15 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { type FileHandle, lstat, mkdir, open, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { pipeline } from 'node:stream/promises';
+import { platform } from 'node:process';
+import { Readable } from 'node:stream';
 import { setTimeout as sleep } from 'node:timers/promises';
 import type { MediaVariant, UploadFailure } from '@silvercord/protocol';
 import type { Database } from '../../db/client.ts';
 import { channels as buses, type EventPublisher } from '../../gateway/event-bus.ts';
 import type { DecodeResult } from './decoder/decode.ts';
+import { JobDirectory, JobFileLimit, UnsafeJobFile } from './decoder/job-files.ts';
 import { DECODE_TIMEOUT_MS, readDecodeResult, runDecodeChild } from './decoder/run-decoder.ts';
 import { mediaRepository as repo } from './media-repository.ts';
 import type { UploadRow } from './media-schema.ts';
@@ -24,7 +26,7 @@ export interface ProcessorDependencies {
 
 interface Output {
   readonly variant: MediaVariant;
-  readonly path: string;
+  readonly file: string;
   readonly mime: string;
   readonly width: number | null;
   readonly height: number | null;
@@ -32,20 +34,40 @@ interface Output {
 
 const CONTAINER_WAIT_MS = DECODE_TIMEOUT_MS + 15_000;
 const exists = (path: string) =>
-  stat(path).then(
+  lstat(path).then(
     () => true,
     () => false,
   );
 
-async function hashFile(path: string): Promise<{ sha256: string; bytes: number }> {
+async function storeFile(
+  storage: StorageDriver,
+  key: string,
+  handle: FileHandle,
+  size: number,
+  budget: number,
+): Promise<{ sha256: string; bytes: number }> {
   const hash = createHash('sha256');
   let bytes = 0;
-  for await (const chunk of createReadStream(path)) {
-    const buffer = chunk as Buffer;
-    bytes += buffer.length;
-    hash.update(buffer);
+  const source = handle.createReadStream({ autoClose: false });
+  const measured = Readable.from(
+    (async function* () {
+      for await (const chunk of source) {
+        const buffer = chunk as Buffer;
+        bytes += buffer.length;
+        if (bytes > budget) throw new JobFileLimit('Decoder output exceeds budget');
+        hash.update(buffer);
+        yield buffer;
+      }
+    })(),
+  );
+  try {
+    await storage.put(key, measured);
+    if (bytes !== size) throw new UnsafeJobFile('Decoder file changed while being read');
+    return { sha256: hash.digest('hex'), bytes };
+  } finally {
+    measured.destroy();
+    source.destroy();
   }
-  return { sha256: hash.digest('hex'), bytes };
 }
 
 /**
@@ -56,12 +78,14 @@ async function hashFile(path: string): Promise<{ sha256: string; bytes: number }
 export function createMediaProcessor(deps: ProcessorDependencies) {
   const { db, storage, events, log } = deps;
 
-  async function decodeIn(jobDir: string): Promise<DecodeResult> {
+  async function decodeIn(jobDir: string, job: JobDirectory): Promise<DecodeResult> {
     if (deps.decoder === 'local') return runDecodeChild(jobDir);
-    await writeFile(join(jobDir, 'ready'), '', { flag: 'wx' });
+    if (platform !== 'linux')
+      throw new UnsafeJobFile('Container decoding requires Linux fd isolation');
+    await writeFile(job.childPath('ready'), '', { flag: 'wx' });
     const deadline = Date.now() + CONTAINER_WAIT_MS;
     while (Date.now() < deadline) {
-      if (await exists(join(jobDir, 'result.json'))) return readDecodeResult(jobDir);
+      if (await exists(job.childPath('result.json'))) return readDecodeResult(jobDir, job);
       await sleep(200);
     }
     return { ok: false, failure: 'PROCESSING_FAILED' };
@@ -90,13 +114,12 @@ export function createMediaProcessor(deps: ProcessorDependencies) {
     await notify(updated);
   }
 
-  function outputsOf(result: Extract<DecodeResult, { ok: true }>, jobDir: string): Output[] {
-    const input = join(jobDir, 'input');
+  function outputsOf(result: Extract<DecodeResult, { ok: true }>): Output[] {
     if (result.kind === 'file') {
       return [
         {
           variant: 'download',
-          path: input,
+          file: 'source',
           mime: 'application/octet-stream',
           width: null,
           height: null,
@@ -105,7 +128,7 @@ export function createMediaProcessor(deps: ProcessorDependencies) {
     }
     return result.variants.map((variant) => ({
       variant: variant.variant,
-      path: variant.file === 'source' ? input : join(jobDir, 'out', variant.file),
+      file: variant.file,
       mime: variant.mime,
       width: variant.width,
       height: variant.height,
@@ -115,32 +138,74 @@ export function createMediaProcessor(deps: ProcessorDependencies) {
   async function process(uploadId: bigint): Promise<void> {
     const row = await repo.find(db, uploadId);
     if (row?.state !== 'processing') return;
-    const jobDir = join(deps.jobsDir, `${uploadId}-${randomBytes(6).toString('hex')}`);
+    const attempt = randomBytes(12).toString('hex');
+    const jobName = `${uploadId}-${attempt}`;
+    const jobDir = join(deps.jobsDir, jobName);
     const storedKeys: string[] = [];
+    await mkdir(deps.jobsDir, { recursive: true });
+    const root = await JobDirectory.open(deps.jobsDir);
+    let job: JobDirectory | undefined;
+    let committed = false;
     try {
-      await mkdir(jobDir, { recursive: true });
-      const input = join(jobDir, 'input');
-      for (const chunk of await repo.chunks(db, uploadId))
-        await pipeline(storage.read(chunk.storageKey), createWriteStream(input, { flags: 'a' }));
-      if ((await stat(input)).size !== row.sizeBytes) return await fail(row, 'MALFORMED');
+      await mkdir(root.childPath(jobName));
+      job = await root.directory(jobName);
+      const input = await open(
+        job.childPath('input'),
+        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),
+        0o600,
+      );
+      try {
+        let position = 0;
+        for (const chunk of await repo.chunks(db, uploadId)) {
+          for await (const bytes of storage.read(chunk.storageKey)) {
+            const buffer = bytes as Buffer;
+            let offset = 0;
+            while (offset < buffer.length) {
+              const written = await input.write(buffer, offset, buffer.length - offset, position);
+              offset += written.bytesWritten;
+              position += written.bytesWritten;
+            }
+          }
+        }
+        if ((await input.stat()).size !== row.sizeBytes) return await fail(row, 'MALFORMED');
+      } finally {
+        await input.close();
+      }
 
-      const result = await decodeIn(jobDir);
+      const result = await decodeIn(jobDir, job);
       if (!result.ok) return await fail(row, result.failure);
 
-      const outputs = outputsOf(result, jobDir);
+      const outputs = outputsOf(result);
       const variants: Parameters<typeof repo.insertVariants>[1] = [];
       let total = 0;
       for (const output of outputs) {
-        const { sha256, bytes } = await hashFile(output.path);
-        total += bytes;
-        // Result files are hostile too: the reservation bounds what processing may store.
-        if (total > row.reservedBytes) {
-          for (const key of storedKeys) await storage.delete(key);
-          return await fail(row, 'LIMIT_EXCEEDED');
+        let out: JobDirectory | undefined;
+        let file: FileHandle | undefined;
+        // Attempt-specific keys mean a stale worker can only delete its own objects.
+        const storageKey = `objects/${uploadId}/${attempt}-${output.variant}`;
+        let sha256: string;
+        let bytes: number;
+        try {
+          if (output.file !== 'source') out = await job.directory('out');
+          const directory = out ?? job;
+          const opened = await directory.file(
+            output.file === 'source' ? 'input' : output.file,
+            row.reservedBytes - total,
+          );
+          file = opened.handle;
+          storedKeys.push(storageKey);
+          ({ sha256, bytes } = await storeFile(
+            storage,
+            storageKey,
+            file,
+            opened.size,
+            row.reservedBytes - total,
+          ));
+        } finally {
+          await file?.close();
+          await out?.close();
         }
-        const storageKey = `objects/${uploadId}/${output.variant}-${sha256}`;
-        await storage.put(storageKey, createReadStream(output.path));
-        storedKeys.push(storageKey);
+        total += bytes;
         variants.push({
           uploadId,
           variant: output.variant,
@@ -176,14 +241,26 @@ export function createMediaProcessor(deps: ProcessorDependencies) {
         });
       });
       if (!updated) {
-        // Deleted or expired while processing: nothing may survive it.
-        for (const key of storedKeys) await storage.delete(key);
         return;
       }
+      committed = true;
       await dropChunks(uploadId);
       await notify(updated);
+    } catch (error) {
+      if (error instanceof JobFileLimit) await fail(row, 'LIMIT_EXCEEDED');
+      else if (
+        error instanceof UnsafeJobFile ||
+        (error instanceof Error &&
+          'code' in error &&
+          ['ENOENT', 'ELOOP', 'ENOTDIR', 'EISDIR'].includes(String(error.code)))
+      )
+        await fail(row, 'PROCESSING_FAILED');
+      else throw error;
     } finally {
-      await rm(jobDir, { recursive: true, force: true });
+      if (!committed) for (const key of storedKeys) await storage.delete(key);
+      await job?.close();
+      await rm(root.childPath(jobName), { recursive: true, force: true });
+      await root.close();
     }
   }
 
