@@ -6,6 +6,10 @@ import { API, type Client, conversationLink, signedInClient } from './clients.ts
  * Phase 2 acceptance (docs/PLAN.md): two independent clients chat in a DM through the server,
  * with typing, unread badges, reactions and edits arriving over the real gateway.
  */
+/** 8×8 opaque PNG. */
+const PIXEL_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVQImWPwv/EfK2IYWhIAjeOJgc+7TuYAAAAASUVORK5CYII=';
+
 test.beforeAll(async () => {
   const health = await fetch(`${API}/health`).catch(() => null);
   expect(health?.ok, `server not reachable at ${API}`).toBe(true);
@@ -62,6 +66,22 @@ test('aurora and tide chat in their DM in real time', async () => {
     await expect(
       tide.page.getByRole('article').filter({ hasText: `edited ${marker}` }),
     ).toContainText('(edited)', { timeout: 10_000 });
+
+    // An image goes through upload, the isolated decoder and authorized delivery to tide.
+    const filename = `pixel-${marker}.png`;
+    await aurora.page.locator('input[type="file"]').setInputFiles({
+      name: filename,
+      mimeType: 'image/png',
+      buffer: Buffer.from(PIXEL_PNG, 'base64'),
+    });
+    await expect(aurora.page.getByText('Ready', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await composer.click();
+    await aurora.page.keyboard.press('Enter');
+    const image = tide.page.getByRole('img', { name: filename });
+    await expect(image).toBeVisible({ timeout: 15_000 });
+    await expect
+      .poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth))
+      .toBeGreaterThan(0);
   } finally {
     for (const client of clients) await client.app.close();
   }
