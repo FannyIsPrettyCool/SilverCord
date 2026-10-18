@@ -17,6 +17,9 @@ import { registerAuthRoutes } from './modules/auth/auth-routes.ts';
 import { createAuthService } from './modules/auth/auth-service.ts';
 import { createCodeHasher } from './modules/auth/crypto/code-hasher.ts';
 import { registerChannelsRoutes } from './modules/channels/channels-routes.ts';
+import { registerGuildChannelsRoutes } from './modules/guilds/guild-channels-routes.ts';
+import { createGuildPermissionsService } from './modules/guilds/guild-permissions.ts';
+import { registerGuildsRoutes } from './modules/guilds/guilds-routes.ts';
 import { createMediaQueue } from './modules/media/media-queue.ts';
 import { registerMediaRoutes } from './modules/media/media-routes.ts';
 import { registerMessagesRoutes } from './modules/messages/messages-routes.ts';
@@ -77,7 +80,15 @@ export async function buildApp(
       permission: { scope: 'none', reason: 'Browser CORS preflight; no resource data' },
     };
   });
-  registerPermissions(app, options.permissionChecker);
+  const guildPermissions = createGuildPermissionsService();
+  registerPermissions(
+    app,
+    options.permissionChecker ??
+      (({ scope, resourceId, userId }) =>
+        scope === 'guild'
+          ? guildPermissions.guild(context.database.db, resourceId, userId)
+          : guildPermissions.channel(context.database.db, resourceId, userId)),
+  );
   // Bearer tokens only, no cookies: CORS is about which renderer origins may read responses.
   await app.register(cors, {
     origin: env.CORS_ORIGINS,
@@ -119,6 +130,8 @@ export async function buildApp(
   app.addHook('onClose', () => mediaQueue.close());
   const services = createChatServices(context, { log: app.log, enqueueMedia: mediaQueue.enqueue });
   const { db, relationships, channels, messages, presence, typing, media, storage } = services;
+  registerGuildsRoutes(app, db, services.guilds);
+  registerGuildChannelsRoutes(app, db, services.guildChannels);
   registerRelationshipsRoutes(app, db, relationships);
   registerChannelsRoutes(app, db, channels, messages, typing);
   registerMessagesRoutes(app, db, messages, typing);
