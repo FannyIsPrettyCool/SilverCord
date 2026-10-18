@@ -135,4 +135,64 @@ describe('auth-agent cancellation', () => {
     expect(net.fetch).not.toHaveBeenCalled();
     expect(store.save).not.toHaveBeenCalled();
   });
+
+  it.each([false, true])(
+    'keeps a new login while revoking an old session after a delayed refresh (already pending: %s)',
+    async (alreadyPending) => {
+      const { agent, store, saved } = setup();
+      vi.mocked(net.fetch).mockResolvedValueOnce(
+        response({
+          ...tokens,
+          accessTokenExpiresAt: '2020-01-01T00:00:00.000Z',
+        }),
+      );
+      await agent.login('user', 'password');
+      const refreshing = deferred<Response>();
+      const newTokens: AuthTokens = {
+        ...tokens,
+        accessToken: 'new-access',
+        refreshToken: 'new-refresh',
+        user: { ...tokens.user, id: '2', username: 'new-user' },
+      };
+      vi.mocked(net.fetch).mockImplementation(async (url) => {
+        if (String(url).endsWith('/auth/refresh')) return refreshing.promise;
+        if (String(url).endsWith('/auth/login')) return response(newTokens);
+        return new Response(null, { status: 204 });
+      });
+      const oldRequest = alreadyPending ? agent.accessToken() : undefined;
+      const oldRejected = oldRequest
+        ? expect(oldRequest).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+        : undefined;
+      const signingOut = agent.logout();
+      await vi.waitFor(() =>
+        expect(net.fetch).toHaveBeenCalledWith(
+          'https://server.test/api/v1/auth/refresh',
+          expect.anything(),
+        ),
+      );
+      await agent.login('new-user', 'password');
+      refreshing.resolve(
+        response({
+          ...tokens,
+          accessToken: 'old-fresh-access',
+          refreshToken: 'old-rotated-refresh',
+        }),
+      );
+      await signingOut;
+      await oldRejected;
+      expect(await agent.accessToken()).toMatchObject({
+        accessToken: 'new-access',
+        user: { id: '2' },
+      });
+      expect(saved()).toBe('new-refresh');
+      expect(store.save).toHaveBeenCalledTimes(2);
+      expect(net.fetch).toHaveBeenCalledWith('https://server.test/api/v1/auth/logout', {
+        method: 'POST',
+        headers: { authorization: 'Bearer old-fresh-access' },
+      });
+      expect(
+        vi.mocked(net.fetch).mock.calls.filter(([url]) => String(url).endsWith('/auth/refresh')),
+      ).toHaveLength(1);
+    },
+  );
 });
