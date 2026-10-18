@@ -1,12 +1,13 @@
 import { spawn } from 'node:child_process';
 import { realpathSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { uploadFailureSchema } from '@silvercord/protocol';
 import { z } from 'zod';
 import type { DecodeResult } from './decode.ts';
+import { type JobDirectory, openJobDirectory } from './job-files.ts';
 
 export const DECODE_TIMEOUT_MS = 30_000;
 
@@ -51,13 +52,22 @@ export const decodeResultSchema = z.union([
 
 const failed: DecodeResult = { ok: false, failure: 'PROCESSING_FAILED' };
 
-export async function readDecodeResult(jobDir: string): Promise<DecodeResult> {
+export async function readDecodeResult(
+  jobDir: string,
+  directory?: JobDirectory,
+): Promise<DecodeResult> {
+  let opened: JobDirectory | undefined;
   try {
-    const raw = await readFile(join(jobDir, 'result.json'), 'utf8');
-    const parsed = decodeResultSchema.safeParse(JSON.parse(raw));
+    if (!directory) opened = await openJobDirectory(jobDir);
+    const job = directory ?? opened;
+    if (!job) return failed;
+    const raw = await job.read('result.json', 16 * 1024);
+    const parsed = decodeResultSchema.safeParse(JSON.parse(raw.toString('utf8')));
     return parsed.success ? parsed.data : failed;
   } catch {
     return failed;
+  } finally {
+    await opened?.close();
   }
 }
 
