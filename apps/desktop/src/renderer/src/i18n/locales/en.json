@@ -68,5 +68,95 @@
     "passwordLength": "At least 10 characters",
     "username": "2–32 letters, digits, _ or .",
     "email": "Invalid email"
+  },
+  "common": {
+    "cancel": "Cancel"
+  },
+  "social": {
+    "friends": "Friends",
+    "addFriend": "Add friend",
+    "usernamePlaceholder": "username",
+    "send": "Send request",
+    "requestSent": "Request sent",
+    "message": "Message",
+    "remove": "Remove friend",
+    "block": "Block",
+    "accept": "Accept",
+    "decline": "Decline",
+    "cancel": "Cancel request",
+    "unblock": "Unblock",
+    "tabs": {
+      "online": "Online",
+      "all": "All",
+      "pending": "Pending",
+      "blocked": "Blocked"
+    }
+  },
+  "presence": {
+    "title": "Status",
+    "online": "Online",
+    "idle": "Idle",
+    "dnd": "Do not disturb",
+    "invisible": "Invisible",
+    "offline": "Offline"
+  },
+  "chat": {
+    "conversations": "Conversations",
+    "directMessages": "Direct messages",
+    "newGroup": "New group",
+    "groupName": "Group name",
+    "selectedCount": "{count} / {limit}",
+    "create": "Create",
+    "spoiler": "Spoiler",
+    "download": "Download",
+    "editMessage": "Edit message",
+    "editConflict": "Message changed elsewhere",
+    "react": "Add reaction",
+    "reply": "Reply",
+    "edit": "Edit",
+    "delete": "Delete",
+    "blockedMessage": "Blocked message",
+    "deletedMessage": "Original message deleted",
+    "deletedUser": "Deleted user",
+    "edited": "(edited)",
+    "retry": "Retry",
+    "discard": "Discard",
+    "history": "Message history",
+    "jumpToPresent": "Jump to present",
+    "attachments": "Attachments",
+    "removeAttachment": "Remove attachment",
+    "replyingTo": "Replying to {name}",
+    "cancelReply": "Cancel reply",
+    "attach": "Attach files",
+    "send": "Send",
+    "upload": {
+      "uploading": "Uploading",
+      "processing": "Processing",
+      "ready": "Ready",
+      "failed": "Failed"
+    },
+    "members": "Members",
+    "addMember": "Add member",
+    "historyVisible": "Added members can read the full history.",
+    "leaveGroup": "Leave group",
+    "typingOne": "{name} is typing",
+    "typingMany": "{count} people typing",
+    "messageTo": "Message {name}",
+    "density": {
+      "label": "Density",
+      "cozy": "Cozy",
+      "compact": "Compact",
+      "bubble": "Bubble"
+    }
+  },
+  "chatErrors": {
+    "NOT_FOUND": "User or conversation unavailable",
+    "FORBIDDEN": "Not allowed here",
+    "CONFLICT": "Already done or changed",
+    "RATE_LIMITED": "Too fast, try again soon",
+    "NETWORK": "Server unreachable",
+    "PAYLOAD_TOO_LARGE": "File too large or storage full",
+    "VALIDATION_FAILED": "Check what you entered",
+    "fallback": "Something went wrong"
   }
 }
