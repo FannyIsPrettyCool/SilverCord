@@ -32,7 +32,7 @@ import { registerRelationshipsRoutes } from './modules/relationships/relationshi
 import { createUsersService } from './modules/users/users-service.ts';
 import { createChatServices } from './services.ts';
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';
 
 const REDACTED_PATHS = [
   'req.headers.authorization',
