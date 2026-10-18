@@ -7,7 +7,8 @@
   place-items: center;
   flex: none;
   border-radius: 50%;
-  color: var(--color-text);
+  color: var(--rim-a);
+  isolation: isolate;
   background:
     radial-gradient(circle at 32% 26%, color-mix(in srgb, white 22%, transparent), transparent 60%),
     color-mix(in srgb, var(--rim-a) 22%, var(--color-content-raised));
@@ -47,6 +48,134 @@
       ),
       conic-gradient(from 210deg, #4fd8ff55, #8b7bff55, #ff6bd655, #ffbf4755, #4fd8ff55),
       var(--color-content-raised);
+  }
+}
+
+.halo {
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 38%, var(--rim-b) 56%, transparent 74%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.face {
+  position: absolute;
+  inset: 6%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 32% 15%, #ffffff29, transparent 48%),
+    linear-gradient(145deg, #ffffff0c, #00000044);
+  box-shadow:
+    inset 0 1px 1px #ffffff88,
+    inset 0 -2px 3px #00000066;
+  color: var(--rim-a);
+}
+.artwork {
+  position: relative;
+  width: 94%;
+  height: 94%;
+  filter: drop-shadow(0 1px 1px #000000bb);
+}
+.reflection {
+  position: absolute;
+  inset: -80%;
+  background: linear-gradient(
+    110deg,
+    transparent 43%,
+    #ffffff44 49%,
+    #ffffff08 53%,
+    transparent 58%
+  );
+  transform: translateX(-50%) rotate(-15deg);
+  pointer-events: none;
+}
+.orbit {
+  position: absolute;
+  inset: -3%;
+  border: 1px solid transparent;
+  border-top-color: var(--rim-a);
+  border-bottom-color: var(--rim-b);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.particles {
+  position: absolute;
+  width: 170%;
+  height: 170%;
+  left: -35%;
+  top: -35%;
+  pointer-events: none;
+}
+.medallion[data-moving] .reflection {
+  animation: badge-shine 7s ease-in-out infinite;
+}
+.medallion[data-moving][data-effect="aurora"] .halo {
+  animation: badge-breathe 4s ease-in-out infinite alternate;
+}
+.medallion[data-moving][data-effect="orbit"] .orbit {
+  opacity: 0.6;
+  animation: badge-orbit 8s linear infinite;
+}
+.medallion[data-moving][data-effect="ember"] .halo {
+  animation: badge-breathe 2.8s ease-in-out infinite alternate;
+}
+.medallion[data-moving][data-effect="prism"] .orbit {
+  opacity: 0.8;
+  animation: badge-orbit 6s linear infinite;
+  border-left-color: #4fd8ff;
+  border-right-color: #ffbf47;
+}
+.medallion[data-moving][data-effect="prism"] .halo {
+  animation: badge-prism 9s linear infinite;
+}
+.medallion[data-effect="none"] .reflection {
+  animation: none;
+  opacity: 0;
+}
+@keyframes badge-shine {
+  0%,
+  65% {
+    transform: translateX(-50%) rotate(-15deg);
+  }
+  90%,
+  100% {
+    transform: translateX(50%) rotate(-15deg);
+  }
+}
+@keyframes badge-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes badge-breathe {
+  from {
+    opacity: 0.3;
+    transform: scale(0.93);
+  }
+  to {
+    opacity: 0.9;
+    transform: scale(1.1);
+  }
+}
+@keyframes badge-prism {
+  to {
+    filter: hue-rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .medallion *,
+  .medallion[data-moving] * {
+    animation: none;
+    transition: none;
+  }
+  .particles {
+    display: none;
   }
 }
 

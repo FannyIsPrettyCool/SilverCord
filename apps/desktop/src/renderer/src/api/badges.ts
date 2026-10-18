@@ -7,6 +7,7 @@ import {
   type CreateBadgeRequest,
 } from '@silvercord/protocol';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { captureAccountGeneration, isCurrentAccountGeneration } from './account-generation.ts';
 import { api, apiVoid } from './api-client.ts';
 import { keys, queryClient } from './query-client.ts';
 
@@ -25,7 +26,8 @@ export function useOwnBadges() {
   });
 }
 
-const refreshBadges = () => {
+const refreshBadges = (_value: unknown, _input: unknown, generation: number | undefined) => {
+  if (generation === undefined || !isCurrentAccountGeneration(generation)) return;
   void queryClient.invalidateQueries({ queryKey: keys.ownBadges });
   void queryClient.invalidateQueries({ queryKey: keys.badgeDefinitions });
   void queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -33,6 +35,7 @@ const refreshBadges = () => {
 
 export function useSetBadgePins() {
   return useMutation({
+    onMutate: () => captureAccountGeneration(),
     mutationFn: async (badgeIds: readonly string[]) =>
       (
         await api(badgeAwardListSchema, '/api/v1/users/@me/badges/pins', {
@@ -40,7 +43,8 @@ export function useSetBadgePins() {
           body: { badgeIds },
         })
       ).items,
-    onSuccess: (items) => {
+    onSuccess: (items, _input, generation) => {
+      if (generation === undefined || !isCurrentAccountGeneration(generation)) return;
       queryClient.setQueryData(keys.ownBadges, items);
       void queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
@@ -50,11 +54,13 @@ export function useSetBadgePins() {
 /** Instance administrators only; the server enforces it. */
 export function useBadgeAdmin() {
   const create = useMutation({
+    onMutate: () => captureAccountGeneration(),
     mutationFn: (request: CreateBadgeRequest) =>
       api(badgeDefinitionSchema, '/api/v1/admin/badges', { method: 'POST', body: request }),
     onSuccess: refreshBadges,
   });
   const update = useMutation({
+    onMutate: () => captureAccountGeneration(),
     mutationFn: ({ badgeId, patch }: { badgeId: string; patch: BadgePatch }) =>
       api(badgeDefinitionSchema, `/api/v1/admin/badges/${badgeId}`, {
         method: 'PATCH',
@@ -63,6 +69,7 @@ export function useBadgeAdmin() {
     onSuccess: refreshBadges,
   });
   const award = useMutation({
+    onMutate: () => captureAccountGeneration(),
     mutationFn: ({
       badgeId,
       username,
@@ -79,6 +86,7 @@ export function useBadgeAdmin() {
     onSuccess: refreshBadges,
   });
   const revoke = useMutation({
+    onMutate: () => captureAccountGeneration(),
     mutationFn: ({ badgeId, userId }: { badgeId: string; userId: string }) =>
       apiVoid(`/api/v1/admin/badges/${badgeId}/awards/${userId}`, { method: 'DELETE' }),
     onSuccess: refreshBadges,

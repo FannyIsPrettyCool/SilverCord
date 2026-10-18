@@ -4,6 +4,7 @@ import {
   type BadgeDefinition,
   type BadgeIconName,
   type BadgeRarity,
+  type BadgeVisual,
   badgeRaritySchema,
   type ProfileImage,
 } from '@silvercord/protocol';
@@ -13,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useBadgeAdmin, useBadgeDefinitions } from '../../api/badges.ts';
 import { DesktopError } from '../../desktop.ts';
 import { BADGE_ICON_COMPONENTS, BadgeMedallion } from '../profiles/BadgeShelf.tsx';
+import { BadgeVisualEditor } from './BadgeVisualEditor.tsx';
 import { ImagePicker } from './ImagePicker.tsx';
 import styles from './settings.module.css';
 
@@ -21,6 +23,7 @@ function CreateBadge() {
   const { create } = useBadgeAdmin();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [visual, setVisual] = useState<BadgeVisual | null>(null);
   const [rarity, setRarity] = useState<BadgeRarity>('rare');
   const [icon, setIcon] = useState<BadgeIconName>('star');
   const [image, setImage] = useState<{ id: string; image: ProfileImage | null } | null>(null);
@@ -34,6 +37,7 @@ function CreateBadge() {
     rarity,
     icon: image?.image ? { kind: 'image', image: image.image } : { kind: 'icon', name: icon },
     retired: false,
+    visual,
   };
   return (
     <form
@@ -45,6 +49,7 @@ function CreateBadge() {
             name: name.trim(),
             description: description.trim(),
             rarity,
+            visual,
             ...(image ? { iconUploadId: image.id } : { iconName: icon }),
           })
           .catch(() => null);
@@ -117,6 +122,7 @@ function CreateBadge() {
           onRemove={() => setImage(null)}
         />
       </fieldset>
+      <BadgeVisualEditor badge={preview} value={visual} onChange={setVisual} />
       {create.error ? (
         <p className={styles['pickerError']} role="alert">
           {t('profileErrors.badgeFailed')}
@@ -137,6 +143,7 @@ function AwardRow({ badge }: { readonly badge: BadgeDefinition }) {
   const { award, update } = useBadgeAdmin();
   const [username, setUsername] = useState('');
   const [reason, setReason] = useState('');
+  const [visual, setVisual] = useState<BadgeVisual | null>(badge.visual ?? null);
   const notFound = award.error instanceof DesktopError && award.error.code === 'NOT_FOUND';
   return (
     <li className={styles['adminBadge']} data-retired={badge.retired || undefined}>
@@ -147,6 +154,17 @@ function AwardRow({ badge }: { readonly badge: BadgeDefinition }) {
           {t(`badges.rarity.${badge.rarity}`)}
           {badge.retired ? ` · ${t('badges.retired')}` : ''}
         </span>
+        <details>
+          <summary>{t('badges.visual.edit')}</summary>
+          <BadgeVisualEditor badge={badge} value={visual} onChange={setVisual} />
+          <Button
+            loading={update.isPending}
+            onClick={() => update.mutate({ badgeId: badge.id, patch: { visual } })}
+          >
+            {t('guilds.save')}
+          </Button>
+          {update.error ? <p role="alert">{t('profileErrors.badgeFailed')}</p> : null}
+        </details>
         {badge.retired ? null : (
           <form
             className={styles['awardForm']}

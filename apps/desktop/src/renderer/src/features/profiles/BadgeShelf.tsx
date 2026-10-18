@@ -26,9 +26,13 @@ import {
   Trophy,
 } from '@phosphor-icons/react';
 import type { BadgeAward, BadgeDefinition, BadgeIconName } from '@silvercord/protocol';
-import { useId } from 'react';
+import { useAmplitude } from '@silvercord/ui';
+import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMediaUrl } from '../../api/media.ts';
+import { BadgeArtwork } from './BadgeArtwork.tsx';
+import { attachBadgeParticles } from './badge-particles.ts';
+import { badgeVisual } from './badge-visual.ts';
 import styles from './badges.module.css';
 
 export const BADGE_ICON_COMPONENTS: Readonly<Record<BadgeIconName, Icon>> = {
@@ -82,18 +86,61 @@ export function BadgeMedallion({
   readonly badge: BadgeDefinition;
   readonly size?: number;
 }) {
+  const root = useRef<HTMLSpanElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const [visible, setVisible] = useState(false);
+  const amplitude = useAmplitude(1);
+  const visual = useMemo(() => badgeVisual(badge), [badge]);
+  const moving = amplitude > 0 && visible;
   const Glyph = badge.icon.kind === 'icon' ? BADGE_ICON_COMPONENTS[badge.icon.name] : null;
+  useEffect(() => {
+    const node = root.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) =>
+      setVisible(entry?.isIntersecting ?? false),
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!moving || !canvas.current || !root.current) return;
+    const color = visual.color ?? getComputedStyle(root.current).getPropertyValue('--rim-a').trim();
+    const seed = [...badge.id].reduce((value, char) => value * 31 + char.charCodeAt(0), 7) % 100000;
+    return attachBadgeParticles(canvas.current, visual, color || '#a98bff', seed);
+  }, [moving, badge.id, visual.effect, visual.particles, visual.color, visual.intensity, visual]);
+  const image = badge.icon.kind === 'image' ? badge.icon.image : null;
   return (
     <span
+      ref={root}
       className={styles['medallion']}
       data-rarity={badge.rarity}
-      style={{ width: size, height: size }}
+      data-effect={visual.effect}
+      data-moving={moving || undefined}
+      style={
+        {
+          width: size,
+          height: size,
+          ...(visual.color ? { '--rim-a': visual.color } : {}),
+        } as CSSProperties
+      }
       aria-hidden="true"
     >
-      {badge.icon.kind === 'image' ? (
-        <ImageIcon path={badge.icon.image.thumbnail} />
-      ) : Glyph ? (
-        <Glyph size={Math.round(size * 0.58)} weight="duotone" />
+      <span className={styles['halo']} />
+      <span className={styles['face']}>
+        <span className={styles['reflection']} />
+        {badge.key ? (
+          <BadgeArtwork kind={badge.key} />
+        ) : image ? (
+          <ImageIcon
+            path={image.animated && !moving && image.still ? image.still : image.display}
+          />
+        ) : Glyph ? (
+          <Glyph size={Math.round(size * 0.56)} weight="duotone" />
+        ) : null}
+      </span>
+      <span className={styles['orbit']} />
+      {visual.particles !== 'none' && amplitude > 0 ? (
+        <canvas ref={canvas} className={styles['particles']} />
       ) : null}
     </span>
   );
