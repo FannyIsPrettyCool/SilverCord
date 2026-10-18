@@ -9,6 +9,9 @@ import type { Sniffed } from '../sniff.ts';
 
 const run = promisify(execFile);
 
+/** ffmpeg/ffprobe get a fixed PATH and nothing else from the (already empty) environment. */
+const TOOL_ENV = { PATH: '/usr/local/bin:/usr/bin:/bin' };
+
 // One job per process: libvips' cache would only keep hostile inputs and their handles open.
 sharp.cache(false);
 
@@ -57,7 +60,7 @@ class DecodeFailure extends Error {
 
 async function hasFfmpeg(): Promise<boolean> {
   try {
-    await run('ffprobe', ['-version'], { timeout: 5000, env: {} });
+    await run('ffprobe', ['-version'], { timeout: 5000, env: TOOL_ENV });
     return true;
   } catch {
     return false;
@@ -210,7 +213,7 @@ async function decodeAnimatedPng(path: string, outDir: string): Promise<DecodeRe
       '-y',
       converted,
     ],
-    { timeout: 20_000, env: {}, maxBuffer: 1024 * 1024 },
+    { timeout: 20_000, env: TOOL_ENV, maxBuffer: 1024 * 1024 },
   );
   return decodeImage(converted, 'webp', outDir);
 }
@@ -233,7 +236,7 @@ async function decodeVideo(
       'json',
       path,
     ],
-    { timeout: 10_000, env: {}, maxBuffer: 1024 * 1024 },
+    { timeout: 10_000, env: TOOL_ENV, maxBuffer: 1024 * 1024 },
   );
   const probe = JSON.parse(stdout) as {
     streams?: { width?: number; height?: number }[];
@@ -255,7 +258,7 @@ async function decodeVideo(
     ['-v', 'error', '-i', path, '-frames:v', '1', '-f', 'image2', '-y', posterFile],
     {
       timeout: 20_000,
-      env: {},
+      env: TOOL_ENV,
       maxBuffer: 1024 * 1024,
     },
   );
