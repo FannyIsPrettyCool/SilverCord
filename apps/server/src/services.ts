@@ -3,6 +3,7 @@ import { createEventOutbox } from './events/outbox.ts';
 import { authFacts } from './modules/auth/auth-facts.ts';
 import { createBadgesService } from './modules/badges/badges-service.ts';
 import { createChannelsService } from './modules/channels/channels-service.ts';
+import { createExpressionsService } from './modules/expressions/expressions-service.ts';
 import { createGuildChannelsService } from './modules/guilds/guild-channels-service.ts';
 import { createGuildMembership } from './modules/guilds/guild-membership.ts';
 import { createGuildPermissionsService } from './modules/guilds/guild-permissions.ts';
@@ -74,6 +75,15 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
       uploadTtlSeconds: env.MEDIA_UPLOAD_TTL_SECONDS,
     },
   });
+  const expressions = createExpressionsService({
+    db,
+    nextId,
+    media,
+    guildMembership,
+    guildPermissions,
+    outbox,
+    log: options.log,
+  });
   const messages = createMessagesService({
     users,
     relationships,
@@ -81,6 +91,7 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     outbox,
     media: media.media,
     nextId,
+    expressions: expressions.messages,
   });
   const presence = createPresenceService({
     db,
@@ -147,6 +158,7 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     badges,
     activity,
     profiles,
+    expressions,
   };
 }
 export type ChatServices = ReturnType<typeof createChatServices>;

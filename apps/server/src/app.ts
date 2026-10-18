@@ -18,6 +18,7 @@ import { createAuthService } from './modules/auth/auth-service.ts';
 import { createCodeHasher } from './modules/auth/crypto/code-hasher.ts';
 import { registerBadgesRoutes } from './modules/badges/badges-routes.ts';
 import { registerChannelsRoutes } from './modules/channels/channels-routes.ts';
+import { registerExpressionsRoutes } from './modules/expressions/expressions-routes.ts';
 import { registerGuildChannelsRoutes } from './modules/guilds/guild-channels-routes.ts';
 import { createGuildPermissionsService } from './modules/guilds/guild-permissions.ts';
 import { registerGuildsRoutes } from './modules/guilds/guilds-routes.ts';
@@ -143,6 +144,7 @@ export async function buildApp(
   registerProfilesRoutes(app, db, services.profiles);
   registerBadgesRoutes(app, services.badges);
   registerActivityRoutes(app, services.activity);
+  registerExpressionsRoutes(app, services.expressions);
   app.addHook('onReady', () => {
     presence.start();
     services.profiles.start();

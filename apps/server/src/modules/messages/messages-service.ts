@@ -51,6 +51,11 @@ export interface MessagesDependencies {
   readonly outbox: EventOutbox;
   readonly media: MessageMedia;
   readonly nextId: () => bigint;
+  /** Rewrites emote/sticker tokens the author may not use and checks custom reactions. */
+  readonly expressions?: {
+    sanitize(ex: Executor, authorId: bigint, content: string): Promise<string>;
+    canReact(ex: Executor, actorId: bigint, emoji: string): Promise<boolean>;
+  };
 }
 
 export interface SendInput {
@@ -201,7 +206,10 @@ export function createMessagesService(deps: MessagesDependencies) {
       return previous.messageId;
     }
     const uploadIds = (input.attachmentIds ?? []).map(BigInt);
-    if (input.content.trim() === '' && uploadIds.length === 0)
+    const content = deps.expressions
+      ? await deps.expressions.sanitize(tx, authorId, input.content)
+      : input.content;
+    if (content.trim() === '' && uploadIds.length === 0)
       throw new AppError('VALIDATION_FAILED', 'Message is empty', { field: 'content' });
     let replyToId: bigint | null = null;
     if (input.replyToId) {
@@ -219,7 +227,7 @@ export function createMessagesService(deps: MessagesDependencies) {
       id,
       channelId,
       authorId,
-      content: input.content,
+      content,
       replyToId,
       isReply: replyToId !== null,
     });
@@ -230,7 +238,7 @@ export function createMessagesService(deps: MessagesDependencies) {
       requestHash: hash,
       messageId: id,
     });
-    await repo.setMentions(tx, id, mentionTargets(input.content, memberIds, authorId));
+    await repo.setMentions(tx, id, mentionTargets(content, memberIds, authorId));
     await media.attach(tx, { ownerId: authorId, channelId, messageId: id, uploadIds });
     await channels.setLastMessage(tx, channelId, id);
     await repo.advanceReadState(tx, authorId, channelId, id);
@@ -303,15 +311,18 @@ export function createMessagesService(deps: MessagesDependencies) {
           throw new AppError('FORBIDDEN', 'Only the author can edit a message');
         if (row.version !== input.expectedVersion)
           throw new AppError('CONFLICT', 'Message changed; reload and retry');
-        if (row.content === input.content) return;
-        if (input.content.trim() === '') {
+        const content = deps.expressions
+          ? await deps.expressions.sanitize(tx, actorId, input.content)
+          : input.content;
+        if (row.content === content) return;
+        if (content.trim() === '') {
           const attached = (await media.views(tx, [messageId])).get(messageId) ?? [];
           if (attached.length === 0)
             throw new AppError('VALIDATION_FAILED', 'Message is empty', { field: 'content' });
         }
         const memberIds = await channels.memberIds(tx, channelId);
-        await repo.updateContent(tx, messageId, input.content);
-        await repo.setMentions(tx, messageId, mentionTargets(input.content, memberIds, actorId));
+        await repo.updateContent(tx, messageId, content);
+        await repo.setMentions(tx, messageId, mentionTargets(content, memberIds, actorId));
         await announce(tx, channelId, messageId, memberIds);
       });
       return single(ex, actorId, channelId, messageId);
@@ -350,6 +361,8 @@ export function createMessagesService(deps: MessagesDependencies) {
         if (add) {
           if (!(await channels.canInteract(tx, channelId, actorId)))
             throw new AppError('FORBIDDEN', 'You cannot react in this conversation');
+          if (deps.expressions && !(await deps.expressions.canReact(tx, actorId, emoji)))
+            throw new AppError('FORBIDDEN', 'You cannot use this emote', { field: 'emoji' });
           changed = await repo.addReaction(tx, messageId, actorId, emoji);
           if (changed === 'limit') throw new AppError('CONFLICT', 'Reaction limit reached');
         } else {

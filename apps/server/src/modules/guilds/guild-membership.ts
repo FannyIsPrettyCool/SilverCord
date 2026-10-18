@@ -73,6 +73,26 @@ export function createGuildMembership() {
       return { ...row, roleIds: roles.map((role) => role.roleId) };
     },
 
+    /** The user's guilds (id and name), oldest first. */
+    async guildsOf(ex: Executor, userId: bigint) {
+      return ex
+        .select({ id: guilds.id, name: guilds.name })
+        .from(guildMembers)
+        .innerJoin(guilds, eq(guilds.id, guildMembers.guildId))
+        .where(eq(guildMembers.userId, userId))
+        .orderBy(asc(guilds.id));
+    },
+
+    /** Member ids of one guild (bounded), for invalidations. */
+    async memberIds(ex: Executor, guildId: bigint, limit = 5_000): Promise<bigint[]> {
+      const rows = await ex
+        .select({ id: guildMembers.userId })
+        .from(guildMembers)
+        .where(eq(guildMembers.guildId, guildId))
+        .limit(limit);
+      return rows.map((row) => row.id);
+    },
+
     async ownsGuild(ex: Executor, userId: bigint): Promise<boolean> {
       const [row] = await ex
         .select({ id: guilds.id })
