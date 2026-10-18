@@ -1,7 +1,9 @@
 import { app } from 'electron';
 import type { DesktopConfig } from '../shared/ipc-contract.ts';
 
-const DEFAULT_API_URL = 'http://localhost:4000';
+const DEVELOPMENT_API_URL = 'http://localhost:4000';
+/** The owner's instance (docs/RUNBOOK.md); packaged builds connect here unless overridden. */
+const PRODUCTION_API_URL = 'https://silvercord.islandmon.cloud';
 
 function normalizePlatform(platform: NodeJS.Platform): DesktopConfig['platform'] {
   return platform === 'win32' || platform === 'linux' || platform === 'darwin' ? platform : 'other';
@@ -9,10 +11,11 @@ function normalizePlatform(platform: NodeJS.Platform): DesktopConfig['platform']
 
 /**
  * Instance endpoints. Self-hosters point the client at their server with SILVERCORD_API_URL;
- * the build-time default targets the local dev stack until a domain exists (ADR-0001).
+ * packaged builds default to the production instance, development builds to the local stack.
  */
 export function loadConfig(): DesktopConfig {
-  const apiUrl = new URL(process.env['SILVERCORD_API_URL'] ?? DEFAULT_API_URL);
+  const fallback = app.isPackaged ? PRODUCTION_API_URL : DEVELOPMENT_API_URL;
+  const apiUrl = new URL(process.env['SILVERCORD_API_URL'] ?? fallback);
   if (
     apiUrl.protocol !== 'https:' &&
     apiUrl.hostname !== 'localhost' &&

@@ -1,6 +1,7 @@
 import { currentUserSchema } from '@silvercord/protocol';
 import { useEffect } from 'react';
 import { create } from 'zustand';
+import { handleDispatch, reconcile } from '../api/sync.ts';
 import { desktop, unwrap } from '../desktop.ts';
 import { useSession } from '../session/session-store.ts';
 import { createGatewayClient, type GatewayState } from './gateway-client.ts';
@@ -23,6 +24,8 @@ export function useGatewayConnection(): void {
         getToken: async () => (await unwrap(desktop().auth.accessToken())).accessToken,
         onState: (state) => useGatewayState.setState({ state }),
         onDispatch: (t, d) => {
+          if (t === 'READY' || t === 'RESUMED') reconcile();
+          handleDispatch(t, d);
           if (t === 'READY' || t === 'USER_UPDATE') {
             const user = currentUserSchema.safeParse(
               t === 'READY' ? (d as { user?: unknown }).user : d,
@@ -33,7 +36,14 @@ export function useGatewayConnection(): void {
         onUnauthenticated: () => void useSession.getState().signOut(),
       });
       client.start();
-      stop = () => client.stop();
+      const onFocus = () => reconcile();
+      window.addEventListener('focus', onFocus);
+      const timer = setInterval(reconcile, 30_000);
+      stop = () => {
+        client.stop();
+        window.removeEventListener('focus', onFocus);
+        clearInterval(timer);
+      };
     });
     return () => {
       cancelled = true;

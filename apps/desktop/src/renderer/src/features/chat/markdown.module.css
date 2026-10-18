@@ -1,0 +1,111 @@
+.markdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.paragraph {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.heading {
+  margin: var(--space-1) 0 0;
+  font-weight: 700;
+  line-height: var(--leading-lg);
+
+  &[data-level="1"] {
+    font-size: var(--text-xl);
+    line-height: var(--leading-xl);
+  }
+
+  &[data-level="2"] {
+    font-size: var(--text-lg);
+  }
+
+  &[data-level="3"] {
+    font-size: var(--text-md);
+  }
+}
+
+.quote {
+  margin: var(--space-1) 0;
+  padding-left: var(--space-3);
+  border-left: 3px solid color-mix(in srgb, var(--color-text-faint) 60%, transparent);
+  color: var(--color-text-muted);
+}
+
+.code {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-text) 9%, transparent);
+  font-size: 0.88em;
+}
+
+.codeBlock {
+  margin: var(--space-1) 0;
+  padding: var(--space-3);
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-4);
+  background: color-mix(in srgb, var(--color-base) 70%, transparent);
+  box-shadow: inset 0 0 0 1px var(--glass-rim-faint);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  white-space: pre;
+}
+
+.list {
+  margin: var(--space-1) 0;
+  padding-left: var(--space-6);
+}
+
+.link {
+  color: var(--color-accent);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.mention {
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+  font-weight: 600;
+
+  &[data-self] {
+    background: color-mix(in srgb, var(--color-warning) 28%, transparent);
+  }
+}
+
+.timestamp {
+  padding: 0 4px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.spoiler {
+  all: unset;
+  padding: 0 3px;
+  border-radius: 4px;
+  background: var(--color-text-faint);
+  color: transparent;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease-out,
+    color 160ms ease-out;
+
+  &[data-open] {
+    background: color-mix(in srgb, var(--color-text) 10%, transparent);
+    color: inherit;
+    cursor: text;
+  }
+
+  &:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+}

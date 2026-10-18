@@ -1,0 +1,95 @@
+.wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.scroller {
+  height: 100%;
+  overflow-y: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  padding-bottom: var(--space-4);
+
+  &:focus-visible {
+    box-shadow: inset var(--focus-ring);
+  }
+}
+
+.spacer {
+  position: relative;
+  width: 100%;
+}
+
+.row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transition: background-color 600ms ease-out;
+
+  &[data-highlight] {
+    background: var(--color-accent-soft);
+    transition: none;
+  }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6) var(--space-1);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: 650;
+  color: var(--color-text-faint);
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--glass-rim-faint);
+  }
+}
+
+.pending {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: 2px var(--space-6) 2px 80px;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+
+  &[data-state="failed"] {
+    color: var(--color-danger);
+  }
+}
+
+.pendingText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pendingActions {
+  display: flex;
+  gap: var(--space-2);
+
+  & button {
+    border: 0;
+    padding: 0;
+    background: none;
+    color: var(--color-accent);
+    font-size: var(--text-xs);
+    font-weight: 650;
+    cursor: pointer;
+  }
+}
+
+.toBottom {
+  position: absolute;
+  right: var(--space-6);
+  bottom: var(--space-4);
+  background: var(--glass-solid);
+  box-shadow: 0 6px 24px var(--glass-shadow-soft);
+}

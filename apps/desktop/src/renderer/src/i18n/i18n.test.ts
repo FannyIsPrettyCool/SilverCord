@@ -33,11 +33,22 @@ describe('locales', () => {
       'code.useRecovery',
       'code.useApp',
       'signIn.login',
+      // docs/spec/chat-screens.md
+      'chat.historyVisible',
+      'chat.typingMany',
+      'social.cancel',
+      'presence.dnd',
+      'chat.deletedMessage',
+      'chat.editConflict',
     ]);
     const lookup = (key: string) =>
       key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], en);
     const labels = keys(en).filter(
-      (key) => !key.startsWith('errors.') && !key.startsWith('field.') && !specApproved.has(key),
+      (key) =>
+        !key.startsWith('errors.') &&
+        !key.startsWith('chatErrors.') &&
+        !key.startsWith('field.') &&
+        !specApproved.has(key),
     );
     const tooLong = labels.filter((key) => String(lookup(key)).split(/\s+/).length > 3);
     expect(tooLong).toEqual([]);

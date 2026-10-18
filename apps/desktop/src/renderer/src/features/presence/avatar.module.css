@@ -1,0 +1,58 @@
+.avatar {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(
+    145deg,
+    hsl(var(--avatar-hue) 70% 62%),
+    hsl(calc(var(--avatar-hue) + 40) 65% 48%)
+  );
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 1px 2px hsl(var(--avatar-hue) 60% 20% / 0.45);
+}
+
+.initial {
+  line-height: 1;
+}
+
+/* Status is shape and colour: dnd carries a bar, idle a notch, offline a ring. */
+.presence {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 38%;
+  height: 38%;
+  min-width: 10px;
+  min-height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--color-content);
+  background: var(--color-text-faint);
+
+  &[data-status="online"] {
+    background: var(--color-success);
+  }
+
+  &[data-status="idle"] {
+    background: radial-gradient(
+      circle at 30% 30%,
+      var(--color-content) 0 32%,
+      var(--color-warning) 33%
+    );
+  }
+
+  &[data-status="dnd"] {
+    background: linear-gradient(
+      var(--color-danger) 0 38%,
+      var(--color-content) 38% 62%,
+      var(--color-danger) 62%
+    );
+  }
+
+  &[data-status="offline"] {
+    background: var(--color-content);
+    box-shadow: inset 0 0 0 2px var(--color-text-faint);
+  }
+}

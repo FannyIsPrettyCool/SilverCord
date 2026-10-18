@@ -68,5 +68,95 @@
     "passwordLength": "10 caractères minimum",
     "username": "2 à 32 lettres, chiffres, _ ou .",
     "email": "E-mail invalide"
+  },
+  "common": {
+    "cancel": "Annuler"
+  },
+  "social": {
+    "friends": "Amis",
+    "addFriend": "Ajouter un ami",
+    "usernamePlaceholder": "identifiant",
+    "send": "Envoyer",
+    "requestSent": "Demande envoyée",
+    "message": "Message",
+    "remove": "Retirer",
+    "block": "Bloquer",
+    "accept": "Accepter",
+    "decline": "Refuser",
+    "cancel": "Annuler la demande",
+    "unblock": "Débloquer",
+    "tabs": {
+      "online": "En ligne",
+      "all": "Tous",
+      "pending": "En attente",
+      "blocked": "Bloqués"
+    }
+  },
+  "presence": {
+    "title": "Statut",
+    "online": "En ligne",
+    "idle": "Absent",
+    "dnd": "Ne pas déranger",
+    "invisible": "Invisible",
+    "offline": "Hors ligne"
+  },
+  "chat": {
+    "conversations": "Conversations",
+    "directMessages": "Messages privés",
+    "newGroup": "Nouveau groupe",
+    "groupName": "Nom du groupe",
+    "selectedCount": "{count} / {limit}",
+    "create": "Créer",
+    "spoiler": "Divulgâcheur",
+    "download": "Télécharger",
+    "editMessage": "Modifier le message",
+    "editConflict": "Message modifié ailleurs",
+    "react": "Réagir",
+    "reply": "Répondre",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "blockedMessage": "Message bloqué",
+    "deletedMessage": "Message original supprimé",
+    "deletedUser": "Utilisateur supprimé",
+    "edited": "(modifié)",
+    "retry": "Réessayer",
+    "discard": "Abandonner",
+    "history": "Historique",
+    "jumpToPresent": "Revenir au présent",
+    "attachments": "Pièces jointes",
+    "removeAttachment": "Retirer la pièce",
+    "replyingTo": "Réponse à {name}",
+    "cancelReply": "Annuler la réponse",
+    "attach": "Joindre",
+    "send": "Envoyer",
+    "upload": {
+      "uploading": "Envoi",
+      "processing": "Traitement",
+      "ready": "Prêt",
+      "failed": "Échec"
+    },
+    "members": "Membres",
+    "addMember": "Ajouter",
+    "historyVisible": "Les membres ajoutés voient tout l’historique.",
+    "leaveGroup": "Quitter le groupe",
+    "typingOne": "{name} écrit",
+    "typingMany": "{count} personnes écrivent",
+    "messageTo": "Écrire à {name}",
+    "density": {
+      "label": "Densité",
+      "cozy": "Confort",
+      "compact": "Compact",
+      "bubble": "Bulles"
+    }
+  },
+  "chatErrors": {
+    "NOT_FOUND": "Utilisateur ou conversation indisponible",
+    "FORBIDDEN": "Action non autorisée ici",
+    "CONFLICT": "Déjà fait ou modifié",
+    "RATE_LIMITED": "Trop rapide, réessayez bientôt",
+    "NETWORK": "Serveur injoignable",
+    "PAYLOAD_TOO_LARGE": "Fichier trop lourd ou stockage plein",
+    "VALIDATION_FAILED": "Vérifiez votre saisie",
+    "fallback": "Une erreur est survenue"
   }
 }

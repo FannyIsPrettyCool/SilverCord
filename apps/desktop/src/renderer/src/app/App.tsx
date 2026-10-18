@@ -5,8 +5,10 @@ import {
   MotionPreferences,
   themeById,
 } from '@silvercord/ui';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { useEffect, useMemo } from 'react';
+import { queryClient } from '../api/query-client.ts';
 import { TitleBar } from '../features/shell/TitleBar.tsx';
 import { useGatewayConnection } from '../gateway/use-gateway-connection.ts';
 import { useSession } from '../session/session-store.ts';
@@ -35,12 +37,14 @@ export function App() {
   }, [status]);
 
   return (
-    <GlassQualityProvider quality={quality}>
-      <MotionPreferences intensity={theme.motionIntensity}>
-        <AmbientLayer theme={theme} still={still} />
-        <TitleBar />
-        {status === 'restoring' ? null : <RouterProvider router={router} />}
-      </MotionPreferences>
-    </GlassQualityProvider>
+    <QueryClientProvider client={queryClient}>
+      <GlassQualityProvider quality={quality}>
+        <MotionPreferences intensity={theme.motionIntensity}>
+          <AmbientLayer theme={theme} still={still} />
+          <TitleBar />
+          {status === 'restoring' ? null : <RouterProvider router={router} />}
+        </MotionPreferences>
+      </GlassQualityProvider>
+    </QueryClientProvider>
   );
 }

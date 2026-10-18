@@ -1,0 +1,27 @@
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.panel {
+  position: absolute;
+  z-index: 50;
+
+  &[data-placement="top-start"] {
+    bottom: calc(100% + var(--space-2));
+    left: 0;
+    transform-origin: bottom left;
+  }
+
+  &[data-placement="bottom-end"] {
+    top: calc(100% + var(--space-2));
+    right: 0;
+    transform-origin: top right;
+  }
+
+  &[data-placement="bottom-start"] {
+    top: calc(100% + var(--space-2));
+    left: 0;
+    transform-origin: top left;
+  }
+}
