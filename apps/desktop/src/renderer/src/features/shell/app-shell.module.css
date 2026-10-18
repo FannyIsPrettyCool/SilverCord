@@ -14,6 +14,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) 0;
+  min-height: 0;
 }
 
 .railItem {
@@ -43,6 +44,11 @@
   height: 32px;
   border-radius: 999px;
   background: var(--color-text);
+  display: none;
+}
+
+.railItem[aria-current="page"] .railPill {
+  display: block;
 }
 
 .sidebar {
