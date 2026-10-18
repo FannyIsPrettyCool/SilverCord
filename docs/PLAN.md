@@ -99,7 +99,7 @@ stays 60 fps on 10k-message seed.
       pass in `e2e/live/cross-machine.live.ts`; settled screenshots pass on both machines
 - [x] Phase-end reviewer and security audit: chunk rollback, decoder isolation, worker retries,
       account switching, history/read/typing/presence races and DB/media snapshot consistency
-- [~] Release gate: final cross-machine acceptance, latest CI, merge and tag `v0.2.0`
+- [x] Release gate: cross-machine acceptance, full verification, CI, merge and tag `v0.2.0`
 
 ## Phase 3 — Servers & permissions
 

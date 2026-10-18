@@ -3,6 +3,30 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — Phase 2 release `v0.2.0`
+
+- Social messaging, private uploads and desktop chat are complete. Review/security fixes
+  are merged into main; production audit deployment 582d5d2 is healthy. Release metadata
+  advances server/desktop to 0.2.0 and README art to Phase 3; deploy the release SHA after CI.
+- Real Electron 44.9.0 clients on Windows (Hypernova) and Linux (VPS/Xvfb) passed bidirectional
+  delivery, markdown, typing, unread/read state, reaction, edit and decoded-image delivery.
+  Stable visible transcript geometry passes on both machines. Reproduce with
+  `tools/scripts/cross-machine-acceptance.sh`; evidence is under
+  `.artifacts/cross-machine/sc-acceptance-20261018123057-3900/`.
+- All-package checks pass (98 desktop unit tests), 124 Postgres/Valkey integrations pass,
+  all Linux media safety regressions pass, ten Electron smoke/security tests pass, and the
+  Windows unpacked package passes all seven fuse checks. 10k scroll: 1,939 frames,
+  p95 13.9 ms, no frame over 33.4 ms on this workstation (docs/PERF.md).
+- Both API and authenticated CDN use public HTTPS. No media bytes come from the API host.
+  Consistent backup/restore drill recovered 10,131 staging messages and verified all three
+  referenced media objects against database size and SHA-256. IslandMon services stay active.
+- Next: `D:\SilverCord` / `feat/permissions-engine` has the audited 19-test engine and guild
+  database foundation (six real DB tests). Route permission declarations/guard are being
+  integrated; then guild services/channels/invites/roles and desktop UI. Bring the final
+  release commit into that branch before continuing. Do not deploy unfinished Phase 3.
+- Still external: SMTP provider and encrypted off-host storage credentials. Private Mailpit
+  is not email delivery. Mid-laptop performance and a fresh-host restore remain later gates.
+
 ## 2026-10-18 — Phase 2 audit fixes and CDN release checks
 
 - Worktree `D:\SilverCord-phase2-review`, branch `fix/phase2-review`, based on
