@@ -1,0 +1,256 @@
+.settings {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-6) var(--space-3);
+  border-right: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.navTitle {
+  margin: 0 var(--space-3) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  color: var(--color-text-muted);
+}
+
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-2);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-weight: 550;
+
+  &:hover {
+    color: var(--color-text);
+  }
+
+  &[aria-current="page"] {
+    color: var(--color-text);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.navPill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-accent-soft);
+}
+
+.navLabel {
+  position: relative;
+}
+
+.section {
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-8) var(--space-10);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+/* Form on the left, the live card on the right; stacks when narrow. */
+.editor {
+  display: grid;
+  grid-template-columns: minmax(280px, 520px) 340px;
+  gap: var(--space-8);
+  align-items: start;
+
+  @media (width < 1100px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.preview {
+  position: sticky;
+  top: 0;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.fieldHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.counter {
+  color: var(--color-text-faint);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+
+  &[data-over] {
+    color: var(--color-danger);
+  }
+}
+
+.textarea,
+.select {
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-field);
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-2);
+  padding: var(--space-2) var(--space-3);
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.45;
+}
+
+.group {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  & legend {
+    margin-bottom: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+}
+
+.imagePicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pickerStatus {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.pickerError {
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+
+.colour {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+
+  & > label:first-child {
+    min-width: 120px;
+  }
+
+  & input[type="color"] {
+    width: 40px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--color-field-border);
+    border-radius: var(--radius-1);
+    background: none;
+    cursor: pointer;
+  }
+}
+
+.auto {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+
+  & input {
+    accent-color: var(--color-accent);
+  }
+}
+
+.saveBar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+
+  & > span {
+    margin-right: auto;
+  }
+
+  &[data-dirty] > span {
+    color: var(--color-warning);
+  }
+}
+
+.audiences,
+.servers {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 560px;
+}
+
+.servers {
+  max-width: none;
+  gap: var(--space-6);
+}
+
+.audienceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 44px;
+  max-width: 560px;
+
+  & label {
+    font-weight: 550;
+  }
+}
+
+.empty {
+  color: var(--color-text-muted);
+}

@@ -1,0 +1,82 @@
+.dialog {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+
+  &::backdrop {
+    background: color-mix(in srgb, var(--color-base) 60%, transparent);
+  }
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  justify-items: center;
+}
+
+.title {
+  justify-self: start;
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-3);
+  background: var(--color-base);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  /* The kept area is everything; a round mask previews how avatars are shown. */
+  &[data-round]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: 0 0 0 999px color-mix(in srgb, var(--color-base) 62%, transparent);
+    pointer-events: none;
+  }
+}
+
+.image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+
+  & input {
+    flex: 1;
+    accent-color: var(--color-accent);
+  }
+}
+
+.actions {
+  display: flex;
+  justify-self: end;
+  gap: var(--space-2);
+}

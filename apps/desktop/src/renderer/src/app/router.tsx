@@ -12,6 +12,7 @@ import { RegisterScreen } from '../features/auth/RegisterScreen.tsx';
 import { SignInScreen } from '../features/auth/SignInScreen.tsx';
 import { ChannelView } from '../features/chat/ChannelView.tsx';
 import { GuildView } from '../features/guilds/GuildView.tsx';
+import { SettingsView } from '../features/settings/SettingsView.tsx';
 import { AppShell } from '../features/shell/AppShell.tsx';
 import { FriendsView } from '../features/social/FriendsView.tsx';
 import { useSession } from '../session/session-store.ts';
@@ -96,13 +97,19 @@ const guildChannelRoute = createRoute({
   component: GuildView,
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/$section',
+  component: SettingsView,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
   codeRoute,
   registerRoute,
   forgotRoute,
-  appRoute.addChildren([friendsRoute, channelRoute, guildRoute, guildChannelRoute]),
+  appRoute.addChildren([friendsRoute, channelRoute, guildRoute, guildChannelRoute, settingsRoute]),
 ]);
 
 /** Hash history: the packaged renderer is a single file on the app:// origin. */

@@ -1,0 +1,167 @@
+/*
+ * Profile card: the banner and profile theme colour the frame; text sits on the theme's own
+ * raised surface so contrast never depends on user colours.
+ */
+.card {
+  --card-surface: var(--color-content-raised);
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--radius-4);
+  width: 340px;
+  background: var(--card-surface);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--card-accent) 30%, transparent),
+    0 18px 48px color-mix(in srgb, var(--card-banner) 22%, transparent);
+
+  &[data-themed] {
+    background:
+      linear-gradient(
+        170deg,
+        color-mix(in srgb, var(--card-theme-a) 26%, transparent),
+        color-mix(in srgb, var(--card-theme-b) 22%, transparent)
+      ),
+      var(--card-surface);
+  }
+
+  &[data-size="full"] {
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+.banner {
+  position: relative;
+  height: 112px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, white 18%, transparent), transparent 55%),
+    var(--card-banner);
+
+  .card[data-size="full"] & {
+    height: 196px;
+  }
+}
+
+.bannerImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.identityRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  margin-top: -46px;
+
+  .card[data-size="full"] & {
+    margin-top: -62px;
+    padding: 0 var(--space-6);
+  }
+}
+
+/* A ring in the card surface separates the avatar from the banner behind it. */
+.avatarRing {
+  position: relative;
+  display: inline-grid;
+  border-radius: 50%;
+  padding: 5px;
+  background: var(--card-surface);
+
+  .card[data-themed] & {
+    background: linear-gradient(
+      170deg,
+      color-mix(in srgb, var(--card-theme-a) 26%, var(--card-surface)),
+      color-mix(in srgb, var(--card-theme-b) 22%, var(--card-surface))
+    );
+  }
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+
+  .card[data-size="full"] & {
+    padding: var(--space-3) var(--space-6) var(--space-6);
+    gap: var(--space-4);
+  }
+}
+
+.names {
+  display: grid;
+  gap: 2px;
+}
+
+.name {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.handle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.customStatus {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.statusEmoji {
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.bio {
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  background: color-mix(in srgb, var(--color-base) 35%, transparent);
+  font-size: var(--text-sm);
+  max-height: 220px;
+  overflow: auto;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--text-sm);
+
+  & dt {
+    color: var(--color-text-muted);
+  }
+
+  & dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
