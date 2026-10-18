@@ -25,6 +25,7 @@ export async function registerOpenApi(app: FastifyInstance, version: string): Pr
       schema: { hide: true },
       config: {
         auth: 'public',
+        permission: { scope: 'none', reason: 'Public API contract; no account or guild data' },
         rateLimit: [perIp('openapi', { capacity: 10, refillPerSecond: 0.2 })],
       },
     },

@@ -7,12 +7,14 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/server/package.json apps/server/package.json
 COPY packages/protocol/package.json packages/protocol/package.json
 COPY packages/markdown/package.json packages/markdown/package.json
+COPY packages/permissions/package.json packages/permissions/package.json
 COPY packages/config/package.json packages/config/package.json
 COPY tools/commitlint/package.json tools/commitlint/package.json
 RUN pnpm --filter @silvercord/server... install --prod --frozen-lockfile --ignore-scripts
 COPY apps/server/src apps/server/src
 COPY packages/protocol/src packages/protocol/src
 COPY packages/markdown/src packages/markdown/src
+COPY packages/permissions/src packages/permissions/src
 # Deploy makes workspace dependencies portable; these packages export TS source.
 RUN pnpm --filter @silvercord/server deploy --prod --legacy --ignore-scripts /opt/server
 
@@ -24,9 +26,11 @@ COPY --from=dependencies /workspace/packages/protocol/package.json /workspace-pa
 COPY --from=dependencies /workspace/packages/protocol/src /workspace-packages/protocol/src
 COPY --from=dependencies /workspace/packages/markdown/package.json /workspace-packages/markdown/package.json
 COPY --from=dependencies /workspace/packages/markdown/src /workspace-packages/markdown/src
+COPY --from=dependencies /workspace/packages/permissions/package.json /workspace-packages/permissions/package.json
+COPY --from=dependencies /workspace/packages/permissions/src /workspace-packages/permissions/src
 # Node does not strip TypeScript under node_modules. Workspace source dependencies
 # are deliberately copied outside it and linked back; external packages stay JS.
-RUN for package in protocol markdown; do \
+RUN for package in protocol markdown permissions; do \
       rm -r "node_modules/@silvercord/$package" && \
       ln -s "/workspace-packages/$package" "node_modules/@silvercord/$package" && \
       ln -s /app/node_modules "/workspace-packages/$package/node_modules"; \

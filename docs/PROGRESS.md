@@ -17,8 +17,16 @@ able to continue from the top entry alone.
   and deferrable for transactional swaps; position zero belongs only to `@everyone`.
   Six real PostgreSQL 18.6 tests pass, including ownership RESTRICT and cascading cleanup.
   Migration regeneration reports no drift. Guild services and routes are still pending.
+- Required route declarations and the fail-closed guild/channel guard are implemented.
+  Every existing route has an explicit non-guild reason; OpenAPI metadata is swept in CI.
+  Future guild routes must wire a fresh authoritative `BuildOptions.permissionChecker`.
+  Missing declarations fail registration; hidden resources are 404 and missing bits are 403.
+- Verification: all-package checks pass, server unit tests pass 84 cases (two Linux-only
+  groups skipped on Windows), and all 132 real PostgreSQL/Valkey integration tests pass.
+  The production image builds with the permission workspace and imports app/engine as
+  nonroot in a read-only, network-disabled container without credentials.
 - Phase 2 audit fixes are isolated in `D:\SilverCord-phase2-review` on `fix/phase2-review`.
-  Audit fixes are merged/deployed on main (582d5d2); final visual/release checks remain.
+  Audit fixes are deployed on main (582d5d2); acceptance/release metadata is on main 8df91a0.
   Audit fixes are now merged into this branch; take the final Phase 2 release update when tagged.
 - SMTP and encrypted off-host backup storage still need external provider credentials.
 

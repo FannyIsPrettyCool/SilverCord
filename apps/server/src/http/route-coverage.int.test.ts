@@ -1,7 +1,9 @@
+import { ALL_PERMISSIONS, CHANNEL_SCOPE } from '@silvercord/permissions';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bearer, expectError, openRegistration, register } from '../../test/auth-helpers.ts';
 import { createTestApp, type TestApp } from '../../test/test-app.ts';
 import type { RateLimiter } from '../infra/rate-limiter.ts';
+import type { PermissionMetadata } from './permissions.ts';
 
 /**
  * BRIEF §10.2: every route has a working rate limit. Routes come from the OpenAPI document, so
@@ -18,7 +20,17 @@ describe('every route enforces its declared rate limit', () => {
   };
   let t: TestApp;
   let token = '';
-  let paths: Record<string, Record<string, { requestBody?: unknown; parameters?: unknown[] }>> = {};
+  let paths: Record<
+    string,
+    Record<
+      string,
+      {
+        requestBody?: unknown;
+        parameters?: unknown[];
+        'x-permission'?: PermissionMetadata;
+      }
+    >
+  > = {};
 
   beforeAll(async () => {
     t = await createTestApp({ rateLimiter: limiter });
@@ -34,6 +46,37 @@ describe('every route enforces its declared rate limit', () => {
 
   /** Routes that are rate limited only by the global per-IP bucket, by design. */
   const GLOBAL_ONLY = new Set(['GET /health']);
+
+  it('exports the declared authorization requirement for every documented operation', () => {
+    for (const [path, methods] of Object.entries(paths)) {
+      for (const [method, operation] of Object.entries(methods)) {
+        const label = `${method.toUpperCase()} ${path}`;
+        const permission = operation['x-permission'];
+        expect(permission, label).toBeDefined();
+        if (!permission) throw new Error(`Missing permission metadata: ${label}`);
+        if (permission.scope === 'none') {
+          expect(permission.reason.trim().length, label).toBeGreaterThan(0);
+        } else {
+          expect(['guild', 'channel'], label).toContain(permission.scope);
+          expect(permission.bits, label).toMatch(/^[1-9]\d*$/);
+          const bits = BigInt(permission.bits);
+          expect(bits & ~ALL_PERMISSIONS, label).toBe(0n);
+          if (permission.scope === 'channel') expect(bits & ~CHANNEL_SCOPE, label).toBe(0n);
+          expect(path, label).toContain(`{${permission.param}}`);
+        }
+      }
+    }
+  });
+
+  it('serves the explicitly declared browser preflight route', async () => {
+    const response = await t.request({
+      method: 'OPTIONS',
+      url: '/api/v1/users/@me',
+      headers: { origin: 'app://bundle', 'access-control-request-method': 'GET' },
+    });
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe('app://bundle');
+  });
 
   it('covers every documented route', async () => {
     const routes = Object.entries(paths).flatMap(([path, methods]) =>

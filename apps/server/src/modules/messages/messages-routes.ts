@@ -19,6 +19,10 @@ import { perUser } from '../../http/rate-limit.ts';
 import type { TypingService } from '../presence/typing-service.ts';
 import type { MessagesService } from './messages-service.ts';
 
+const nonGuildAccess = {
+  scope: 'none',
+  reason: 'Private conversation messages enforce membership and author checks in the service',
+} as const;
 const errors = {
   400: errorEnvelopeSchema,
   401: errorEnvelopeSchema,
@@ -52,7 +56,11 @@ export function registerMessagesRoutes(
         querystring: messageListQuerySchema,
         response: { ...errors, 200: messagePageSchema },
       },
-      config: { auth: 'user', rateLimit: chatRead },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: chatRead,
+      },
     },
     async (request) =>
       messages.page(
@@ -67,7 +75,11 @@ export function registerMessagesRoutes(
     `${ROOT}/:messageId`,
     {
       schema: { tags, params: messageParamsSchema, response: { ...errors, 200: messageSchema } },
-      config: { auth: 'user', rateLimit: chatRead },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: chatRead,
+      },
     },
     async (request) =>
       messages.get(
@@ -89,6 +101,7 @@ export function registerMessagesRoutes(
         response: { ...errors, 200: messageSchema },
       },
       config: {
+        permission: nonGuildAccess,
         auth: 'user',
         rateLimit: [perUser('message.send', { capacity: 10, refillPerSecond: 2 })],
       },
@@ -120,7 +133,11 @@ export function registerMessagesRoutes(
         body: editMessageRequestSchema,
         response: { ...errors, 200: messageSchema },
       },
-      config: { auth: 'user', rateLimit: messageWrite },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: messageWrite,
+      },
     },
     async (request) =>
       messages.edit(
@@ -136,7 +153,11 @@ export function registerMessagesRoutes(
     `${ROOT}/:messageId`,
     {
       schema: { tags, params: messageParamsSchema, response: { ...errors, 204: z.null() } },
-      config: { auth: 'user', rateLimit: messageWrite },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: messageWrite,
+      },
     },
     async (request, reply) => {
       await messages.remove(
@@ -174,7 +195,11 @@ export function registerMessagesRoutes(
         body: empty,
         response: { ...errors, 204: z.null() },
       },
-      config: { auth: 'user', rateLimit: reactionWrite },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: reactionWrite,
+      },
     },
     async (request, reply) => {
       await react(request, true);
@@ -186,7 +211,11 @@ export function registerMessagesRoutes(
     reactionRoute,
     {
       schema: { tags, params: reactionParamsSchema, response: { ...errors, 204: z.null() } },
-      config: { auth: 'user', rateLimit: reactionWrite },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: reactionWrite,
+      },
     },
     async (request, reply) => {
       await react(request, false);

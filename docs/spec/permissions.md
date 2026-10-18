@@ -100,6 +100,11 @@ role position; the owner outranks everyone.
   resource and 403 otherwise. Services re-check hierarchy and escalation rules in the same
   transaction as the write (row locks on `guilds` then `guild_members`).
 - Gateway subscriptions (member list ranges) call the same engine.
+- The route guard is installed before route registration. `BuildOptions.permissionChecker`
+  supplies the authoritative guild/channel reader; an unavailable checker denies scoped
+  requests. The guard does not cache its result. CORS has one explicit synthetic preflight
+  exemption; each existing account/private-message route declares its own non-guild reason.
+  OpenAPI exposes JSON-safe `x-permission` metadata for the route coverage sweep.
 - DM and group channels keep membership-based access (messaging.md) and map to a fixed DM
   permission set; ChannelsService exposes `access(channelId, userId) → bits` for both.
 

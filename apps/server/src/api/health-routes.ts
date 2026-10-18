@@ -8,7 +8,11 @@ export function registerHealthRoutes(app: FastifyInstance, version: string): voi
     {
       schema: { response: { 200: healthResponseSchema } },
       // Polled by healthchecks; only the global per-IP bucket applies.
-      config: { auth: 'public', rateLimit: [] },
+      config: {
+        auth: 'public',
+        rateLimit: [],
+        permission: { scope: 'none', reason: 'Public liveness probe; no account or guild data' },
+      },
     },
     async () => ({
       status: 'ok' as const,

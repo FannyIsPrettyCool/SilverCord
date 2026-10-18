@@ -108,7 +108,7 @@ check in place; invite flow works end to end.
 - [x] `docs/spec/permissions.md`
 - [x] `packages/permissions` engine + fast-check properties (monotonicity, precedence, admin bypass, hierarchy, no escalation)
 - [x] Guild/member/role/ban/audit database foundation with cross-guild FK and deferred reorder tests
-- [ ] Route permission declaration + CI check
+- [x] Route permission declaration + CI check (fresh checker required for future guild/channel routes)
 - [ ] Guilds, categories, channels (text/voice/announcement), drag reorder
 - [ ] Invites (expiry, max uses, temporary), `silvercord://` deep link
 - [ ] Roles UI (color, icon, hoist, mentionable), overwrites UI

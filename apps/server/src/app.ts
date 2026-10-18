@@ -10,6 +10,7 @@ import { createSessionStore } from './gateway/session-store.ts';
 import { registerAuthentication } from './http/authentication.ts';
 import { registerErrorHandling } from './http/error-handler.ts';
 import { registerOpenApi } from './http/openapi.ts';
+import { type PermissionChecker, registerPermissions } from './http/permissions.ts';
 import { registerRateLimiting } from './http/rate-limit.ts';
 import { createAdminService } from './modules/admin/admin-service.ts';
 import { registerAuthRoutes } from './modules/auth/auth-routes.ts';
@@ -42,6 +43,7 @@ const REDACTED_PATHS = [
 export interface BuildOptions {
   /** Log destination; defaults to stdout. Tests capture it to assert on redaction. */
   readonly logStream?: { write(line: string): void };
+  readonly permissionChecker?: PermissionChecker;
 }
 
 /** Builds the HTTP app without listening, so tests can use `app.inject`. */
@@ -63,6 +65,19 @@ export async function buildApp(
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   registerErrorHandling(app);
+  // The CORS plugin creates one synthetic route without exposing a config option. Annotate
+  // exactly that registration, then close the window before any application routes are added.
+  let registeringCors = true;
+  app.addHook('onRoute', (route) => {
+    if (!registeringCors || route.method !== 'OPTIONS' || route.url !== '*') return;
+    route.config = {
+      ...route.config,
+      auth: 'public',
+      rateLimit: [],
+      permission: { scope: 'none', reason: 'Browser CORS preflight; no resource data' },
+    };
+  });
+  registerPermissions(app, options.permissionChecker);
   // Bearer tokens only, no cookies: CORS is about which renderer origins may read responses.
   await app.register(cors, {
     origin: env.CORS_ORIGINS,
@@ -71,6 +86,7 @@ export async function buildApp(
     credentials: false,
     maxAge: 600,
   });
+  registeringCors = false;
 
   const auth = createAuthService({
     db: context.database.db,

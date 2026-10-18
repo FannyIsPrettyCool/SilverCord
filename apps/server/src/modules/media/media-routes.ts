@@ -20,6 +20,10 @@ import { perUser } from '../../http/rate-limit.ts';
 import type { MediaService } from './media-service.ts';
 import type { StorageDriver } from './storage.ts';
 
+const nonGuildAccess = {
+  scope: 'none',
+  reason: 'Uploads require ownership; delivery enforces private conversation membership',
+} as const;
 const errors = {
   400: errorEnvelopeSchema,
   401: errorEnvelopeSchema,
@@ -70,6 +74,7 @@ export async function registerMediaRoutes(
           response: { ...errors, 200: uploadSchema },
         },
         config: {
+          permission: nonGuildAccess,
           auth: 'user',
           rateLimit: [perUser('upload.create', { capacity: 5, refillPerSecond: 5 / 60 })],
         },
@@ -88,6 +93,7 @@ export async function registerMediaRoutes(
           response: { ...errors, 200: uploadOffsetSchema },
         },
         config: {
+          permission: nonGuildAccess,
           auth: 'user',
           rateLimit: [perUser('upload.chunk', { capacity: 20, refillPerSecond: 2 })],
         },
@@ -110,7 +116,11 @@ export async function registerMediaRoutes(
       '/api/v1/uploads/:uploadId',
       {
         schema: { tags, params: uploadParamsSchema, response: { ...errors, 200: uploadSchema } },
-        config: { auth: 'user', rateLimit: uploadRead },
+        config: {
+          permission: nonGuildAccess,
+          auth: 'user',
+          rateLimit: uploadRead,
+        },
       },
       async (request) => media.get(requireAuth(request).userId, BigInt(request.params.uploadId)),
     );
@@ -124,7 +134,11 @@ export async function registerMediaRoutes(
           body: z.strictObject({}).optional(),
           response: { ...errors, 200: uploadSchema },
         },
-        config: { auth: 'user', rateLimit: uploadWrite },
+        config: {
+          permission: nonGuildAccess,
+          auth: 'user',
+          rateLimit: uploadWrite,
+        },
       },
       async (request) =>
         media.complete(requireAuth(request).userId, BigInt(request.params.uploadId)),
@@ -134,7 +148,11 @@ export async function registerMediaRoutes(
       '/api/v1/uploads/:uploadId',
       {
         schema: { tags, params: uploadParamsSchema, response: { ...errors, 204: z.null() } },
-        config: { auth: 'user', rateLimit: uploadWrite },
+        config: {
+          permission: nonGuildAccess,
+          auth: 'user',
+          rateLimit: uploadWrite,
+        },
       },
       async (request, reply) => {
         await media.remove(requireAuth(request).userId, BigInt(request.params.uploadId));
@@ -150,7 +168,11 @@ export async function registerMediaRoutes(
           params: uploadParamsSchema,
           response: { ...errors, 200: attachmentSchema },
         },
-        config: { auth: 'user', rateLimit: uploadRead },
+        config: {
+          permission: nonGuildAccess,
+          auth: 'user',
+          rateLimit: uploadRead,
+        },
       },
       async (request) =>
         media.attachmentFor(requireAuth(request).userId, BigInt(request.params.uploadId)),
@@ -161,7 +183,11 @@ export async function registerMediaRoutes(
       {
         // Binary stream: no response serializer; errors still use the shared envelope.
         schema: { tags, params: mediaParamsSchema },
-        config: { auth: 'user', rateLimit: mediaFetch },
+        config: {
+          permission: nonGuildAccess,
+          auth: 'user',
+          rateLimit: mediaFetch,
+        },
       },
       async (request, reply) => {
         const { uploadId, variant, hash } = request.params;

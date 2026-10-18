@@ -22,6 +22,10 @@ import type { MessagesService } from '../messages/messages-service.ts';
 import type { TypingService } from '../presence/typing-service.ts';
 import type { ChannelBase, ChannelsService } from './channels-service.ts';
 
+const nonGuildAccess = {
+  scope: 'none',
+  reason: 'Private conversations enforce membership and owner checks in the service',
+} as const;
 const errors = {
   400: errorEnvelopeSchema,
   401: errorEnvelopeSchema,
@@ -82,7 +86,11 @@ export function registerChannelsRoutes(
         querystring: channelListQuerySchema,
         response: { ...errors, 200: channelPageSchema },
       },
-      config: { auth: 'user', rateLimit: chatRead },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: chatRead,
+      },
     },
     async (request) => {
       const { userId } = requireAuth(request);
@@ -96,6 +104,7 @@ export function registerChannelsRoutes(
     {
       schema: { tags, body: openChannelRequestSchema, response: { ...errors, 200: channelSchema } },
       config: {
+        permission: nonGuildAccess,
         auth: 'user',
         rateLimit: [perUser('channel.open', { capacity: 10, refillPerSecond: 10 / 60 })],
       },
@@ -111,7 +120,11 @@ export function registerChannelsRoutes(
     '/api/v1/channels/:channelId',
     {
       schema: { tags, params: channelParamsSchema, response: { ...errors, 200: channelSchema } },
-      config: { auth: 'user', rateLimit: chatRead },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: chatRead,
+      },
     },
     async (request) => {
       const { userId } = requireAuth(request);
@@ -130,7 +143,11 @@ export function registerChannelsRoutes(
         body: channelPatchSchema,
         response: { ...errors, 200: channelSchema },
       },
-      config: { auth: 'user', rateLimit: channelWrite },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: channelWrite,
+      },
     },
     async (request) => {
       const { userId } = requireAuth(request);
@@ -154,7 +171,11 @@ export function registerChannelsRoutes(
         body: empty,
         response: { ...errors, 204: z.null() },
       },
-      config: { auth: 'user', rateLimit: channelWrite },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: channelWrite,
+      },
     },
     async (request, reply) => {
       const { userId } = requireAuth(request);
@@ -168,7 +189,11 @@ export function registerChannelsRoutes(
     '/api/v1/channels/:channelId/members/:userId',
     {
       schema: { tags, params: channelMemberParamsSchema, response: { ...errors, 204: z.null() } },
-      config: { auth: 'user', rateLimit: channelWrite },
+      config: {
+        permission: nonGuildAccess,
+        auth: 'user',
+        rateLimit: channelWrite,
+      },
     },
     async (request, reply) => {
       const { userId } = requireAuth(request);
@@ -191,6 +216,7 @@ export function registerChannelsRoutes(
         response: { ...errors, 200: readStateSchema },
       },
       config: {
+        permission: nonGuildAccess,
         auth: 'user',
         rateLimit: [perUser('read.write', { capacity: 30, refillPerSecond: 2 })],
       },
