@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { registerHealthRoutes } from './api/health-routes.ts';
 import type { AppContext } from './context.ts';
+import { createEventOutbox, createOutboxDispatcher } from './events/outbox.ts';
 import { createEventSubscriber } from './gateway/event-bus.ts';
 import { registerGateway } from './gateway/gateway-server.ts';
 import { createSessionStore } from './gateway/session-store.ts';
@@ -14,6 +15,8 @@ import { createAdminService } from './modules/admin/admin-service.ts';
 import { registerAuthRoutes } from './modules/auth/auth-routes.ts';
 import { createAuthService } from './modules/auth/auth-service.ts';
 import { createCodeHasher } from './modules/auth/crypto/code-hasher.ts';
+import { registerRelationshipsRoutes } from './modules/relationships/relationships-routes.ts';
+import { createRelationshipsService } from './modules/relationships/relationships-service.ts';
 import { createUsersService } from './modules/users/users-service.ts';
 
 export const VERSION = '0.1.0';
@@ -90,6 +93,16 @@ export async function buildApp(
   await registerOpenApi(app, VERSION);
   registerHealthRoutes(app, VERSION);
   registerAuthRoutes(app, auth);
+
+  const db = context.database.db;
+  const users = createUsersService();
+  const outbox = createEventOutbox(context.nextId);
+  const relationships = createRelationshipsService({ users, nextId: context.nextId, outbox });
+  registerRelationshipsRoutes(app, db, relationships);
+
+  const dispatcher = createOutboxDispatcher({ db, events: context.events, log: app.log });
+  app.addHook('onReady', () => dispatcher.start());
+  app.addHook('onClose', () => dispatcher.close());
 
   const subscriber = await createEventSubscriber(context.valkey);
   app.addHook('onClose', () => subscriber.close());

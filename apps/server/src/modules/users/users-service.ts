@@ -1,5 +1,5 @@
-import type { CurrentUser, Locale } from '@silvercord/protocol';
-import { eq, or, sql } from 'drizzle-orm';
+import type { CurrentUser, Locale, PublicUser } from '@silvercord/protocol';
+import { eq, inArray, or, sql } from 'drizzle-orm';
 import type { Executor } from '../../db/executor.ts';
 import { type UserRow, users } from './users-schema.ts';
 
@@ -19,6 +19,9 @@ export interface UsersService {
   findById(ex: Executor, id: bigint): Promise<UserRow | undefined>;
   findByLogin(ex: Executor, login: string): Promise<UserRow | undefined>;
   findByEmail(ex: Executor, email: string): Promise<UserRow | undefined>;
+  /** Peer-safe projection; never expose email or account flags to other users. */
+  findPublicByUsername(ex: Executor, username: string): Promise<PublicUser | undefined>;
+  findPublicByIds(ex: Executor, ids: readonly bigint[]): Promise<PublicUser[]>;
   hasAnyUser(ex: Executor): Promise<boolean>;
   markEmailVerified(ex: Executor, id: bigint): Promise<void>;
   setPasswordHash(ex: Executor, id: bigint, passwordHash: string): Promise<void>;
@@ -26,7 +29,28 @@ export interface UsersService {
 }
 
 export function createUsersService(): UsersService {
+  const projection = { id: users.id, username: users.username, displayName: users.displayName };
+  const toPublic = (row: { id: bigint; username: string; displayName: string | null }) => ({
+    ...row,
+    id: row.id.toString(),
+  });
   return {
+    async findPublicByUsername(ex, username) {
+      const [row] = await ex
+        .select(projection)
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+      return row ? toPublic(row) : undefined;
+    },
+    async findPublicByIds(ex, ids) {
+      if (ids.length === 0) return [];
+      const rows = await ex
+        .select(projection)
+        .from(users)
+        .where(inArray(users.id, [...new Set(ids)]));
+      return rows.map(toPublic);
+    },
     async create(ex, user) {
       const [row] = await ex
         .insert(users)
