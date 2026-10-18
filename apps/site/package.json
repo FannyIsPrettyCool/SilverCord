@@ -1,0 +1,14 @@
+{
+  "name": "@silvercord/site",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@silvercord/ui": "workspace:*",
+    "@silvercord/protocol": "workspace:*"
+  }
+}

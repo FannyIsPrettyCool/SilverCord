@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="{{description}}" />
+    <title>{{title}}</title>
+    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/assets/{{stylesheet}}" />
+    <link rel="alternate" hreflang="en" href="/" />
+    <link rel="alternate" hreflang="fr" href="/fr/" />
+  </head>
+  <body>
+    <header>
+      <a class="wordmark" href="/" aria-label="{{brand}}"><img src="/assets/icon.svg" alt="" width="28" height="28" />{{brand}}</a>
+      <nav aria-label="{{navigation}}"><a href="/" lang="en" hreflang="en" aria-label="English">EN</a><span aria-hidden="true">/</span><a href="/fr/" lang="fr" hreflang="fr" aria-label="Français">FR</a></nav>
+    </header>
+    <main>
+      <section class="panel" aria-labelledby="name">
+        <img class="app-icon" src="/assets/icon.svg" alt="" width="88" height="88" />
+        <p class="eyebrow">{{desktop}} <span>v{{version}}</span></p>
+        <h1 id="name">{{brand}}</h1>
+        <p class="features">{{features}}</p>
+        <a class="download" href="{{download}}" download>
+          <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></svg>
+          {{downloadLabel}}
+        </a>
+        <p class="platform">{{platform}}</p>
+        <p class="detail">{{downloadDetail}} {{version}}</p>
+        <div class="note"><p>{{notice}}</p><p>{{step}}</p></div>
+        <a class="checksum" href="/downloads/SHA256SUMS.txt" download>{{checksum}}</a>
+      </section>
+    </main>
+    <footer><a href="https://github.com/FannyIsPrettyCool/SilverCord">{{source}}</a><span>{{release}} {{version}}</span></footer>
+  </body>
+</html>

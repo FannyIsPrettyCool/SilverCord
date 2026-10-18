@@ -26,3 +26,9 @@ client (no accounts, no chat) and does not conflict with that.
 - `packages/ui` must keep its tokens and glass CSS usable without React-only runtime
   pieces, or the site imports React for a handful of components (acceptable).
 - One more Caddy site block and build artifact in the deploy pipeline.
+
+2026-10-18: the owner found a raw API 404 at the public root on their phone. Bring a
+minimal EN/FR homepage and the verified Windows installer forward now. `apps/site`
+uses Node prerendering with shared brand/theme/font assets and no client runtime.
+The update feed, OS selection and other platforms remain phase 7. See
+`docs/spec/download-site.md`; API, gateway, health and private media boundaries stay intact.
