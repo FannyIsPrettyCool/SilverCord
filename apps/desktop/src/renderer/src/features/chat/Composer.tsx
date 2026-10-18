@@ -10,6 +10,7 @@ import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { addUploads, cancelUpload, retryUpload, useUploads } from '../../api/media.ts';
 import { clearTypingSignal, signalTyping } from '../../api/presence.ts';
 import { useSession } from '../../session/session-store.ts';
@@ -103,7 +104,9 @@ function MentionList() {
 
 function UploadChips({ channelId }: { readonly channelId: string }) {
   const { t } = useTranslation();
-  const items = useUploads((s) => s.items.filter((item) => item.channelId === channelId));
+  const items = useUploads(
+    useShallow((s) => s.items.filter((item) => item.channelId === channelId)),
+  );
   if (items.length === 0) return null;
   return (
     <ul className={styles['uploads']} aria-label={t('chat.attachments')}>
@@ -144,7 +147,9 @@ export function Composer({
   const userId = useSession((s) => s.user?.id ?? '');
   const replyTo = useChatState((s) => s.replyTo[channel.id]);
   const setReplyTo = useChatState((s) => s.setReplyTo);
-  const uploads = useUploads((s) => s.items.filter((item) => item.channelId === channel.id));
+  const uploads = useUploads(
+    useShallow((s) => s.items.filter((item) => item.channelId === channel.id)),
+  );
   const fileInput = useRef<HTMLInputElement>(null);
   const members = useRef<PublicUser[]>([]);
   members.current = channel.members.filter((member) => member.id !== userId);
