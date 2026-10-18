@@ -23,3 +23,8 @@ are integrated. The screens do not present an inactive composer or a voice-conne
 
 `guilds.memberCount` is approved longer copy: its ICU plural expression represents a count
 and unit (`1 member`, `2 members`) rather than a control label. All other labels are short.
+
+
+Guild chat permission explanations: “You cannot read this channel’s history.” and
+“You do not have permission to send messages in this channel.” These are explanatory
+paragraphs, not control labels.

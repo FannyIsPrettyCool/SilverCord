@@ -66,6 +66,19 @@ export const badgeIconSchema = z.union([
 ]);
 export type BadgeIcon = z.infer<typeof badgeIconSchema>;
 
+export const BADGE_EFFECTS = ['none', 'aurora', 'orbit', 'ember', 'prism'] as const;
+export const BADGE_PARTICLES = ['none', 'sparks', 'stars', 'snow'] as const;
+export const badgeVisualSchema = z.strictObject({
+  effect: z.enum(BADGE_EFFECTS),
+  particles: z.enum(BADGE_PARTICLES),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullable(),
+  intensity: z.number().int().min(1).max(3),
+});
+export type BadgeVisual = z.infer<typeof badgeVisualSchema>;
+
 export const badgeDefinitionSchema = z.strictObject({
   id: snowflakeSchema,
   /** Built-in key: clients localize name and description by it. */
@@ -74,6 +87,7 @@ export const badgeDefinitionSchema = z.strictObject({
   description: z.string(),
   rarity: badgeRaritySchema,
   icon: badgeIconSchema,
+  visual: badgeVisualSchema.nullable().optional(),
   retired: z.boolean(),
 });
 export type BadgeDefinition = z.infer<typeof badgeDefinitionSchema>;
@@ -125,6 +139,7 @@ export const createBadgeRequestSchema = z
     name: badgeNameSchema,
     description: badgeDescriptionSchema,
     rarity: badgeRaritySchema,
+    visual: badgeVisualSchema.nullable().optional(),
     ...iconChoice,
   })
   .refine((value) => (value.iconName === undefined) !== (value.iconUploadId === undefined), {
@@ -139,6 +154,7 @@ export const badgePatchSchema = z
     description: badgeDescriptionSchema.optional(),
     rarity: badgeRaritySchema.optional(),
     retired: z.boolean().optional(),
+    visual: badgeVisualSchema.nullable().optional(),
     ...iconChoice,
   })
   .refine((value) => value.iconName === undefined || value.iconUploadId === undefined, {

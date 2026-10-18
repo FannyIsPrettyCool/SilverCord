@@ -36,6 +36,7 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
   const outbox = createEventOutbox(nextId);
   const guildPermissions = createGuildPermissionsService();
   const guildChannels = createGuildChannelsService({
+    readStates: (ex, userId, ids) => messages.readStateViews(ex, userId, ids),
     nextId,
     outbox,
     permissions: guildPermissions,
@@ -52,6 +53,7 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
   const relationships = createRelationshipsService({ users, nextId, outbox });
   const channels = createChannelsService({
     users,
+    guildPermissions,
     relationships,
     outbox,
     nextId,

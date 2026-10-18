@@ -2,6 +2,7 @@ import { DURABLE_EVENT_NAMES, type DurableEventName } from '@silvercord/protocol
 import { sql } from 'drizzle-orm';
 import { check, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
 import { snowflake, timestamptz } from '../db/columns.ts';
+import { channels } from '../modules/channels/channels-schema.ts';
 import { users } from '../modules/users/users-schema.ts';
 
 const typeList = sql.raw(DURABLE_EVENT_NAMES.map((name) => `'${name}'`).join(', '));
@@ -11,9 +12,8 @@ export const eventOutbox = pgTable(
   'event_outbox',
   {
     id: snowflake().primaryKey(),
-    recipientUserId: snowflake()
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    recipientUserId: snowflake().references(() => users.id, { onDelete: 'cascade' }),
+    scopeChannelId: snowflake().references(() => channels.id, { onDelete: 'cascade' }),
     type: text().$type<DurableEventName>().notNull(),
     payload: jsonb().$type<Record<string, string>>().notNull(),
     createdAt: timestamptz().notNull().default(sql`now()`),
@@ -22,6 +22,11 @@ export const eventOutbox = pgTable(
     publishedAt: timestamptz(),
   },
   (table) => [
+    check(
+      'event_outbox_scope',
+      sql`(${table.recipientUserId} is null) <> (${table.scopeChannelId} is null)`,
+    ),
+    index('event_outbox_scope_idx').on(table.scopeChannelId),
     check('event_outbox_type_valid', sql`${table.type} in (${typeList})`),
     check('event_outbox_attempts_positive', sql`${table.attempts} >= 0`),
     index('event_outbox_recipient_idx').on(table.recipientUserId),

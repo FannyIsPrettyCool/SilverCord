@@ -94,4 +94,34 @@ describe('transactional invalidation outbox', () => {
       'event outbox delayed',
     );
   });
+  it('queues a guild event once and resolves its current audience at dispatch time', async () => {
+    await handle.db.execute(sql`delete from event_outbox`);
+    await handle.db.execute(
+      sql`insert into guilds(id,owner_id,name) values (500,1,'Outbox guild')`,
+    );
+    await handle.db.execute(
+      sql`insert into channels(id,guild_id,type,name) values (501,500,'guild_text','general')`,
+    );
+    await enqueue().enqueueChannel(handle.db, 'MESSAGE_CHANGED', 501n, {
+      channelId: '501',
+      messageId: '600',
+    });
+    expect(await count()).toBe(1);
+    const dispatch = vi.fn(async () => {});
+    const viewers = vi.fn(async () => [1n]);
+    const dispatcher = createOutboxDispatcher({
+      db: handle.db,
+      events: { dispatch, kick: vi.fn(async () => {}) },
+      log: { warn: vi.fn() },
+      viewers,
+    });
+    await dispatcher.tick();
+    await dispatcher.close();
+    expect(viewers).toHaveBeenCalledWith(501n);
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith(
+      'gw:user:1',
+      'MESSAGE_CHANGED',
+      expect.objectContaining({ channelId: '501', messageId: '600' }),
+    );
+  });
 });

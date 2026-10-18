@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { channelNameSchema } from './channels.ts';
+import { channelNameSchema, readStateViewSchema } from './channels.ts';
 import { snowflakeSchema } from './snowflake.ts';
 
 export const GUILD_CHANNEL_LIMIT = 500;
@@ -26,6 +26,7 @@ export const guildChannelSchema = z.strictObject({
   archived: z.boolean(),
   version: z.number().int().positive(),
   lastMessageId: snowflakeSchema.nullable(),
+  readState: readStateViewSchema.optional(),
   permissions: z.string().regex(/^\d{1,20}$/),
   createdAt: z.iso.datetime(),
 });

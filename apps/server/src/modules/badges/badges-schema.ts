@@ -1,3 +1,4 @@
+import type { BadgeVisual } from '@silvercord/protocol';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -27,6 +28,7 @@ export const badgeDefinitions = pgTable(
     description: text().notNull().default(''),
     rarity: text({ enum: RARITIES }).notNull(),
     iconName: text(),
+    visual: jsonb().$type<BadgeVisual>(),
     iconUploadId: snowflake().references(() => mediaUploads.id, { onDelete: 'set null' }),
     /** Null for manual badges; built-in rules are identified by `key`. */
     rule: jsonb().$type<{ readonly type: string }>(),

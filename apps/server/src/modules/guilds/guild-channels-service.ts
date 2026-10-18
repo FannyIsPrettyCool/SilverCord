@@ -5,6 +5,7 @@ import {
   type GuildChannelCreate,
   type GuildChannelOrder,
   type GuildChannelPatch,
+  type ReadStateView,
 } from '@silvercord/protocol';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Executor, Transaction } from '../../db/executor.ts';
@@ -19,6 +20,11 @@ interface Dependencies {
   readonly nextId: () => bigint;
   readonly outbox: EventOutbox;
   readonly permissions: GuildPermissionsService;
+  readonly readStates?: (
+    ex: Executor,
+    userId: bigint,
+    channelIds: readonly bigint[],
+  ) => Promise<Map<bigint, ReadStateView>>;
 }
 const notFound = () => new AppError('NOT_FOUND', 'Channel not found');
 const conflict = () => new AppError('CONFLICT', 'Channels changed; reload and retry');
@@ -140,7 +146,23 @@ export function createGuildChannelsService(deps: Dependencies) {
           );
           if (channel) visible.push(channel);
         }
-        return visible;
+        if (!deps.readStates) return visible;
+        const readable = visible.filter(
+          (item) => (BigInt(item.permissions) & Permission.READ_MESSAGE_HISTORY) !== 0n,
+        );
+        const states = await deps.readStates(
+          tx,
+          viewerId,
+          readable.map((item) => BigInt(item.id)),
+        );
+        return visible.map((item) => ({
+          ...item,
+          readState: states.get(BigInt(item.id)) ?? {
+            lastReadMessageId: null,
+            unreadCount: 0,
+            mentionCount: 0,
+          },
+        }));
       },
       { isolationLevel: 'repeatable read' },
     );

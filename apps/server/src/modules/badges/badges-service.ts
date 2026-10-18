@@ -123,6 +123,7 @@ export function createBadgesService(deps: BadgesDependencies) {
           ? { kind: 'image', image }
           : { kind: 'icon', name: (row.iconName as 'star' | null) ?? 'star' },
         retired: row.retired,
+        visual: row.visual,
       });
     }
     return map;
@@ -338,6 +339,7 @@ export function createBadgesService(deps: BadgesDependencies) {
             name: request.name,
             description: request.description,
             rarity: request.rarity,
+            visual: request.visual ?? null,
             iconName: request.iconName ?? null,
             iconUploadId,
           })
@@ -357,6 +359,7 @@ export function createBadgesService(deps: BadgesDependencies) {
         const values: Partial<typeof badgeDefinitions.$inferInsert> = {};
         if (patch.name !== undefined) values.name = patch.name;
         if (patch.description !== undefined) values.description = patch.description;
+        if (patch.visual !== undefined) values.visual = patch.visual;
         if (patch.rarity !== undefined) values.rarity = patch.rarity;
         if (patch.retired !== undefined) values.retired = patch.retired;
         let released: bigint[] = [];

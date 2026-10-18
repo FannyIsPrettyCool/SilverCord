@@ -1,3 +1,4 @@
+import { Permission } from '@silvercord/permissions';
 import {
   channelParamsSchema,
   createMessageRequestSchema,
@@ -19,10 +20,8 @@ import { perUser } from '../../http/rate-limit.ts';
 import type { TypingService } from '../presence/typing-service.ts';
 import type { MessagesService } from './messages-service.ts';
 
-const nonGuildAccess = {
-  scope: 'none',
-  reason: 'Private conversation messages enforce membership and author checks in the service',
-} as const;
+const access = (bits: bigint) =>
+  ({ scope: 'channel', param: 'channelId', bits: Permission.VIEW_CHANNEL | bits }) as const;
 const errors = {
   400: errorEnvelopeSchema,
   401: errorEnvelopeSchema,
@@ -57,7 +56,7 @@ export function registerMessagesRoutes(
         response: { ...errors, 200: messagePageSchema },
       },
       config: {
-        permission: nonGuildAccess,
+        permission: access(Permission.READ_MESSAGE_HISTORY),
         auth: 'user',
         rateLimit: chatRead,
       },
@@ -76,7 +75,7 @@ export function registerMessagesRoutes(
     {
       schema: { tags, params: messageParamsSchema, response: { ...errors, 200: messageSchema } },
       config: {
-        permission: nonGuildAccess,
+        permission: access(Permission.READ_MESSAGE_HISTORY),
         auth: 'user',
         rateLimit: chatRead,
       },
@@ -101,7 +100,7 @@ export function registerMessagesRoutes(
         response: { ...errors, 200: messageSchema },
       },
       config: {
-        permission: nonGuildAccess,
+        permission: access(Permission.SEND_MESSAGES),
         auth: 'user',
         rateLimit: [perUser('message.send', { capacity: 10, refillPerSecond: 2 })],
       },
@@ -134,7 +133,7 @@ export function registerMessagesRoutes(
         response: { ...errors, 200: messageSchema },
       },
       config: {
-        permission: nonGuildAccess,
+        permission: access(Permission.SEND_MESSAGES | Permission.READ_MESSAGE_HISTORY),
         auth: 'user',
         rateLimit: messageWrite,
       },
@@ -154,7 +153,7 @@ export function registerMessagesRoutes(
     {
       schema: { tags, params: messageParamsSchema, response: { ...errors, 204: z.null() } },
       config: {
-        permission: nonGuildAccess,
+        permission: access(Permission.READ_MESSAGE_HISTORY),
         auth: 'user',
         rateLimit: messageWrite,
       },
@@ -196,7 +195,7 @@ export function registerMessagesRoutes(
         response: { ...errors, 204: z.null() },
       },
       config: {
-        permission: nonGuildAccess,
+        permission: access(Permission.ADD_REACTIONS | Permission.READ_MESSAGE_HISTORY),
         auth: 'user',
         rateLimit: reactionWrite,
       },
@@ -212,7 +211,7 @@ export function registerMessagesRoutes(
     {
       schema: { tags, params: reactionParamsSchema, response: { ...errors, 204: z.null() } },
       config: {
-        permission: nonGuildAccess,
+        permission: access(Permission.READ_MESSAGE_HISTORY),
         auth: 'user',
         rateLimit: reactionWrite,
       },

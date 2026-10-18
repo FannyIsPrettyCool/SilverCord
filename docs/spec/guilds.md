@@ -90,3 +90,21 @@ outbox rows (ADR-0010). Presence for co-members flows through SUBSCRIBE (ADR-001
 3. Moderation: kick/ban/timeout effects verified (timed-out member cannot send; banned member
    loses access and cannot rejoin); purge removes recent messages; audit log lists each action.
 4. Threads and pins work in guild channels and respect permissions.
+
+
+## Guild messaging release
+
+Text and announcement channels use the existing `/channels/:channelId/messages`, read-state,
+typing and attachment APIs. Private channel metadata and membership APIs remain private-only.
+Every read requires VIEW_CHANNEL and READ_MESSAGE_HISTORY; sends/edits require SEND_MESSAGES,
+new reactions ADD_REACTIONS, uploads ATTACH_FILES as well as SEND_MESSAGES. Hidden channels
+return 404. Categories, voice channels and threads cannot be used as message channels.
+Writes lock the guild before the channel and recheck permissions while holding that lock.
+Guild events carry only ids and queue one scoped outbox row (ADR-0010); the dispatcher
+resolves current permitted viewers, excluding departed, banned and hidden members.
+The desktop reuses the virtualized transcript, composer, attachments and reaction picker;
+revoked membership/permissions clear cached history before revalidation.
+
+The channel list adds the viewer’s optional `readState` (last read id, capped unread and
+mention counts) only for readable channels. Guild sidebars refresh these content-free counts
+after message/read invalidations. Private metadata endpoints do not return guild channels.

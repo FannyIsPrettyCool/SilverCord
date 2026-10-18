@@ -1,7 +1,11 @@
+import { Permission } from '@silvercord/permissions';
 import type { ChannelPatch, OpenChannelRequest, PublicUser } from '@silvercord/protocol';
+import { eq } from 'drizzle-orm';
 import type { Executor, Transaction } from '../../db/executor.ts';
 import type { EventOutbox } from '../../events/outbox.ts';
 import { AppError } from '../../http/app-error.ts';
+import type { GuildPermissionsService } from '../guilds/guild-permissions.ts';
+import { guilds } from '../guilds/guilds-schema.ts';
 import type { RelationshipsService } from '../relationships/relationships-service.ts';
 import type { UsersService } from '../users/users-service.ts';
 import { channelsRepository as repo } from './channels-repository.ts';
@@ -9,6 +13,7 @@ import type { ChannelRow } from './channels-schema.ts';
 
 export interface ChannelsDependencies {
   readonly users: UsersService;
+  readonly guildPermissions: GuildPermissionsService;
   readonly relationships: RelationshipsService;
   readonly outbox: EventOutbox;
   readonly nextId: () => bigint;
@@ -87,6 +92,41 @@ export function createChannelsService(deps: ChannelsDependencies) {
     return channel;
   }
 
+  async function requireChatMember(
+    ex: Executor,
+    channelId: bigint,
+    userId: bigint,
+    lock?: 'update' | 'share',
+    bits = Permission.VIEW_CHANNEL | Permission.READ_MESSAGE_HISTORY,
+  ): Promise<ChannelRow> {
+    const snapshot = await repo.find(ex, channelId);
+    if (!snapshot) throw notFound();
+    if (snapshot.guildId === null) return requireMember(ex, channelId, userId, lock);
+    if (snapshot.type !== 'guild_text' && snapshot.type !== 'announcement') throw notFound();
+    if (lock)
+      await ex
+        .select({ id: guilds.id })
+        .from(guilds)
+        .where(eq(guilds.id, snapshot.guildId))
+        .for('share');
+    const channel = lock ? await repo.find(ex, channelId, lock) : snapshot;
+    if (!channel) throw notFound();
+    await deps.guildPermissions.requireChannel(
+      ex,
+      channelId,
+      userId,
+      bits | Permission.VIEW_CHANNEL,
+    );
+    return channel;
+  }
+
+  async function memberIds(ex: Executor, channelId: bigint): Promise<bigint[]> {
+    const row = await repo.find(ex, channelId);
+    return row?.guildId !== null && row?.guildId !== undefined
+      ? deps.guildPermissions.viewers(ex, channelId)
+      : repo.memberIds(ex, channelId);
+  }
+
   async function announce(tx: Transaction, channelId: bigint, recipients: readonly bigint[]) {
     await outbox.enqueue(tx, 'CHANNEL_CHANGED', recipients, { channelId: channelId.toString() });
   }
@@ -135,6 +175,9 @@ export function createChannelsService(deps: ChannelsDependencies) {
 
   return {
     requireMember,
+    requireChatMember,
+    viewers: memberIds,
+    isGuild: async (ex: Executor, id: bigint) => (await repo.find(ex, id))?.guildId != null,
 
     async open(ex: Executor, actorId: bigint, request: OpenChannelRequest): Promise<ChannelBase> {
       const channelId = await ex.transaction((tx) =>
@@ -255,8 +298,14 @@ export function createChannelsService(deps: ChannelsDependencies) {
           throw new AppError('FORBIDDEN', 'You cannot message this user');
         return { channel, memberIds: [pair.userLow, pair.userHigh] };
       }
-      const channel = await requireMember(tx, channelId, senderId, 'update');
-      return { channel, memberIds: await repo.memberIds(tx, channelId) };
+      const channel = await requireChatMember(
+        tx,
+        channelId,
+        senderId,
+        'update',
+        Permission.SEND_MESSAGES,
+      );
+      return { channel, memberIds: await memberIds(tx, channelId) };
     },
 
     /** Whether a DM's peer currently accepts direct interaction from `userId`. */
@@ -264,12 +313,24 @@ export function createChannelsService(deps: ChannelsDependencies) {
     peerIds: (ex: Executor, userId: bigint, limit: number) => repo.peerIds(ex, userId, limit),
     async canInteract(ex: Executor, channelId: bigint, userId: bigint): Promise<boolean> {
       const pair = await repo.dmPair(ex, channelId);
-      if (!pair) return true;
+      if (!pair) {
+        try {
+          await requireChatMember(ex, channelId, userId, undefined, Permission.SEND_MESSAGES);
+          return true;
+        } catch (error) {
+          if (
+            error instanceof AppError &&
+            (error.code === 'FORBIDDEN' || error.code === 'NOT_FOUND')
+          )
+            return false;
+          throw error;
+        }
+      }
       const peer = userId === pair.userLow ? pair.userHigh : pair.userLow;
       return relationships.canDirectMessage(ex, userId, peer);
     },
 
-    memberIds: (ex: Executor, channelId: bigint) => repo.memberIds(ex, channelId),
+    memberIds,
     setLastMessage: (ex: Executor, channelId: bigint, messageId: bigint) =>
       repo.setLastMessage(ex, channelId, messageId),
   };

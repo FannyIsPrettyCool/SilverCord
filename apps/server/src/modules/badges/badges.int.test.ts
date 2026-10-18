@@ -51,6 +51,40 @@ describe('badges', () => {
     expect(keys(items).indexOf('early_member')).toBeLessThan(keys(items).indexOf('server_owner'));
   });
 
+  it('persists bounded animation presets and rejects supplied code or unbounded particles', async () => {
+    const visual = { effect: 'prism', particles: 'stars', color: '#ff77aa', intensity: 3 };
+    const created = await call(admin, 'POST', '/admin/badges', {
+      name: 'Starlight',
+      description: 'Custom effect',
+      rarity: 'mythic',
+      iconName: 'diamond',
+      visual,
+    });
+    expect(created.statusCode, created.body).toBe(201);
+    const badge = badgeDefinitionSchema.parse(created.json());
+    expect(badge.visual).toEqual(visual);
+    const updated = await call(admin, 'PATCH', `/admin/badges/${badge.id}`, {
+      visual: { ...visual, effect: 'orbit', particles: 'snow' },
+    });
+    expect(updated.statusCode, updated.body).toBe(200);
+    expect(updated.json()).toMatchObject({ visual: { effect: 'orbit', particles: 'snow' } });
+    for (const value of [
+      { ...visual, intensity: 999 },
+      { ...visual, color: 'url(https://evil.test)' },
+      { ...visual, effect: '<script>' },
+      { ...visual, script: 'alert(1)' },
+    ]) {
+      expectError(
+        await call(admin, 'PATCH', `/admin/badges/${badge.id}`, { visual: value }),
+        400,
+        'VALIDATION_FAILED',
+      );
+    }
+    expect(
+      (await call(admin, 'PATCH', `/admin/badges/${badge.id}`, { visual: null })).json(),
+    ).toMatchObject({ visual: null });
+  });
+
   it('lets administrators create and award manual badges, and nobody else', async () => {
     const member = await register(t);
     const body = {

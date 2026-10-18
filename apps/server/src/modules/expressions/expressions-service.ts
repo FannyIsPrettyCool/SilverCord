@@ -1,4 +1,4 @@
-import { Permission } from '@silvercord/permissions';
+import { has, Permission } from '@silvercord/permissions';
 import {
   CUSTOM_REACTION_PATTERN,
   EMOTES_PER_GUILD,
@@ -15,6 +15,7 @@ import type { Database } from '../../db/client.ts';
 import { type Executor, type Transaction, uniqueViolation } from '../../db/executor.ts';
 import type { EventOutbox } from '../../events/outbox.ts';
 import { AppError } from '../../http/app-error.ts';
+import { channels } from '../channels/channels-schema.ts';
 import type { GuildMembership } from '../guilds/guild-membership.ts';
 import type { GuildPermissionsService } from '../guilds/guild-permissions.ts';
 import type { MediaService } from '../media/media-service.ts';
@@ -121,8 +122,20 @@ export function createExpressionsService(deps: ExpressionsDependencies) {
     await outbox.enqueue(tx, 'GUILD_CHANGED', members, { guildId: guildId.toString() });
   }
 
-  async function guildIdsOf(ex: Executor, userId: bigint) {
-    return (await guildMembership.guildsOf(ex, userId)).map((guild) => guild.id);
+  async function guildIdsOf(ex: Executor, userId: bigint, channelId?: bigint) {
+    const ids = (await guildMembership.guildsOf(ex, userId)).map((guild) => guild.id);
+    if (channelId !== undefined) {
+      const [channel] = await ex
+        .select({ guildId: channels.guildId })
+        .from(channels)
+        .where(eq(channels.id, channelId));
+      if (channel?.guildId != null) {
+        const access = await guildPermissions.channel(ex, channelId, userId);
+        if (!has(access.permissions, Permission.USE_EXTERNAL_EMOJIS))
+          return ids.filter((id) => id === channel.guildId);
+      }
+    }
+    return ids;
   }
 
   for (const purpose of ['emote', 'sticker'] as const) {
@@ -366,11 +379,16 @@ export function createExpressionsService(deps: ExpressionsDependencies) {
 
     /** The messages module's view (docs/spec/expressions.md). */
     messages: {
-      async sanitize(ex: Executor, authorId: bigint, content: string): Promise<string> {
+      async sanitize(
+        ex: Executor,
+        authorId: bigint,
+        content: string,
+        channelId?: bigint,
+      ): Promise<string> {
         const emoteIds = [...content.matchAll(EMOTE_TOKEN)].map((match) => match[3] ?? '');
         const stickerIds = [...content.matchAll(STICKER_TOKEN)].map((match) => match[1] ?? '');
         if (emoteIds.length === 0 && stickerIds.length === 0) return content;
-        const guildIds = await guildIdsOf(ex, authorId);
+        const guildIds = await guildIdsOf(ex, authorId, channelId);
         const [emotes, stickers] = await Promise.all([
           emoteIds.length && guildIds.length
             ? ex
@@ -402,10 +420,15 @@ export function createExpressionsService(deps: ExpressionsDependencies) {
         );
       },
 
-      async canReact(ex: Executor, actorId: bigint, emoji: string): Promise<boolean> {
+      async canReact(
+        ex: Executor,
+        actorId: bigint,
+        emoji: string,
+        channelId?: bigint,
+      ): Promise<boolean> {
         const match = CUSTOM_REACTION_PATTERN.exec(emoji);
         if (!match?.[1]) return true;
-        const guildIds = await guildIdsOf(ex, actorId);
+        const guildIds = await guildIdsOf(ex, actorId, channelId);
         if (guildIds.length === 0) return false;
         const [row] = await ex
           .select({ id: guildEmotes.id })

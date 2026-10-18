@@ -55,3 +55,19 @@ Built-in tooltip copy (EN; FR in the locale file): "First account on this instan
 Badge shelf on the profile card (pinned first, up to 8 then "+n"), each a round medallion with
 a rarity-coloured rim; hover/focus shows name, description, level and award date. Settings ›
 Profile lets users pin up to 6. Instance admins get Settings › Badges to create and award.
+
+
+## Animated artwork and custom effects
+
+Built-ins have layered insignia, a faceted metal rim, glass core, reflection sweep and
+rarity-specific animated effects. Manual badges retain the 24 bundled icons and processed
+static/animated image uploads. Administrators can preview and save visual settings on
+creation or update: `effect` (none/aurora/orbit/ember/prism), `particles`
+(none/sparks/stars/snow), optional six-digit hex `color`, and intensity 1–3. Null selects
+the rarity preset. These are validated data, never supplied code, SVG, CSS or remote URLs.
+
+Particles run in a shared canvas scheduler capped at 180 particles total, 24 per badge,
+30 fps and device pixel ratio 2. Only visible badges participate, hidden tabs stop the
+scheduler, and OS/app reduced motion disables all effects and selects uploaded stills.
+Offscreen effects pause; unmount releases the canvas registration. Pointer/focus effects
+increase the detail without changing layout or affecting tooltip accessibility.

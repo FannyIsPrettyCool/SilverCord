@@ -1,0 +1,1 @@
+ALTER TABLE "badge_definitions" ADD COLUMN "visual" jsonb;

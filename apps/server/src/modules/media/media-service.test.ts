@@ -56,7 +56,9 @@ describe('chunk transaction cleanup', () => {
       const service = createMediaService({
         db,
         storage,
-        channels: { requireMember: vi.fn().mockResolvedValue({}) } as unknown as ChannelsService,
+        channels: {
+          requireChatMember: vi.fn().mockResolvedValue({}),
+        } as unknown as ChannelsService,
         relationships: {} as RelationshipsService,
         nextId: () => 4n,
         limits: {

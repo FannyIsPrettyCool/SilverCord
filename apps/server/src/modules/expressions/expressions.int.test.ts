@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import { Permission } from '@silvercord/permissions';
 import {
   channelSchema,
   emoteSchema,
   expressionLookupSchema,
+  guildChannelListSchema,
   guildSchema,
   messageSchema,
   type ProfileUpload,
@@ -10,10 +12,12 @@ import {
   stickerSchema,
   usableExpressionsSchema,
 } from '@silvercord/protocol';
+import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bearer, expectError, openRegistration, register } from '../../../test/auth-helpers.ts';
 import { createTestApp, type TestApp } from '../../../test/test-app.ts';
+import { channelOverwrites } from '../channels/channels-schema.ts';
 import { guildMembers } from '../guilds/guilds-schema.ts';
 
 type Account = Awaited<ReturnType<typeof register>>;
@@ -199,5 +203,58 @@ describe('expressions', () => {
     );
     expect(after.emotes).toEqual([]);
     expectError(await call(outsider, 'GET', `/guilds/${guildId}/expressions`), 404, 'NOT_FOUND');
+  });
+  it('checks USE_EXTERNAL_EMOJIS for guild sends and custom reactions', async () => {
+    const owner = await register(t);
+    const member = await register(t);
+    const local = await guildOf(owner, member);
+    const external = await guildOf(owner, member);
+    const localChannel = guildChannelListSchema.parse(
+      (await call(member, 'GET', `/guilds/${local}/channels`)).json(),
+    ).items[0];
+    if (!localChannel) throw new Error('missing local channel');
+    const uploaded = await upload(owner, 'emote', external);
+    const emote = emoteSchema.parse(
+      (
+        await call(owner, 'POST', `/guilds/${external}/emotes`, {
+          name: 'wave',
+          uploadId: uploaded.id,
+        })
+      ).json(),
+    );
+    expect((await send(member, localChannel.id, `<:wave:${emote.id}>`)).content).toBe(
+      `<:wave:${emote.id}>`,
+    );
+    await t.services.db.insert(channelOverwrites).values({
+      channelId: BigInt(localChannel.id),
+      targetType: 'member',
+      targetId: BigInt(id(member)),
+      deny: Permission.USE_EXTERNAL_EMOJIS,
+    });
+    const rewritten = await send(member, localChannel.id, `<:wave:${emote.id}>`);
+    expect(rewritten.content).toBe(':wave:');
+    expectError(
+      await call(
+        member,
+        'PUT',
+        `/channels/${localChannel.id}/messages/${rewritten.id}/reactions/custom:${emote.id}`,
+        {},
+      ),
+      403,
+      'FORBIDDEN',
+    );
+    await t.services.db
+      .delete(channelOverwrites)
+      .where(eq(channelOverwrites.channelId, BigInt(localChannel.id)));
+    expect(
+      (
+        await call(
+          member,
+          'PUT',
+          `/channels/${localChannel.id}/messages/${rewritten.id}/reactions/custom:${emote.id}`,
+          {},
+        )
+      ).statusCode,
+    ).toBe(204);
   });
 });

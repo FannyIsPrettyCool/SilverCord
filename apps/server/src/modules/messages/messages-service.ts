@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mentionedUserIds, parse, toPlainText } from '@silvercord/markdown';
+import { Permission } from '@silvercord/permissions';
 import {
   type Attachment,
   type EditMessageRequest,
@@ -53,8 +54,8 @@ export interface MessagesDependencies {
   readonly nextId: () => bigint;
   /** Rewrites emote/sticker tokens the author may not use and checks custom reactions. */
   readonly expressions?: {
-    sanitize(ex: Executor, authorId: bigint, content: string): Promise<string>;
-    canReact(ex: Executor, actorId: bigint, emoji: string): Promise<boolean>;
+    sanitize(ex: Executor, authorId: bigint, content: string, channelId?: bigint): Promise<string>;
+    canReact(ex: Executor, actorId: bigint, emoji: string, channelId?: bigint): Promise<boolean>;
   };
 }
 
@@ -105,10 +106,10 @@ export function createMessagesService(deps: MessagesDependencies) {
     messageId: bigint,
     recipients: readonly bigint[],
   ) {
-    await outbox.enqueue(tx, 'MESSAGE_CHANGED', recipients, {
-      channelId: channelId.toString(),
-      messageId: messageId.toString(),
-    });
+    const guild = await channels.isGuild(tx, channelId);
+    const payload = { channelId: channelId.toString(), messageId: messageId.toString() };
+    if (guild) await outbox.enqueueChannel(tx, 'MESSAGE_CHANGED', channelId, payload);
+    else await outbox.enqueue(tx, 'MESSAGE_CHANGED', recipients, payload);
   }
 
   /** Builds viewer-specific views for rows of one channel without per-row queries. */
@@ -206,8 +207,16 @@ export function createMessagesService(deps: MessagesDependencies) {
       return previous.messageId;
     }
     const uploadIds = (input.attachmentIds ?? []).map(BigInt);
+    if (uploadIds.length)
+      await channels.requireChatMember(
+        tx,
+        channelId,
+        authorId,
+        undefined,
+        Permission.SEND_MESSAGES | Permission.ATTACH_FILES,
+      );
     const content = deps.expressions
-      ? await deps.expressions.sanitize(tx, authorId, input.content)
+      ? await deps.expressions.sanitize(tx, authorId, input.content, channelId)
       : input.content;
     if (content.trim() === '' && uploadIds.length === 0)
       throw new AppError('VALIDATION_FAILED', 'Message is empty', { field: 'content' });
@@ -278,7 +287,7 @@ export function createMessagesService(deps: MessagesDependencies) {
       channelId: bigint,
       query: { before?: string | undefined; after?: string | undefined; limit: number },
     ): Promise<MessagePage> {
-      await channels.requireMember(ex, channelId, viewerId);
+      await channels.requireChatMember(ex, channelId, viewerId);
       const rows = await repo.page(ex, channelId, query);
       const hasMore = rows.length > query.limit;
       const selected = rows.slice(0, query.limit);
@@ -292,7 +301,7 @@ export function createMessagesService(deps: MessagesDependencies) {
     },
 
     async get(ex: Executor, viewerId: bigint, channelId: bigint, messageId: bigint) {
-      await channels.requireMember(ex, channelId, viewerId);
+      await channels.requireChatMember(ex, channelId, viewerId);
       return single(ex, viewerId, channelId, messageId);
     },
 
@@ -304,7 +313,13 @@ export function createMessagesService(deps: MessagesDependencies) {
       input: EditMessageRequest,
     ): Promise<Message> {
       await ex.transaction(async (tx) => {
-        await channels.requireMember(tx, channelId, actorId, 'share');
+        await channels.requireChatMember(
+          tx,
+          channelId,
+          actorId,
+          'share',
+          Permission.READ_MESSAGE_HISTORY | Permission.SEND_MESSAGES,
+        );
         const row = await repo.find(tx, channelId, messageId, 'update');
         if (!row) throw messageNotFound();
         if (row.authorId !== actorId)
@@ -312,7 +327,7 @@ export function createMessagesService(deps: MessagesDependencies) {
         if (row.version !== input.expectedVersion)
           throw new AppError('CONFLICT', 'Message changed; reload and retry');
         const content = deps.expressions
-          ? await deps.expressions.sanitize(tx, actorId, input.content)
+          ? await deps.expressions.sanitize(tx, actorId, input.content, channelId)
           : input.content;
         if (row.content === content) return;
         if (content.trim() === '') {
@@ -330,7 +345,7 @@ export function createMessagesService(deps: MessagesDependencies) {
 
     async remove(ex: Executor, actorId: bigint, channelId: bigint, messageId: bigint) {
       await ex.transaction(async (tx) => {
-        await channels.requireMember(tx, channelId, actorId, 'share');
+        await channels.requireChatMember(tx, channelId, actorId, 'share');
         const row = await repo.find(tx, channelId, messageId, 'update');
         if (!row) {
           if (await repo.authoredDeleted(tx, actorId, channelId, messageId)) return;
@@ -353,7 +368,13 @@ export function createMessagesService(deps: MessagesDependencies) {
       add: boolean,
     ) {
       await ex.transaction(async (tx) => {
-        await channels.requireMember(tx, channelId, actorId, 'share');
+        await channels.requireChatMember(
+          tx,
+          channelId,
+          actorId,
+          'share',
+          Permission.READ_MESSAGE_HISTORY | (add ? Permission.ADD_REACTIONS : 0n),
+        );
         const row = await repo.find(tx, channelId, messageId, 'update');
         const blocked = await relationships.blockedByViewer(tx, actorId);
         if (!row || (row.authorId !== null && blocked.has(row.authorId))) throw messageNotFound();
@@ -361,7 +382,7 @@ export function createMessagesService(deps: MessagesDependencies) {
         if (add) {
           if (!(await channels.canInteract(tx, channelId, actorId)))
             throw new AppError('FORBIDDEN', 'You cannot react in this conversation');
-          if (deps.expressions && !(await deps.expressions.canReact(tx, actorId, emoji)))
+          if (deps.expressions && !(await deps.expressions.canReact(tx, actorId, emoji, channelId)))
             throw new AppError('FORBIDDEN', 'You cannot use this emote', { field: 'emoji' });
           changed = await repo.addReaction(tx, messageId, actorId, emoji);
           if (changed === 'limit') throw new AppError('CONFLICT', 'Reaction limit reached');
@@ -380,7 +401,7 @@ export function createMessagesService(deps: MessagesDependencies) {
       messageId: bigint,
     ): Promise<ReadState> {
       return ex.transaction(async (tx) => {
-        await channels.requireMember(tx, channelId, viewerId, 'share');
+        await channels.requireChatMember(tx, channelId, viewerId, 'share');
         const target = await repo.find(tx, channelId, messageId);
         const blocked = await relationships.blockedByViewer(tx, viewerId);
         if (!target || (target.authorId !== null && blocked.has(target.authorId)))

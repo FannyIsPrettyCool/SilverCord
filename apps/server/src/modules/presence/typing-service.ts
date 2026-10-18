@@ -81,7 +81,7 @@ export function createTypingService(deps: TypingDependencies) {
 
   return {
     async set(userId: bigint, authSessionId: bigint, channelId: bigint, active: boolean) {
-      await channels.requireMember(db, channelId, userId);
+      await channels.requireChatMember(db, channelId, userId);
       if (!active) return clearMarker(channelId, userId, authSessionId);
       if (!(await channels.canInteract(db, channelId, userId)))
         throw new AppError('FORBIDDEN', 'You cannot type in this conversation');
@@ -122,7 +122,7 @@ export function createTypingService(deps: TypingDependencies) {
     },
 
     async snapshot(viewerId: bigint, channelId: bigint): Promise<TypingSnapshot> {
-      await channels.requireMember(db, channelId, viewerId);
+      await channels.requireChatMember(db, channelId, viewerId);
       const users = await typingUsers(channelId);
       users.delete(viewerId);
       const blocked = await relationships.blockedEitherWay(db, viewerId, [...users.keys()]);

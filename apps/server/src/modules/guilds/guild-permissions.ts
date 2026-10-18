@@ -181,6 +181,92 @@ export function createGuildPermissionsService() {
     return result;
   }
 
+  /** Resolve the full channel audience with bounded database queries (ADR-0010). */
+  async function viewers(ex: Executor, channelId: bigint): Promise<bigint[]> {
+    const [row] = await ex.select().from(channels).where(eq(channels.id, channelId));
+    if (!row || row.guildId === null || (row.type !== 'guild_text' && row.type !== 'announcement'))
+      return [];
+    const everyone = alias(roles, 'audience_everyone');
+    const rows = await ex
+      .select({
+        userId: guildMembers.userId,
+        ownerId: guilds.ownerId,
+        everyonePermissions: everyone.permissions,
+        timedOut: sql<boolean>`${guildMembers.timeoutUntil} > now()`,
+        roleId: roles.id,
+        rolePermissions: roles.permissions,
+        rolePosition: roles.position,
+      })
+      .from(guildMembers)
+      .innerJoin(guilds, eq(guilds.id, guildMembers.guildId))
+      .innerJoin(everyone, and(eq(everyone.guildId, guilds.id), eq(everyone.id, guilds.id)))
+      .leftJoin(
+        guildBans,
+        and(eq(guildBans.guildId, guilds.id), eq(guildBans.userId, guildMembers.userId)),
+      )
+      .leftJoin(
+        memberRoles,
+        and(eq(memberRoles.guildId, guilds.id), eq(memberRoles.userId, guildMembers.userId)),
+      )
+      .leftJoin(roles, and(eq(roles.guildId, guilds.id), eq(roles.id, memberRoles.roleId)))
+      .where(and(eq(guildMembers.guildId, row.guildId), isNull(guildBans.userId)));
+    const overwrites = (
+      await ex.select().from(channelOverwrites).where(eq(channelOverwrites.channelId, channelId))
+    ).map((item) => ({
+      type: item.targetType,
+      id: item.targetId.toString(),
+      allow: item.allow,
+      deny: item.deny,
+    }));
+    const inputs = new Map<
+      bigint,
+      {
+        guild: GuildInput;
+        member: MemberInput;
+        assigned: Map<string, { id: string; permissions: bigint; position: number }>;
+      }
+    >();
+    for (const item of rows) {
+      let input = inputs.get(item.userId);
+      if (!input) {
+        const assigned = new Map<string, { id: string; permissions: bigint; position: number }>();
+        input = {
+          guild: {
+            ownerId: item.ownerId.toString(),
+            everyone: {
+              id: row.guildId.toString(),
+              permissions: item.everyonePermissions,
+              position: 0,
+            },
+            roles: assigned,
+          },
+          member: { userId: item.userId.toString(), roleIds: [], timedOut: item.timedOut === true },
+          assigned,
+        };
+        inputs.set(item.userId, input);
+      }
+      if (
+        (item.everyonePermissions & ~ALL_PERMISSIONS) !== 0n ||
+        (item.rolePermissions !== null && (item.rolePermissions & ~ALL_PERMISSIONS) !== 0n)
+      )
+        throw new AppError('INTERNAL', 'Authorization unavailable');
+      if (item.roleId !== null && item.rolePermissions !== null && item.rolePosition !== null)
+        input.assigned.set(item.roleId.toString(), {
+          id: item.roleId.toString(),
+          permissions: item.rolePermissions,
+          position: item.rolePosition,
+        });
+    }
+    return [...inputs].flatMap(([id, input]) => {
+      const access = resolve(
+        { guild: input.guild, member: { ...input.member, roleIds: [...input.assigned.keys()] } },
+        row.type,
+        overwrites,
+      );
+      return access.visible && has(access.permissions, Permission.READ_MESSAGE_HISTORY) ? [id] : [];
+    });
+  }
+
   function requireAccess(access: PermissionAccess, bits: bigint) {
     if (!access.visible) throw new AppError('NOT_FOUND', 'Resource not found');
     if (!has(access.permissions, bits)) throw new AppError('FORBIDDEN', 'Permission required');
@@ -188,6 +274,8 @@ export function createGuildPermissionsService() {
 
   return {
     guild,
+    viewers: (ex: Executor, channelId: bigint) =>
+      ex.transaction((tx) => viewers(tx, channelId), { isolationLevel: 'repeatable read' }),
     // Read requests combine role and overwrite statements in one snapshot. A mutation's
     // surrounding transaction instead holds the guild lock throughout authorization/write.
     channel: (ex: Executor, channelId: bigint, userId: bigint) =>

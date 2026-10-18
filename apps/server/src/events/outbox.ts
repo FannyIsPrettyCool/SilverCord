@@ -12,6 +12,13 @@ import { eventOutbox } from './outbox-schema.ts';
 export type DurablePayload<T extends DurableEventName> = Omit<DurableEventData<T>, 'eventId'>;
 
 export interface EventOutbox {
+  enqueueChannel<T extends DurableEventName>(
+    ex: Executor,
+    type: T,
+    channelId: bigint,
+    payload: DurablePayload<T>,
+  ): Promise<void>;
+
   /**
    * Queues one invalidation per distinct recipient inside the caller's transaction, so it is
    * published if and only if the domain change commits.
@@ -26,6 +33,11 @@ export interface EventOutbox {
 
 export function createEventOutbox(nextId: () => bigint): EventOutbox {
   return {
+    async enqueueChannel(ex, type, scopeChannelId, payload) {
+      const id = nextId();
+      const data = durableEventSchemas[type].parse({ ...payload, eventId: id.toString() });
+      await ex.insert(eventOutbox).values({ id, scopeChannelId, type, payload: data });
+    },
     async enqueue(ex, type, recipients, payload) {
       const rows = [...new Set(recipients)].map((recipientUserId) => {
         const id = nextId();
@@ -39,6 +51,7 @@ export function createEventOutbox(nextId: () => bigint): EventOutbox {
 
 export interface OutboxDispatcherDependencies {
   readonly db: Database;
+  readonly viewers?: (channelId: bigint) => Promise<bigint[]>;
   readonly events: EventPublisher;
   readonly log: { warn(object: object, message: string): void };
 }
@@ -49,7 +62,7 @@ const MAINTENANCE_MS = 60_000;
 const ALERT_AGE_MS = 60_000;
 
 /** One dispatcher per API process (ADR-0008). PUBLISH may be duplicated; REST reconciles gaps. */
-export function createOutboxDispatcher({ db, events, log }: OutboxDispatcherDependencies) {
+export function createOutboxDispatcher({ db, events, log, viewers }: OutboxDispatcherDependencies) {
   let active: Promise<void> | null = null;
   let timer: NodeJS.Timeout | undefined;
   let lastMaintenance = 0;
@@ -57,7 +70,15 @@ export function createOutboxDispatcher({ db, events, log }: OutboxDispatcherDepe
   async function publish(row: typeof eventOutbox.$inferSelect) {
     const type = row.type;
     const payload = durableEventSchemas[type].parse(row.payload);
-    await events.dispatch(channels.user(row.recipientUserId), type, payload);
+    if (row.scopeChannelId !== null && !viewers) throw new Error('Missing channel resolver');
+    const recipients =
+      row.scopeChannelId !== null
+        ? ((await viewers?.(row.scopeChannelId)) ?? [])
+        : row.recipientUserId !== null
+          ? [row.recipientUserId]
+          : [];
+    for (const recipient of recipients)
+      await events.dispatch(channels.user(recipient), type, payload);
     await db.update(eventOutbox).set({ publishedAt: sql`now()` }).where(eq(eventOutbox.id, row.id));
   }
 

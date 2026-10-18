@@ -155,7 +155,12 @@ export async function buildApp(
     await typing.close();
   });
 
-  const dispatcher = createOutboxDispatcher({ db, events: context.events, log: app.log });
+  const dispatcher = createOutboxDispatcher({
+    db,
+    events: context.events,
+    log: app.log,
+    viewers: (id) => services.channels.viewers(db, id),
+  });
   app.addHook('onReady', () => dispatcher.start());
   app.addHook('onClose', () => dispatcher.close());
 

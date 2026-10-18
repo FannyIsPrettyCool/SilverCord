@@ -74,7 +74,7 @@ describe('guild channel HTTP permission matrix', () => {
     );
   });
 
-  it('hides denied channels and rejects guild channels through private message/media endpoints', async () => {
+  it('hides denied channels and keeps guild channels out of private metadata', async () => {
     const f = await fixture();
     await t.context.database.db.insert(channelOverwrites).values({
       channelId: BigInt(f.general.id),
@@ -94,7 +94,7 @@ describe('guild channel HTTP permission matrix', () => {
       404,
       'NOT_FOUND',
     );
-    for (const suffix of ['', '/messages']) {
+    for (const suffix of ['']) {
       expectError(
         await t.request({
           method: 'GET',

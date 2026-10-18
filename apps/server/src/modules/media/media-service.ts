@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { type Readable, Transform } from 'node:stream';
+import { Permission } from '@silvercord/permissions';
 import {
   type Attachment,
   type CreateProfileUploadRequest,
@@ -218,7 +219,7 @@ export function createMediaService(deps: MediaDependencies) {
     const messageId = row ? await repo.attachmentMessage(db, uploadId) : undefined;
     if (row?.state !== 'attached' || messageId === undefined || row.channelId === null)
       throw notFound();
-    await channels.requireMember(db, row.channelId, viewerId);
+    await channels.requireChatMember(db, row.channelId, viewerId);
     // The uploader is always the message author (attach requires ownership).
     if ((await relationships.blockedByViewer(db, viewerId)).has(row.ownerId)) throw notFound();
     return row;
@@ -271,8 +272,16 @@ export function createMediaService(deps: MediaDependencies) {
   /** Owner and scope checks shared by every chunk/complete step of an upload. */
   async function authorizeScope(ex: Executor, row: UploadRow, ownerId: bigint, lock: boolean) {
     if (row.channelId !== null) {
-      if (lock) await channels.lockForSend(ex as Transaction, row.channelId, ownerId);
-      else await channels.requireMember(ex, row.channelId, ownerId);
+      if (lock) {
+        await channels.lockForSend(ex as Transaction, row.channelId, ownerId);
+        await channels.requireChatMember(
+          ex,
+          row.channelId,
+          ownerId,
+          undefined,
+          Permission.SEND_MESSAGES | Permission.ATTACH_FILES,
+        );
+      } else await channels.requireChatMember(ex, row.channelId, ownerId);
       return;
     }
     await policyFor(row.purpose).authorizeUpload(ex, ownerId, row.guildId);
@@ -395,6 +404,13 @@ export function createMediaService(deps: MediaDependencies) {
         throw new AppError('PAYLOAD_TOO_LARGE', 'File too large', { field: 'sizeBytes' });
       const row = await db.transaction(async (tx: Transaction) => {
         await channels.lockForSend(tx, channelId, ownerId);
+        await channels.requireChatMember(
+          tx,
+          channelId,
+          ownerId,
+          undefined,
+          Permission.SEND_MESSAGES | Permission.ATTACH_FILES,
+        );
         return reserve(
           tx,
           ownerId,
