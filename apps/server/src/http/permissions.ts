@@ -54,7 +54,7 @@ function validate(route: RouteOptions): PermissionRequirement {
     (requirement.scope !== 'guild' && requirement.scope !== 'channel') ||
     route.config?.auth !== 'user' ||
     typeof requirement.bits !== 'bigint' ||
-    requirement.bits <= 0n ||
+    requirement.bits < 0n ||
     (requirement.bits & ~ALL_PERMISSIONS) !== 0n ||
     (requirement.scope === 'channel' && (requirement.bits & ~CHANNEL_SCOPE) !== 0n) ||
     typeof requirement.param !== 'string' ||

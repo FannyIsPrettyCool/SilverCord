@@ -47,7 +47,6 @@ describe('route permission declarations', () => {
     { scope: 'none', reason: '   ' },
     { scope: 'other', bits: 1n, param: 'id' },
     { scope: 'guild', bits: '1', param: 'id' },
-    { scope: 'guild', bits: 0n, param: 'id' },
     { scope: 'guild', bits: -1n, param: 'id' },
     { scope: 'guild', bits: 1n << 63n, param: 'id' },
     { scope: 'guild', bits: 1n, param: 'otherId' },
@@ -115,6 +114,26 @@ describe('route permission declarations', () => {
 });
 
 describe.each(['guild', 'channel'] as const)('%s permission execution', (scope) => {
+  it.each([true, false])(
+    'checks membership for a zero-bit requirement (visible:%s)',
+    async (visible) => {
+      const checker = vi.fn(async () => ({ visible, permissions: 0n }));
+      const app = fixture(checker);
+      app.get(
+        '/resources/:id',
+        { config: { auth: 'user', permission: { scope, bits: 0n, param: 'id' } } },
+        () => 'ok',
+      );
+      try {
+        const response = await app.inject({ url: '/resources/30', headers: await headers() });
+        expect(response.statusCode).toBe(visible ? 200 : 404);
+        expect(checker).toHaveBeenCalledExactlyOnceWith({ scope, resourceId: 30n, userId: 10n });
+      } finally {
+        await app.close();
+      }
+    },
+  );
+
   const bits = scope === 'guild' ? Permission.MANAGE_GUILD : Permission.SEND_MESSAGES;
   it.each([
     { visible: false, permissions: bits, expected: 404 },

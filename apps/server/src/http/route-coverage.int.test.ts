@@ -58,7 +58,7 @@ describe('every route enforces its declared rate limit', () => {
           expect(permission.reason.trim().length, label).toBeGreaterThan(0);
         } else {
           expect(['guild', 'channel'], label).toContain(permission.scope);
-          expect(permission.bits, label).toMatch(/^[1-9]\d*$/);
+          expect(permission.bits, label).toMatch(/^\d+$/);
           const bits = BigInt(permission.bits);
           expect(bits & ~ALL_PERMISSIONS, label).toBe(0n);
           if (permission.scope === 'channel') expect(bits & ~CHANNEL_SCOPE, label).toBe(0n);

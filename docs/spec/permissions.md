@@ -105,6 +105,12 @@ role position; the owner outranks everyone.
   requests. The guard does not cache its result. CORS has one explicit synthetic preflight
   exemption; each existing account/private-message route declares its own non-guild reason.
   OpenAPI exposes JSON-safe `x-permission` metadata for the route coverage sweep.
+- A zero-bit guild requirement still requires current membership (for viewing the server itself
+  or leaving it, even with no visible channels). A zero-bit channel requirement still requires
+  channel visibility. The default app checker reads current roles/membership/bans/timeouts from
+  PostgreSQL; role/overwrite reads share a repeatable-read snapshot. Writes first lock the guild
+  row and recheck authorization inside their transaction. The channel sidebar resolves all
+  channels in a bounded number of queries rather than querying roles for each channel.
 - DM and group channels keep membership-based access (messaging.md) and map to a fixed DM
   permission set; ChannelsService exposes `access(channelId, userId) → bits` for both.
 
