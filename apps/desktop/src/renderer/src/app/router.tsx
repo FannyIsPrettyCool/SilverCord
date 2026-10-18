@@ -10,7 +10,9 @@ import { CodeScreen } from '../features/auth/CodeScreen.tsx';
 import { ForgotPasswordScreen } from '../features/auth/ForgotPasswordScreen.tsx';
 import { RegisterScreen } from '../features/auth/RegisterScreen.tsx';
 import { SignInScreen } from '../features/auth/SignInScreen.tsx';
+import { ChannelView } from '../features/chat/ChannelView.tsx';
 import { AppShell } from '../features/shell/AppShell.tsx';
+import { FriendsView } from '../features/social/FriendsView.tsx';
 import { useSession } from '../session/session-store.ts';
 
 const signedIn = () => useSession.getState().status === 'signed-in';
@@ -71,13 +73,24 @@ const appRoute = createRoute({
   component: AppShell,
 });
 
+const friendsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/',
+  component: FriendsView,
+});
+const channelRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/channels/$channelId',
+  component: ChannelView,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
   codeRoute,
   registerRoute,
   forgotRoute,
-  appRoute,
+  appRoute.addChildren([friendsRoute, channelRoute]),
 ]);
 
 /** Hash history: the packaged renderer is a single file on the app:// origin. */
