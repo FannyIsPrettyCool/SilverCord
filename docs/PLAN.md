@@ -164,6 +164,8 @@ vN+1 works.
 - [ ] Accessibility pass
 - [ ] Tree layout
 - [ ] Auto-update, NSIS installer, AppImage/deb/rpm
+- [x] Early public homepage: centered EN/FR desktop download page and Windows x64 installer
+      (owner's mobile-root 404 report; update feed and other platforms remain below)
 - [ ] Passkeys via system browser + `silvercord://` deep link (ADR-0007)
 - [ ] Download site (`apps/site`): one static page served at `<DOMAIN>` (and `get.<DOMAIN>`)
       that detects the visitor's OS and offers the matching installer (NSIS / AppImage / deb / rpm)

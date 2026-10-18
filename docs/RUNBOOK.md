@@ -43,6 +43,30 @@ Production: `https://silvercord.islandmon.cloud` on the shared OVH VPS `145.239.
 
 ## Deploy
 
+### Public homepage and installer
+
+The public root and `/fr/` are static pages. API, gateway and health paths still
+reach the backend; private media stays on its separate CDN. `apps/site` contains
+only build-time translations, HTML/CSS and shared brand assets. Build with
+`pnpm --filter @silvercord/site build`; output is `apps/site/dist` (ignored by Git).
+
+Caddy reads `/srv/silvercord-site/current`, an atomic symlink to an immutable
+`/srv/silvercord-site/releases/<commit>` directory. Public downloads are stored
+separately in `/srv/silvercord-downloads`; neither directory contains secrets.
+Upload a new complete site release, then atomically switch `current`. Validate
+the full Caddyfile before reloading; keep the previous release for rollback.
+
+Windows artifact: build the verified desktop output with
+`pnpm --filter @silvercord/desktop exec electron-builder --config electron-builder.config.ts --win nsis --x64 --publish never`.
+Publish `apps/desktop/release/SilverCord Setup <version>.exe` as
+`SilverCord-<version>-windows-x64.exe`. Compare local/server SHA-256 before exposing
+it, and publish its matching `SHA256SUMS.txt`. Never replace a versioned artifact
+with different bytes. Check public GET/HEAD and download size after publication.
+The homepage version follows the desktop package version: publish its matching
+installer before switching the page. Automatic updates/Linux builds remain Phase 7.
+
+### API deployment
+
 ```sh
 cd /srv/silvercord && git pull --ff-only
 sudo bash infra/scripts/deploy.sh /etc/silvercord/production.env /var/backups/silvercord
