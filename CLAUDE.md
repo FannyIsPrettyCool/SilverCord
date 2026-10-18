@@ -39,7 +39,7 @@ Full brief: `docs/BRIEF.md` (verbatim, never edit). Keep this file ≤200 lines.
 - `apps/server/src/modules/{relationships,channels,messages,presence,media}` — phase 2; `src/events/outbox.ts` (ADR-0008), `src/services.ts` builds the domain graph for API and `src/worker-main.ts` (BullMQ media worker). Media decoder runs in a network-less container (ADR-0009).
 - `apps/desktop/src/renderer/src/api/` — REST client (cached access token), TanStack Query keys, gateway→cache `sync.ts`, uploads/media blobs; `features/{chat,social,presence}`.
 - `packages/markdown` — chat-markdown → AST (no HTML).
-- `packages/ui` — themes/tokens, `<Glass>` + tiers + governor + refraction, `AmbientLayer`, primitives, Storybook, `visual/` snapshots. `packages/permissions|widgets` — placeholders.
+- `packages/ui` — themes/tokens, `<Glass>` + tiers + governor + refraction, `AmbientLayer`, primitives, Storybook, `visual/` snapshots. `packages/permissions` — pure bitfield/hierarchy engine; `widgets` is a placeholder.
 - `packages/config` — tsconfig presets. `tools/commitlint` — gitmoji rule. `infra/` — compose, LiveKit config.
 - `docs/adr/` decisions · `docs/spec/` feature specs · `docs/PLATFORM-LIMITS.md` · `docs/DESIGN-CHECKLIST.md` · `docs/RUNBOOK.md`.
 

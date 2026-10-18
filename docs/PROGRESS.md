@@ -3,6 +3,20 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — Guild management slice shipped; profiles are next after phase 3
+
+- Server lifecycle (create/list/view/rename/leave) and category/text/voice/announcement
+  channel management are live with database-backed permission checks (156 integration tests).
+  The desktop has the server rail, channel sidebar and permission-aware forms (EN/FR); guild
+  channels show `Messaging unavailable` until guild messaging/fanout lands.
+- `apps/server/src/modules/admin/invite-cli.ts` creates registration invites on the host
+  without signing in (RUNBOOK §VPS setup). Codes are printed once and never committed.
+- Owner decision: phase 5 (profiles) follows phase 3; phase 4 voice is deferred.
+- The production desktop install is per-machine (`C:\Program Files\silvercord`), so updating it
+  needs one UAC approval; it is never done silently from a non-elevated session.
+- Next: guild message/media authorization + channel-scoped fanout (ADR-0010), then guild
+  invites (`silvercord://invite/<code>`), roles/overwrites UI, member list, moderation.
+
 ## 2026-10-18 — Phase 3 foundation ready for guild features
 
 - `feat/permissions-engine` contains the permission spec, bigint resolution/hierarchy engine,
