@@ -23,8 +23,10 @@ test('10k-message history scrolls within the frame budget', async () => {
       if (!element) throw new Error('no log');
       let stable = 0;
       let height = element.scrollHeight;
-      while (stable < 12) {
+      while (stable < 16) {
         element.scrollTop = 0;
+        // Already at 0 fires no scroll event, so nudge the list's loader explicitly.
+        element.dispatchEvent(new Event('scroll'));
         await new Promise((resolve) => setTimeout(resolve, 250));
         if (element.scrollHeight === height) stable += 1;
         else {
