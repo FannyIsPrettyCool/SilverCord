@@ -60,3 +60,11 @@ export const currentUserSchema = z.object({
 });
 
 export type CurrentUser = z.infer<typeof currentUserSchema>;
+
+/** Peer identity; never include email, security flags or private relationship fields. */
+export const publicUserSchema = z.strictObject({
+  id: snowflakeSchema,
+  username: z.string(),
+  displayName: z.string().nullable(),
+});
+export type PublicUser = z.infer<typeof publicUserSchema>;

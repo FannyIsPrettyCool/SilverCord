@@ -1,3 +1,4 @@
+import { createSnowflakeGenerator } from '@silvercord/protocol';
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from 'fastify';
 import { inject } from 'vitest';
 import { buildApp } from '../src/app.ts';
@@ -63,6 +64,9 @@ export async function createTestApp(
   const valkey = createValkey(inject('valkeyUrl'));
   await valkey.connect();
   const mailer = createCapturingMailer();
+  // Isolated databases still share Valkey revocation/session keys. Separate snowflake workers
+  // prevent same-millisecond ids in parallel suites from referring to unrelated accounts.
+  const workerId = (await valkey.incr('test:snowflake-worker')) % 1024;
   const env = loadEnv({
     NODE_ENV: 'test',
     LOG_LEVEL: options.logLines ? 'trace' : 'silent',
@@ -72,6 +76,7 @@ export async function createTestApp(
     database,
     valkey,
     mailer,
+    nextId: createSnowflakeGenerator({ workerId }),
     ...(options.rateLimiter
       ? { rateLimiter: options.rateLimiter }
       : options.rateLimits === 'valkey'
