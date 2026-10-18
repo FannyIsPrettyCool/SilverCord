@@ -265,7 +265,8 @@
       "any pronouns",
       "ask me"
     ],
-    "badges": "Badges"
+    "badges": "Badges",
+    "activity": "Activity"
   },
   "customStatus": {
     "set": "Set custom status",
@@ -348,5 +349,49 @@
     "awarded": "Awarded",
     "retired": "Retired",
     "none": "No badges"
+  },
+  "activity": {
+    "source": {
+      "manual": "Typed activity",
+      "game": "Game detection",
+      "rpc": "Local RPC",
+      "media": "Playing media"
+    },
+    "type": {
+      "playing": "Playing",
+      "listening": "Listening",
+      "watching": "Watching",
+      "streaming": "Streaming",
+      "competing": "Competing"
+    },
+    "verb": {
+      "playing": "Playing",
+      "listening": "Listening to",
+      "watching": "Watching",
+      "streaming": "Streaming",
+      "competing": "Competing in"
+    },
+    "name": "Name",
+    "details": "Details",
+    "state": "State",
+    "set": "Set activity",
+    "clear": "Clear activity",
+    "games": "Your games",
+    "process": "Program file",
+    "gameName": "Game",
+    "add": "Add",
+    "remove": "Remove",
+    "apps": "Connected apps",
+    "allowed": "Allowed",
+    "denied": "Denied",
+    "forget": "Forget",
+    "allow": "Allow",
+    "deny": "Deny",
+    "requestTitle": "Allow {app}?",
+    "address": "Address",
+    "sources": "Sources",
+    "typed": "Typed activity",
+    "links": "Links",
+    "kind": "Type"
   }
 }

@@ -265,7 +265,8 @@
       "tous pronoms",
       "demande-moi"
     ],
-    "badges": "Badges"
+    "badges": "Badges",
+    "activity": "Activité"
   },
   "customStatus": {
     "set": "Définir un statut personnalisé",
@@ -348,5 +349,49 @@
     "awarded": "Décerné",
     "retired": "Retiré",
     "none": "Aucun badge"
+  },
+  "activity": {
+    "source": {
+      "manual": "Activité saisie",
+      "game": "Détection des jeux",
+      "rpc": "RPC locale",
+      "media": "Média en cours"
+    },
+    "type": {
+      "playing": "Joue",
+      "listening": "Écoute",
+      "watching": "Regarde",
+      "streaming": "Diffuse",
+      "competing": "Compétition"
+    },
+    "verb": {
+      "playing": "Joue à",
+      "listening": "Écoute",
+      "watching": "Regarde",
+      "streaming": "Diffuse",
+      "competing": "En compétition"
+    },
+    "name": "Nom",
+    "details": "Détails",
+    "state": "État",
+    "set": "Définir l'activité",
+    "clear": "Effacer l'activité",
+    "games": "Vos jeux",
+    "process": "Fichier du programme",
+    "gameName": "Jeu",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "apps": "Apps connectées",
+    "allowed": "Autorisées",
+    "denied": "Refusées",
+    "forget": "Oublier",
+    "allow": "Autoriser",
+    "deny": "Refuser",
+    "requestTitle": "Autoriser {app} ?",
+    "address": "Adresse",
+    "sources": "Sources",
+    "typed": "Activité saisie",
+    "links": "Liens",
+    "kind": "Type"
   }
 }
