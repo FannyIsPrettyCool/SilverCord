@@ -158,5 +158,34 @@
     "PAYLOAD_TOO_LARGE": "Fichier trop lourd ou stockage plein",
     "VALIDATION_FAILED": "Vérifiez votre saisie",
     "fallback": "Une erreur est survenue"
+  },
+  "guilds": {
+    "createServer": "Créer un serveur",
+    "renameServer": "Renommer le serveur",
+    "serverName": "Nom du serveur",
+    "leaveServer": "Quitter le serveur",
+    "save": "Enregistrer",
+    "channels": "Salons",
+    "createChannel": "Créer un salon",
+    "editChannel": "Modifier le salon",
+    "channelName": "Nom du salon",
+    "channelType": "Type de salon",
+    "category": "Catégorie",
+    "noCategory": "Aucune catégorie",
+    "topic": "Sujet",
+    "unavailable": "Serveur indisponible",
+    "channelUnavailable": "Salon indisponible",
+    "loading": "Chargement",
+    "memberCount": "{count, plural, one {# membre} other {# membres}}",
+    "chooseChannel": "Choisissez un salon",
+    "messagingUnavailable": "Messages indisponibles",
+    "voiceUnavailable": "Vocal indisponible",
+    "types": {
+      "guild_text": "Salon textuel",
+      "guild_voice": "Salon vocal",
+      "guild_category": "Catégorie",
+      "announcement": "Annonces",
+      "thread": "Fil"
+    }
   }
 }
