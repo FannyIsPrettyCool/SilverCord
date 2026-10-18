@@ -3,6 +3,20 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — Phase 5: profiles, badges and activity implemented
+
+- Shipped on `feat/profile-phase-5-profiles` (pushed, CI green so far): profile media purposes
+  (ADR-0011), profiles with per-section audiences, summaries, custom status, per-server
+  profiles, badges (rules, admin API/CLI/UI, pins), activity (typed, game detection, Local
+  RPC per `docs/rpc.md`, Windows SMTC / Linux playerctl). Full VPS integration suite green.
+- Desktop: real avatars, popout, full view, settings (Profile, Profile privacy, Activity,
+  Server profiles, Badges for admins), crop dialog. Design-critic review applied.
+- Private staging runs this branch (deploy b4f34fc). Screenshot tour `e2e/shots/profiles.shots.ts`
+  passes up to the activity step; the activity screens are not yet seen in a real app run.
+- Do not launch Electron windows while the owner is playing (they asked); verify later.
+- Next: emotes/stickers + emoji picker (`docs/spec/expressions.md`), GIF (Klipy key needed),
+  reviewer + security audit, then release build.
+
 ## 2026-10-18 — Phase 5 (profiles & expression) started ahead of guild messaging
 
 - Owner decision: profiles come before guild messaging/invites (phase 3 remainder waits).

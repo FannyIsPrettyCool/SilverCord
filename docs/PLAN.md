@@ -147,10 +147,10 @@ Started 2026-10-18 on `feat/profile-phase-5-profiles` (owner moved it ahead of g
 - [x] Profile media purposes: avatar/banner/guild/emote/sticker/badge uploads, crop, still frame, dominant colour, liveness CDN checks
 - [x] Profile fields (banner, avatar, pronouns, custom status, bio, accent, theme colours) + per-section privacy audiences
 - [x] User summaries endpoint, `PROFILE_CHANGED`, private notes (relationship metadata)
-- [ ] Desktop: avatars everywhere, profile popout, full profile view, profile editor with crop, custom status dialog
-- [ ] Badges (definitions, awards, rules, pinning) — `docs/spec/badges.md`
-- [ ] Per-server profiles (nickname, avatar, banner, bio, pronouns)
-- [ ] Activity: manual, game detection, local RPC (`docs/rpc.md`), media session — `docs/spec/activity.md`
+- [x] Desktop: avatars everywhere, profile popout, full profile view, profile editor with crop, custom status dialog
+- [x] Badges (definitions, awards, rules, pinning, admin UI + CLI) — `docs/spec/badges.md`
+- [x] Per-server profiles (nickname, avatar, banner, bio, pronouns) — form not yet seen in a real app run (seed has no server)
+- [x] Activity: manual, game detection, local RPC (`docs/rpc.md`), media session — `docs/spec/activity.md`; real-app tour of the activity screens pending
 - [ ] Custom emotes/stickers, emoji picker (licensed set) — `docs/spec/expressions.md`
 - [ ] GIF picker: Klipy provider (Tenor API shut down 2026-06-30); needs an owner API key
 
