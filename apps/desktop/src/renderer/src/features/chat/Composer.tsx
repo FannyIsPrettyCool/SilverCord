@@ -1,5 +1,5 @@
-import { ArrowClockwise, Paperclip, PaperPlaneRight, X } from '@phosphor-icons/react';
-import type { Channel, PublicUser } from '@silvercord/protocol';
+import { ArrowClockwise, Paperclip, PaperPlaneRight, Smiley, X } from '@phosphor-icons/react';
+import type { PublicUser } from '@silvercord/protocol';
 import { Glass, IconButton } from '@silvercord/ui';
 import { Mention } from '@tiptap/extension-mention';
 import { Placeholder } from '@tiptap/extension-placeholder';
@@ -14,7 +14,11 @@ import { useShallow } from 'zustand/react/shallow';
 import { addUploads, cancelUpload, retryUpload, useUploads } from '../../api/media.ts';
 import { clearTypingSignal, signalTyping } from '../../api/presence.ts';
 import { useSession } from '../../session/session-store.ts';
+import { EmojiPicker, type PickedExpression } from '../expressions/EmojiPicker.tsx';
+import { EmoteNode } from '../expressions/emote-node.tsx';
 import { Avatar, displayName } from '../presence/Avatar.tsx';
+import { AnchoredPanel } from '../shell/AnchoredPanel.tsx';
+import type { ChatChannel } from './chat-channel.ts';
 import { queueMessage, useChatState } from './chat-state.ts';
 import styles from './composer.module.css';
 import { toChatMarkdown } from './composer-markdown.ts';
@@ -140,7 +144,7 @@ export function Composer({
   channel,
   placeholder,
 }: {
-  readonly channel: Channel;
+  readonly channel: ChatChannel;
   readonly placeholder: string;
 }) {
   const { t } = useTranslation();
@@ -170,6 +174,7 @@ export function Composer({
           link: false,
         }),
         Placeholder.configure({ placeholder }),
+        EmoteNode,
         Mention.configure({
           HTMLAttributes: { class: styles['mentionNode'] ?? '' },
           suggestion: mentionSuggestion(() => members.current),
@@ -250,6 +255,37 @@ export function Composer({
     editor?.commands.focus();
   }, [editor]);
 
+  const pick = (picked: PickedExpression) => {
+    if (picked.kind === 'sticker') {
+      // Stickers travel as their own message, like a reaction to the conversation.
+      queueMessage({
+        channelId: channel.id,
+        content: `<sticker:${picked.sticker.id}>`,
+        replyToId: replyTo?.id ?? null,
+        attachmentIds: [],
+      });
+      setReplyTo(channel.id, undefined);
+      return;
+    }
+    if (!editor) return;
+    const chain = editor.chain().focus();
+    if (picked.kind === 'unicode') chain.insertContent(picked.emoji).run();
+    else
+      chain
+        .insertContent([
+          {
+            type: 'emote',
+            attrs: {
+              id: picked.emote.id,
+              name: picked.emote.name,
+              animated: picked.emote.animated,
+            },
+          },
+          { type: 'text', text: ' ' },
+        ])
+        .run();
+  };
+
   return (
     <div className={styles['wrap']}>
       <MentionList />
@@ -283,6 +319,24 @@ export function Composer({
             }}
           />
           <EditorContent editor={editor} className={styles['field']} />
+          <AnchoredPanel
+            label={t('expressions.picker')}
+            trigger={(props) => (
+              <IconButton label={t('expressions.insert')} {...props}>
+                <Smiley size={18} weight="duotone" />
+              </IconButton>
+            )}
+          >
+            {(close) => (
+              <EmojiPicker
+                stickers
+                onPick={(picked) => {
+                  pick(picked);
+                  if (picked.kind === 'sticker') close();
+                }}
+              />
+            )}
+          </AnchoredPanel>
           <motion.div
             animate={{
               scale: empty && ready.length === 0 ? 0.9 : 1,

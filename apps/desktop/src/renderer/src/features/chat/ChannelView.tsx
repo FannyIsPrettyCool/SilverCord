@@ -18,7 +18,7 @@ import { type Density, useChatState } from './chat-state.ts';
 import { errorKey } from './error-key.ts';
 import { MessageList } from './MessageList.tsx';
 
-function DensitySwitch({ allowBubble }: { readonly allowBubble: boolean }) {
+export function DensitySwitch({ allowBubble }: { readonly allowBubble: boolean }) {
   const { t } = useTranslation();
   const density = useChatState((s) => s.density);
   const setDensity = useChatState((s) => s.setDensity);

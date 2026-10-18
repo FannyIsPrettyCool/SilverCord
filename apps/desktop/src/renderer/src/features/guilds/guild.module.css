@@ -175,3 +175,17 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+.unread {
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 1px 6px;
+  background: var(--color-field);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+.unread[data-mention] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}

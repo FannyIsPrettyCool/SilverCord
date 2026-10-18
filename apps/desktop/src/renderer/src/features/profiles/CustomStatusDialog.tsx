@@ -4,6 +4,8 @@ import { type ReactNode, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOwnProfile, useSetCustomStatus } from '../../api/profiles.ts';
 import styles from '../chat/dialog.module.css';
+import { EmojiPicker } from '../expressions/EmojiPicker.tsx';
+import { AnchoredPanel } from '../shell/AnchoredPanel.tsx';
 
 export const CLEAR_AFTER = ['30m', '1h', '4h', 'today', 'never'] as const;
 type ClearAfter = (typeof CLEAR_AFTER)[number];
@@ -75,6 +77,24 @@ export function CustomStatusDialog({
               error={emojiValid ? undefined : t('customStatus.emoji')}
               onChange={(event) => setEmoji(event.target.value.trim())}
             />
+            <AnchoredPanel
+              label={t('customStatus.emoji')}
+              trigger={(props) => (
+                <Button variant="quiet" {...props}>
+                  {emoji || t('customStatus.emoji')}
+                </Button>
+              )}
+            >
+              {(close) => (
+                <EmojiPicker
+                  emotes={false}
+                  onPick={(picked) => {
+                    if (picked.kind === 'unicode') setEmoji(picked.emoji);
+                    close();
+                  }}
+                />
+              )}
+            </AnchoredPanel>
             <TextField
               label={t('customStatus.text')}
               value={text}

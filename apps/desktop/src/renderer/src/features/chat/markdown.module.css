@@ -2,6 +2,12 @@
   min-width: 0;
   overflow-wrap: anywhere;
   user-select: text;
+
+  /* Emoji-only messages read like stickers. */
+  &[data-jumbo] {
+    font-size: 2.6em;
+    line-height: 1.2;
+  }
 }
 
 .paragraph {

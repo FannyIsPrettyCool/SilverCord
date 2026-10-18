@@ -5,16 +5,15 @@ import { motion } from 'motion/react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMessageActions } from '../../api/chat.ts';
+import { EmojiPicker } from '../expressions/EmojiPicker.tsx';
+import { EmoteInline } from '../expressions/EmoteImage.tsx';
 import { Avatar, displayName } from '../presence/Avatar.tsx';
 import { ProfileTrigger } from '../profiles/ProfilePopover.tsx';
-import { Popover } from '../shell/Popover.tsx';
+import { AnchoredPanel } from '../shell/AnchoredPanel.tsx';
 import { Attachments } from './Attachments.tsx';
 import { type Density, useChatState } from './chat-state.ts';
 import { MarkdownView } from './MarkdownView.tsx';
 import styles from './message.module.css';
-
-/** Quick reactions until the full emoji picker (phase 5). */
-const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉'] as const;
 
 export interface MessageContext {
   readonly channelId: string;
@@ -92,9 +91,11 @@ function Editor({
 function Toolbar({
   message,
   context,
+  onPickerChange,
 }: {
   readonly message: VisibleMessage;
   readonly context: MessageContext;
+  readonly onPickerChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
   const actions = useMessageActions(context.channelId);
@@ -103,33 +104,26 @@ function Toolbar({
   const own = message.author?.id === context.selfId;
   return (
     <Glass level={1} pill className={styles['toolbar']}>
-      <Popover
-        placement="bottom-end"
-        trigger={({ toggle, ...aria }) => (
-          <IconButton label={t('chat.react')} onClick={toggle} {...aria}>
+      <AnchoredPanel
+        label={t('chat.react')}
+        onOpenChange={onPickerChange}
+        trigger={(props) => (
+          <IconButton label={t('chat.react')} {...props}>
             <Smiley size={16} weight="duotone" />
           </IconButton>
         )}
       >
         {(close) => (
-          <div className={styles['quickReactions']}>
-            {QUICK_REACTIONS.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                className={styles['quickReaction']}
-                aria-label={emoji}
-                onClick={() => {
-                  actions.react.mutate({ messageId: message.id, emoji, add: true });
-                  close();
-                }}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
+          <EmojiPicker
+            onPick={(picked) => {
+              if (picked.kind === 'sticker') return;
+              const emoji = picked.kind === 'unicode' ? picked.emoji : `custom:${picked.emote.id}`;
+              actions.react.mutate({ messageId: message.id, emoji, add: true });
+              close();
+            }}
+          />
         )}
-      </Popover>
+      </AnchoredPanel>
       <IconButton label={t('chat.reply')} onClick={() => setReplyTo(context.channelId, message)}>
         <ArrowBendUpLeft size={16} weight="duotone" />
       </IconButton>
@@ -190,7 +184,13 @@ function ReactionChips({
             })
           }
         >
-          <span>{reaction.emoji}</span>
+          <span>
+            {reaction.emoji.startsWith('custom:') ? (
+              <EmoteInline id={reaction.emoji.slice(7)} name="emote" />
+            ) : (
+              reaction.emoji
+            )}
+          </span>
           <span className={styles['reactionCount']}>{reaction.count}</span>
         </motion.button>
       ))}
@@ -270,6 +270,7 @@ export const MessageItem = memo(function MessageItem({
   // The action toolbar mounts only while the row is hovered or focused: rows mount constantly
   // during scrolling and the toolbar (glass, popover, mutations) is the heaviest part.
   const [active, setActive] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const activity = {
     onPointerEnter: () => setActive(true),
     onPointerLeave: () => setActive(false),
@@ -306,7 +307,9 @@ export const MessageItem = memo(function MessageItem({
             {time.short}
           </time>
         </div>
-        {active ? <Toolbar message={message} context={context} /> : null}
+        {active || pickerOpen ? (
+          <Toolbar message={message} context={context} onPickerChange={setPickerOpen} />
+        ) : null}
       </article>
     );
   }
@@ -355,7 +358,9 @@ export const MessageItem = memo(function MessageItem({
         ) : null}
         <Body message={message} context={context} />
       </div>
-      {active ? <Toolbar message={message} context={context} /> : null}
+      {active || pickerOpen ? (
+        <Toolbar message={message} context={context} onPickerChange={setPickerOpen} />
+      ) : null}
     </article>
   );
 });

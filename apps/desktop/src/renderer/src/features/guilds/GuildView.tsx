@@ -1,5 +1,6 @@
 import { PencilSimple, SignOut, Users } from '@phosphor-icons/react';
 import { has, Permission, parsePermissions } from '@silvercord/permissions';
+import type { GuildChannel } from '@silvercord/protocol';
 import { Button, Glass, IconButton } from '@silvercord/ui';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useId, useRef } from 'react';
@@ -9,8 +10,14 @@ import {
   isCurrentAccountGeneration,
 } from '../../api/account-generation.ts';
 import { useGuild, useGuildActions, useGuildChannels } from '../../api/guilds.ts';
+import { useTyping } from '../../api/presence.ts';
 import { useSession } from '../../session/session-store.ts';
+import { DensitySwitch } from '../chat/ChannelView.tsx';
+import { Composer } from '../chat/Composer.tsx';
+import chatStyles from '../chat/channel-view.module.css';
 import dialogStyles from '../chat/dialog.module.css';
+import { MessageList } from '../chat/MessageList.tsx';
+import { ExpressionManager } from '../expressions/ExpressionManager.tsx';
 import { ChannelFormDialog } from './ChannelFormDialog.tsx';
 import { ChannelIcon } from './GuildNavigation.tsx';
 import styles from './guild.module.css';
@@ -129,10 +136,14 @@ function GuildContent({
   const data = guild.data;
   const canEdit = channel && has(parsePermissions(channel.permissions), Permission.MANAGE_CHANNELS);
   return (
-    <section className={styles['view']} aria-label={channel?.name ?? data.name}>
+    <section className={chatStyles['view']} aria-label={channel?.name ?? data.name}>
       <Glass as="header" level={1} className={styles['header']}>
         {channel ? <ChannelIcon type={channel.type} /> : <Users size={22} aria-hidden="true" />}
         <h1>{channel?.name ?? data.name}</h1>
+        <span className={chatStyles['spacer']} />
+        {channel?.type === 'guild_text' || channel?.type === 'announcement' ? (
+          <DensitySwitch allowBubble={false} />
+        ) : null}
         {canEdit && channel ? (
           <ChannelFormDialog
             guildId={guildId}
@@ -146,29 +157,76 @@ function GuildContent({
           />
         ) : null}
       </Glass>
-      <div className={styles['details']}>
-        {channel ? (
-          <>
-            <p className={styles['type']}>{t(`guilds.types.${channel.type}`)}</p>
-            {channel.topic ? <p className={styles['topic']}>{channel.topic}</p> : null}
-            {channel.type !== 'guild_category' ? (
-              <p className={styles['note']}>
-                {t(
-                  channel.type === 'guild_voice'
-                    ? 'guilds.voiceUnavailable'
-                    : 'guilds.messagingUnavailable',
-                )}
+      {channel && (channel.type === 'guild_text' || channel.type === 'announcement') ? (
+        <GuildTranscript key={channel.id} channel={channel} />
+      ) : (
+        <div className={styles['details']}>
+          {channel ? (
+            <>
+              <p className={styles['type']}>{t(`guilds.types.${channel.type}`)}</p>
+              {channel.topic ? <p className={styles['topic']}>{channel.topic}</p> : null}
+              {channel.type !== 'guild_category' ? (
+                <p className={styles['note']}>
+                  {t(
+                    channel.type === 'guild_voice'
+                      ? 'guilds.voiceUnavailable'
+                      : 'guilds.messagingUnavailable',
+                  )}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <p className={styles['type']}>
+                {t('guilds.memberCount', { count: data.memberCount })}
               </p>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <p className={styles['type']}>{t('guilds.memberCount', { count: data.memberCount })}</p>
-            <p className={styles['note']}>{t('guilds.chooseChannel')}</p>
-            {data.ownerId !== selfId ? <LeaveGuild guildId={guildId} name={data.name} /> : null}
-          </>
-        )}
-      </div>
+              <p className={styles['note']}>{t('guilds.chooseChannel')}</p>
+              {has(parsePermissions(data.permissions), Permission.MANAGE_EMOJIS) ? (
+                <ExpressionManager guildId={guildId} />
+              ) : null}
+              {data.ownerId !== selfId ? <LeaveGuild guildId={guildId} name={data.name} /> : null}
+            </>
+          )}
+        </div>
+      )}
     </section>
+  );
+}
+
+function GuildTranscript({ channel }: { readonly channel: GuildChannel }) {
+  const { t } = useTranslation();
+  const permissions = parsePermissions(channel.permissions);
+  const chat = {
+    ...channel,
+    members: [],
+    readState: channel.readState ?? { lastReadMessageId: null, unreadCount: 0, mentionCount: 0 },
+  };
+  return (
+    <>
+      {channel.topic ? <p className={styles['topic']}>{channel.topic}</p> : null}
+      {has(permissions, Permission.READ_MESSAGE_HISTORY) ? (
+        <MessageList channel={chat} />
+      ) : (
+        <p className={styles['note']}>{t('guilds.historyUnavailable')}</p>
+      )}
+      <GuildTyping channelId={channel.id} />
+      {has(permissions, Permission.SEND_MESSAGES) ? (
+        <Composer channel={chat} placeholder={t('chat.messageTo', { name: `#${channel.name}` })} />
+      ) : (
+        <p className={styles['note']}>{t('guilds.readOnly')}</p>
+      )}
+    </>
+  );
+}
+
+function GuildTyping({ channelId }: { readonly channelId: string }) {
+  const { t } = useTranslation();
+  const ids = useTyping(channelId);
+  return (
+    <div className={chatStyles['typing']} aria-live="polite">
+      {ids.length
+        ? t(ids.length === 1 ? 'guilds.typingOne' : 'chat.typingMany', { count: ids.length })
+        : null}
+    </div>
   );
 }

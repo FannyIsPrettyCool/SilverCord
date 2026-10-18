@@ -115,6 +115,14 @@ export function GuildSidebar({ guildId }: { readonly guildId: string }) {
           >
             <ChannelIcon type={channel.type} />
             <span>{channel.name}</span>
+            {channel.readState && channel.readState.unreadCount > 0 ? (
+              <span
+                className={styles['unread']}
+                data-mention={channel.readState.mentionCount > 0 || undefined}
+              >
+                {channel.readState.unreadCount >= 100 ? '99+' : channel.readState.unreadCount}
+              </span>
+            ) : null}
           </Link>
         ))}
       </nav>

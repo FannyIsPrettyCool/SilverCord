@@ -43,6 +43,8 @@ function inline(nodes: readonly EditorNode[] = []): string {
       if (node.type === 'hardBreak') return '\n';
       if (node.type === 'mention' && typeof node.attrs?.['id'] === 'string')
         return `<@${node.attrs['id']}>`;
+      if (node.type === 'emote' && typeof node.attrs?.['id'] === 'string')
+        return `<${node.attrs['animated'] === true ? 'a' : ''}:${String(node.attrs['name'])}:${node.attrs['id']}>`;
       return inline(node.content);
     })
     .join('');

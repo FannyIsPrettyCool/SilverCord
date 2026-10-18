@@ -1,11 +1,12 @@
 import { ArrowDown } from '@phosphor-icons/react';
-import type { Channel, PublicUser } from '@silvercord/protocol';
+import type { PublicUser } from '@silvercord/protocol';
 import { IconButton } from '@silvercord/ui';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { markRead, newer, refreshVisibleMessages, useMessages } from '../../api/chat.ts';
 import { useSession } from '../../session/session-store.ts';
+import type { ChatChannel } from './chat-channel.ts';
 import { discardMessage, retryMessage, useChatState } from './chat-state.ts';
 import { type MessageContext, MessageItem } from './MessageItem.tsx';
 import styles from './message-list.module.css';
@@ -51,7 +52,7 @@ function PendingRow({ row }: { readonly row: Extract<Row, { kind: 'pending' }> }
  * Virtualized history: oldest at top, sticks to the bottom while the reader is there, keeps
  * the first visible row in place when older pages load above it.
  */
-export function MessageList({ channel }: { readonly channel: Channel }) {
+export function MessageList({ channel }: { readonly channel: ChatChannel }) {
   const { t } = useTranslation();
   const selfId = useSession((s) => s.user?.id ?? '');
   const density = useChatState((s) => s.density);

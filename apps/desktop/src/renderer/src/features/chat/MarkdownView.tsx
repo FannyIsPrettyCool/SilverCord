@@ -8,12 +8,15 @@ import {
 import type { PublicUser } from '@silvercord/protocol';
 import { type ReactNode, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { EmoteInline, StickerInline } from '../expressions/EmoteImage.tsx';
 import styles from './markdown.module.css';
 
 export interface MarkdownContext {
   /** Cards for users the message may mention; unknown ids render as a neutral mention. */
   readonly users: ReadonlyMap<string, PublicUser>;
   readonly selfId: string | null;
+  /** Emoji-only message: emotes and emoji draw large. */
+  readonly jumbo?: boolean;
 }
 
 const TIMESTAMP_FORMATS: Record<Exclude<TimestampStyle, 'R'>, Intl.DateTimeFormatOptions> = {
@@ -154,6 +157,12 @@ function Inline({
           </time>
         );
       }
+      case 'emote':
+        return (
+          <EmoteInline key={key} id={node.id} name={node.name} jumbo={context.jumbo ?? false} />
+        );
+      case 'sticker':
+        return <StickerInline key={key} id={node.id} />;
       default:
         return null;
     }
@@ -232,6 +241,32 @@ function parseCached(content: string): Document {
   return document;
 }
 
+const EMOJI_TEXT =
+  /^(?:\s|\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|\uFE0F|\u200D|\u20E3|[0-9#*])*$/u;
+const JUMBO_MAX = 27;
+
+/** One paragraph of only emotes and emoji (at most 27), like Discord's jumbo emoji. */
+export function isEmojiOnly(document: Document): boolean {
+  const [block, ...rest] = document.children;
+  if (!block || rest.length || block.type !== 'paragraph') return false;
+  let count = 0;
+  for (const node of block.children) {
+    if (node.type === 'emote') count += 1;
+    else if (node.type === 'text' && EMOJI_TEXT.test(node.value)) {
+      const segments = [...new Intl.Segmenter().segment(node.value.replace(/\s/g, ''))];
+      if (
+        segments.some(
+          ({ segment }) =>
+            !/(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|\u20E3)/u.test(segment),
+        )
+      )
+        return false;
+      count += segments.length;
+    } else return false;
+  }
+  return count > 0 && count <= JUMBO_MAX;
+}
+
 /** Renders chat markdown from its AST; there is no HTML path (docs/spec/messaging.md). */
 export function MarkdownView({
   content,
@@ -241,11 +276,13 @@ export function MarkdownView({
   readonly context: MarkdownContext;
 }) {
   const document = useMemo(() => parseCached(content), [content]);
+  const jumbo = useMemo(() => isEmojiOnly(document), [document]);
+  const blockContext = jumbo ? { ...context, jumbo } : context;
   return (
-    <div className={styles['markdown']}>
+    <div className={styles['markdown']} data-jumbo={jumbo || undefined}>
       {document.children.map((block, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: AST nodes have no identity; content is immutable.
-        <Block key={`${block.type}-${index}`} block={block} context={context} />
+        <Block key={`${block.type}-${index}`} block={block} context={blockContext} />
       ))}
     </div>
   );
