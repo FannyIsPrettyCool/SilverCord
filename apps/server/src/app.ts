@@ -19,6 +19,10 @@ import { registerChannelsRoutes } from './modules/channels/channels-routes.ts';
 import { createChannelsService } from './modules/channels/channels-service.ts';
 import { registerMessagesRoutes } from './modules/messages/messages-routes.ts';
 import { createMessagesService, noMessageMedia } from './modules/messages/messages-service.ts';
+import { createPresenceLeases } from './modules/presence/presence-leases.ts';
+import { registerPresenceRoutes } from './modules/presence/presence-routes.ts';
+import { createPresenceService } from './modules/presence/presence-service.ts';
+import { createTypingService } from './modules/presence/typing-service.ts';
 import { registerRelationshipsRoutes } from './modules/relationships/relationships-routes.ts';
 import { createRelationshipsService } from './modules/relationships/relationships-service.ts';
 import { createUsersService } from './modules/users/users-service.ts';
@@ -118,8 +122,30 @@ export async function buildApp(
     media: noMessageMedia,
     nextId: context.nextId,
   });
-  registerChannelsRoutes(app, db, channels, messages);
-  registerMessagesRoutes(app, db, messages);
+  const presence = createPresenceService({
+    db,
+    leases: createPresenceLeases(context.valkey),
+    relationships,
+    events: context.events,
+    log: app.log,
+    timings: context.presence,
+  });
+  const typing = createTypingService({
+    db,
+    valkey: context.valkey,
+    channels,
+    relationships,
+    events: context.events,
+    log: app.log,
+  });
+  registerChannelsRoutes(app, db, channels, messages, typing);
+  registerMessagesRoutes(app, db, messages, typing);
+  registerPresenceRoutes(app, db, presence, typing);
+  app.addHook('onReady', () => presence.start());
+  app.addHook('onClose', async () => {
+    await presence.close();
+    await typing.close();
+  });
 
   const dispatcher = createOutboxDispatcher({ db, events: context.events, log: app.log });
   app.addHook('onReady', () => dispatcher.start());
@@ -139,6 +165,16 @@ export async function buildApp(
       log: app.log,
       rateLimiter: context.rateLimiter,
       trustProxy: env.TRUST_PROXY,
+      lifecycle: {
+        attached: (session) => presence.hooks.attached(session.userId, session.id),
+        heartbeat: (session) => presence.hooks.heartbeat(session.userId, session.id),
+        detached: (session) => {
+          presence.hooks.detached(session.userId, session.id);
+          typing
+            .clearSession(session.userId, session.authSessionId)
+            .catch((error: unknown) => app.log.warn({ err: error }, 'typing cleanup failed'));
+        },
+      },
     },
     context.gateway,
   );

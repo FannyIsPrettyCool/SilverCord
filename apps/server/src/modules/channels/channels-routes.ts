@@ -19,6 +19,7 @@ import type { Database } from '../../db/client.ts';
 import { requireAuth } from '../../http/authentication.ts';
 import { perUser } from '../../http/rate-limit.ts';
 import type { MessagesService } from '../messages/messages-service.ts';
+import type { TypingService } from '../presence/typing-service.ts';
 import type { ChannelBase, ChannelsService } from './channels-service.ts';
 
 const errors = {
@@ -60,6 +61,7 @@ export function registerChannelsRoutes(
   db: Database,
   channels: ChannelsService,
   messages: MessagesService,
+  typing: TypingService,
 ): void {
   const r = app.withTypeProvider<ZodTypeProvider>();
 
@@ -172,6 +174,9 @@ export function registerChannelsRoutes(
       const { userId } = requireAuth(request);
       const { channelId, userId: memberId } = request.params;
       await channels.removeMember(db, userId, BigInt(channelId), BigInt(memberId));
+      await typing
+        .clearUser(BigInt(channelId), BigInt(memberId))
+        .catch((error: unknown) => request.log.warn({ err: error }, 'typing clear failed'));
       return reply.code(204).send(null);
     },
   );

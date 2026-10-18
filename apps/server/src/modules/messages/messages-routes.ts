@@ -16,6 +16,7 @@ import { z } from 'zod';
 import type { Database } from '../../db/client.ts';
 import { requireAuth } from '../../http/authentication.ts';
 import { perUser } from '../../http/rate-limit.ts';
+import type { TypingService } from '../presence/typing-service.ts';
 import type { MessagesService } from './messages-service.ts';
 
 const errors = {
@@ -38,6 +39,7 @@ export function registerMessagesRoutes(
   app: FastifyInstance,
   db: Database,
   messages: MessagesService,
+  typing: TypingService,
 ): void {
   const r = app.withTypeProvider<ZodTypeProvider>();
 
@@ -91,14 +93,22 @@ export function registerMessagesRoutes(
         rateLimit: [perUser('message.send', { capacity: 10, refillPerSecond: 2 })],
       },
     },
-    async (request) =>
-      messages.send(
+    async (request) => {
+      const { userId, sessionId } = requireAuth(request);
+      const channelId = BigInt(request.params.channelId);
+      const message = await messages.send(
         db,
-        requireAuth(request).userId,
-        BigInt(request.params.channelId),
+        userId,
+        channelId,
         request.headers['idempotency-key'],
         request.body,
-      ),
+      );
+      // Best effort: markers expire on their own within seconds.
+      await typing
+        .clear(channelId, userId, sessionId)
+        .catch((error: unknown) => request.log.warn({ err: error }, 'typing clear failed'));
+      return message;
+    },
   );
 
   r.patch(
