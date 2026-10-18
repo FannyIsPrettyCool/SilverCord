@@ -36,7 +36,10 @@ Production: `https://silvercord.islandmon.cloud` on the shared OVH VPS `145.239.
   Always `caddy validate` before `systemctl reload caddy`; backups sit beside it.
 - Compose project `silvercord-prod`; only the API binds `127.0.0.1:14000` and private
   Mailpit `127.0.0.1:18025` (SSH tunnel only). UFW allows 22, 80, 443 plus IslandMon ports.
-- Registration is invite-only; create invites from the owner account.
+- Registration is invite-only; create invites from the owner account, or from the host
+  without signing in (`count maxUses hours`, codes printed once):
+  `sudo docker compose --env-file /etc/silvercord/production.env -f infra/docker-compose.prod.yml
+  run --rm --no-deps api node src/modules/admin/invite-cli.ts 5 1 336`
 - SMTP is not configured: the `staging` profile routes mail to private Mailpit, so
   verification and reset mails are not delivered. Set `SMTP_URL`, `MAIL_FROM` and an empty
   `COMPOSE_PROFILES` in the env file, then redeploy, once a provider is available.
