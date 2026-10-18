@@ -38,6 +38,7 @@ export function cardFrom(
       customStatus: profile.customStatus,
       memberSince: profile.memberSince,
       nickname: profile.guildMember?.nickname ?? null,
+      badges: profile.badges,
     };
   return {
     user,

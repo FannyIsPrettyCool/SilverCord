@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useOwnProfile, usePatchProfile } from '../../api/profiles.ts';
 import { DesktopError } from '../../desktop.ts';
 import { hex, ProfileCard } from '../profiles/ProfileCard.tsx';
+import { BadgePins } from './BadgePins.tsx';
 import { ImagePicker } from './ImagePicker.tsx';
 import styles from './settings.module.css';
 
@@ -224,6 +225,10 @@ export function ProfileSettings() {
               })
             }
           />
+        </fieldset>
+        <fieldset className={styles['group']}>
+          <legend>{t('settings.badges')}</legend>
+          <BadgePins />
         </fieldset>
         <div className={styles['saveBar']} data-dirty={patch ? true : undefined}>
           <span role="status" aria-live="polite">

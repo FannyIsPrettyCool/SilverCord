@@ -41,5 +41,7 @@ export const keys = {
   summary: (userId: string, guildId?: string) => ['summary', userId, guildId ?? ''],
   profile: (userId: string, guildId?: string) => ['profile', userId, guildId ?? ''],
   ownProfile: ['own-profile'],
+  badgeDefinitions: ['badge-definitions'],
+  ownBadges: ['own-badges'],
   guildProfile: (guildId: string) => ['guild-profile', guildId],
 } as const;

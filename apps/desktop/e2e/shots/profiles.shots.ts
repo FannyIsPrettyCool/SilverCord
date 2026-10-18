@@ -120,6 +120,26 @@ for (const theme of THEMES) {
     await shoot('profile-privacy');
     await page.getByRole('link', { name: 'Server profiles' }).click();
     await shoot('profile-servers');
+    const badgesLink = page.getByRole('link', { name: 'Badges', exact: true });
+    if (await badgesLink.isVisible()) {
+      await badgesLink.click();
+      await expect(page.getByRole('heading', { name: 'Create badge' })).toBeVisible();
+      // Let the badge list load before deciding whether the tour badge exists.
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(800);
+      if ((await page.getByText('Night owl', { exact: true }).count()) === 0) {
+        await page.getByLabel('Name', { exact: true }).fill('Night owl');
+        await page.getByLabel('Description', { exact: true }).fill('Ships after midnight');
+        await page.getByRole('radio', { name: 'moon' }).check();
+        await page.getByRole('button', { name: 'Create badge' }).click();
+        await expect(page.getByText('Night owl', { exact: true }).first()).toBeVisible();
+        await page.getByLabel('Username').first().fill('tide');
+        await page.getByRole('button', { name: 'Award', exact: true }).first().click();
+        await page.getByLabel('Username').first().fill('aurora');
+        await page.getByRole('button', { name: 'Award', exact: true }).first().click();
+      }
+      await shoot('settings-badges');
+    }
     await page.getByRole('button', { name: 'Close settings' }).click();
 
     // Custom status from the user panel.

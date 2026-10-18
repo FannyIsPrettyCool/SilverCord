@@ -264,3 +264,142 @@
 .empty {
   color: var(--color-text-muted);
 }
+
+.subheading {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.handle {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.pins {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.pinList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pin {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-3) 0 var(--space-1);
+  border: 1px solid var(--color-field-border);
+  border-radius: 999px;
+  background: var(--color-field);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  &[aria-pressed="true"] {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.pinIndex {
+  font-weight: 700;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.adminBadges {
+  display: grid;
+  gap: var(--space-8);
+  max-width: 640px;
+}
+
+.badgePreview {
+  display: flex;
+}
+
+.iconGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 40px);
+  gap: var(--space-1);
+}
+
+.iconChoice {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--color-field);
+  color: var(--color-text-muted);
+  cursor: pointer;
+
+  &:has(input:checked) {
+    border-color: var(--color-accent);
+    color: var(--color-text);
+    background: var(--color-accent-soft);
+  }
+
+  &:has(input:focus-visible) {
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.adminList {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adminBadge {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-4);
+  align-items: start;
+
+  &[data-retired] {
+    opacity: 0.6;
+  }
+}
+
+.adminBadgeBody {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.awardForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-2);
+  align-items: end;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

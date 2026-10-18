@@ -4,12 +4,14 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { motion } from 'motion/react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSession } from '../../session/session-store.ts';
+import { BadgeAdmin } from './BadgeAdmin.tsx';
 import { PrivacySettings } from './PrivacySettings.tsx';
 import { ProfileSettings } from './ProfileSettings.tsx';
 import { ServerProfileSettings } from './ServerProfileSettings.tsx';
 import styles from './settings.module.css';
 
-export const SETTINGS_SECTIONS = ['profile', 'privacy', 'servers'] as const;
+export const SETTINGS_SECTIONS = ['profile', 'privacy', 'servers', 'badges'] as const;
 type Section = (typeof SETTINGS_SECTIONS)[number];
 const isSection = (value: string): value is Section =>
   (SETTINGS_SECTIONS as readonly string[]).includes(value);
@@ -18,6 +20,7 @@ const LABELS = {
   profile: 'settings.profile',
   privacy: 'settings.privacy',
   servers: 'settings.serverProfiles',
+  badges: 'badges.admin',
 } as const;
 
 /** Settings in the content area: section list on the left, the section on the right. */
@@ -25,7 +28,9 @@ export function SettingsView() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { section: raw } = useParams({ from: '/app/settings/$section' });
-  const section: Section = isSection(raw) ? raw : 'profile';
+  const admin = useSession((s) => s.user?.isInstanceAdmin === true);
+  const sections = SETTINGS_SECTIONS.filter((item) => item !== 'badges' || admin);
+  const section: Section = isSection(raw) && sections.includes(raw) ? raw : 'profile';
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       // Escape inside dialogs/menus is theirs; only a bare Escape leaves settings.
@@ -38,7 +43,7 @@ export function SettingsView() {
   return (
     <div className={styles['settings']}>
       <nav className={styles['nav']} aria-label={t('settings.title')}>
-        {SETTINGS_SECTIONS.map((item) => (
+        {sections.map((item) => (
           <Link
             key={item}
             to="/app/settings/$section"
@@ -69,6 +74,7 @@ export function SettingsView() {
         {section === 'profile' ? <ProfileSettings /> : null}
         {section === 'privacy' ? <PrivacySettings /> : null}
         {section === 'servers' ? <ServerProfileSettings /> : null}
+        {section === 'badges' && admin ? <BadgeAdmin /> : null}
       </section>
     </div>
   );
