@@ -87,8 +87,8 @@ stays 60 fps on 10k-message seed.
 - [x] `packages/markdown`: chat-markdown → AST parser (+ property tests)
 - [x] Typing indicators, presence (friends; shared-guild audiences arrive with phase 3)
 - [x] Read states + unread/mention badges
-- [~] Media: upload pipeline, content sniffing, sharp (EXIF strip, thumbs, blurhash), quotas — done;
-      separate CDN origin blocked on a `cdn.` DNS record (ADR-0009: served by the API meanwhile)
+- [x] Media: upload pipeline, content sniffing, sharp (EXIF strip, thumbs, blurhash), quotas;
+      separate authenticated CDN at https://cdn.silvercord.islandmon.cloud (API host rejects media)
 - [x] Composer (Tiptap): markdown, mentions autocomplete, paste/drop uploads, drafts
 - [x] Message list: virtualized, scroll anchoring, jump-to; 10k seed at 60 fps (docs/PERF.md)
 - [x] Density: cozy, compact, bubble (DMs)
@@ -96,6 +96,9 @@ stays 60 fps on 10k-message seed.
 - [x] Deploy to OVH VPS: https://silvercord.islandmon.cloud
 - [~] Acceptance: two clients chat through the VPS (verified on one machine against the VPS staging
       stack, `e2e/live/two-clients.live.ts`); cross-machine run needs a second machine
+- [x] Phase-end reviewer and security audit: chunk rollback, decoder isolation, worker retries,
+      account switching, history/read/typing/presence races and DB/media snapshot consistency
+- [~] Release gate: final cross-machine acceptance, latest CI, merge and tag `v0.2.0`
 
 ## Phase 3 — Servers & permissions
 

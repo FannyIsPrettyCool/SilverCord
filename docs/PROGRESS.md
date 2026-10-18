@@ -11,13 +11,17 @@ able to continue from the top entry alone.
 - Latest main CI exposed quadratic parsing of unmatched opening brackets. Masked links
   now use a precomputed delimiter index; all 27 markdown tests pass, including escaped
   delimiters, invalid labels and the original adversarial performance regression.
-- Audit fixes in progress: orphan chunk rollback cleanup, Linux decoder file isolation,
+- Audit fixes implemented and pushed: orphan chunk rollback cleanup, Linux decoder file isolation,
   per-attempt object keys, account-bound renderer requests/caches, history/read/typing
   reconciliation, atomic presence leases, consistent DB/media backups and separate CDN.
-- Owner added `cdn.silvercord.islandmon.cloud`; DNS resolves to the VPS. HTTPS configuration,
-  final rollout, CI and cross-machine acceptance remain before the Phase 2 tag.
+- Owner added `cdn.silvercord.islandmon.cloud`; HTTPS is live. CDN media requires bearer
+  authentication (401 without it); API-host media and CDN non-media paths return 404.
+- Private staging runs 3715671 with all six services healthy. Deployment successfully
+  stopped/resumed API+worker for the consistent pre-migration database/media snapshot.
+  Production rollout, latest CI and cross-machine acceptance remain before the tag.
 - Verification so far: 124 real Postgres/Valkey integration tests, 27 isolated Linux media
-  unit/integration cases, all-package checks and ten Electron smoke/security tests pass.
+  unit/integration cases, all-package checks (98 desktop unit tests) and ten Electron
+  smoke/security tests pass. Backup lifecycle tests pass on Linux and run in CI.
 - External dependencies remain SMTP and encrypted off-host storage credentials.
 
 ## 2026-10-18 — Phase 2 implemented and deployed (review pending, then `v0.2.0`)
