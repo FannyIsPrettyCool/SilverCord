@@ -24,6 +24,7 @@ import { createMediaQueue } from './modules/media/media-queue.ts';
 import { registerMediaRoutes } from './modules/media/media-routes.ts';
 import { registerMessagesRoutes } from './modules/messages/messages-routes.ts';
 import { registerPresenceRoutes } from './modules/presence/presence-routes.ts';
+import { registerProfilesRoutes } from './modules/profiles/profiles-routes.ts';
 import { registerRelationshipsRoutes } from './modules/relationships/relationships-routes.ts';
 import { createUsersService } from './modules/users/users-service.ts';
 import { createChatServices } from './services.ts';
@@ -137,8 +138,13 @@ export async function buildApp(
   registerMessagesRoutes(app, db, messages, typing);
   registerPresenceRoutes(app, db, presence, typing);
   await registerMediaRoutes(app, media, storage);
-  app.addHook('onReady', () => presence.start());
+  registerProfilesRoutes(app, db, services.profiles);
+  app.addHook('onReady', () => {
+    presence.start();
+    services.profiles.start();
+  });
   app.addHook('onClose', async () => {
+    await services.profiles.close();
     await presence.close();
     await typing.close();
   });

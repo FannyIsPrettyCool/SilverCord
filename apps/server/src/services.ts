@@ -2,6 +2,7 @@ import type { AppContext } from './context.ts';
 import { createEventOutbox } from './events/outbox.ts';
 import { createChannelsService } from './modules/channels/channels-service.ts';
 import { createGuildChannelsService } from './modules/guilds/guild-channels-service.ts';
+import { createGuildMembership } from './modules/guilds/guild-membership.ts';
 import { createGuildPermissionsService } from './modules/guilds/guild-permissions.ts';
 import { createGuildsService } from './modules/guilds/guilds-service.ts';
 import { createMediaService } from './modules/media/media-service.ts';
@@ -10,6 +11,7 @@ import { createMessagesService } from './modules/messages/messages-service.ts';
 import { createPresenceLeases } from './modules/presence/presence-leases.ts';
 import { createPresenceService } from './modules/presence/presence-service.ts';
 import { createTypingService } from './modules/presence/typing-service.ts';
+import { createProfilesService } from './modules/profiles/profiles-service.ts';
 import { createRelationshipsService } from './modules/relationships/relationships-service.ts';
 import { createUsersService } from './modules/users/users-service.ts';
 
@@ -36,7 +38,10 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     outbox,
     permissions: guildPermissions,
     createDefaultChannel: guildChannels.createDefaultChannel,
+    // Resolved at call time: profiles are built below and depend on media.
+    memberLeaving: (tx, guildId, userId) => profiles.memberLeaving(tx, guildId, userId),
   });
+  const guildMembership = createGuildMembership();
   const relationships = createRelationshipsService({ users, nextId, outbox });
   const channels = createChannelsService({
     users,
@@ -87,6 +92,18 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     events,
     log: options.log,
   });
+  const profiles = createProfilesService({
+    db,
+    users,
+    relationships,
+    channels,
+    guildMembership,
+    guildPermissions,
+    presence,
+    media,
+    events,
+    log: options.log,
+  });
   return {
     db,
     users,
@@ -101,6 +118,8 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     messages,
     presence,
     typing,
+    guildMembership,
+    profiles,
   };
 }
 export type ChatServices = ReturnType<typeof createChatServices>;

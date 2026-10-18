@@ -13,6 +13,12 @@ export interface GuildsDependencies {
   readonly outbox: EventOutbox;
   readonly permissions: GuildPermissionsService;
   readonly createDefaultChannel: (tx: Transaction, guildId: bigint) => Promise<void>;
+  /** Releases member-owned resources inside the leave transaction; returns post-commit work. */
+  readonly memberLeaving?: (
+    tx: Transaction,
+    guildId: bigint,
+    userId: bigint,
+  ) => Promise<() => Promise<void>>;
 }
 
 const notFound = () => new AppError('NOT_FOUND', 'Server not found');
@@ -151,11 +157,12 @@ export function createGuildsService(deps: GuildsDependencies) {
       return view(ex, actorId, guildId);
     },
     async leave(ex: Executor, actorId: bigint, guildId: bigint): Promise<void> {
-      await ex.transaction(async (tx) => {
+      const after = await ex.transaction(async (tx) => {
         await requireUser(tx, actorId);
         const { guild } = await access(tx, guildId, actorId, true);
         if (guild.ownerId === actorId)
           throw new AppError('FORBIDDEN', 'Transfer ownership before leaving');
+        const cleanup = await deps.memberLeaving?.(tx, guildId, actorId);
         await tx
           .delete(guildMembers)
           .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.userId, actorId)));
@@ -178,7 +185,9 @@ export function createGuildsService(deps: GuildsDependencies) {
           [...remaining.map((member) => member.id), actorId],
           { guildId: guildId.toString() },
         );
+        return cleanup;
       });
+      await after?.();
     },
   };
 }
