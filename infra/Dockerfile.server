@@ -6,11 +6,13 @@ RUN npm install --global pnpm@11.26.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/server/package.json apps/server/package.json
 COPY packages/protocol/package.json packages/protocol/package.json
+COPY packages/markdown/package.json packages/markdown/package.json
 COPY packages/config/package.json packages/config/package.json
 COPY tools/commitlint/package.json tools/commitlint/package.json
 RUN pnpm --filter @silvercord/server... install --prod --frozen-lockfile --ignore-scripts
 COPY apps/server/src apps/server/src
 COPY packages/protocol/src packages/protocol/src
+COPY packages/markdown/src packages/markdown/src
 # Deploy makes workspace dependencies portable; these packages export TS source.
 RUN pnpm --filter @silvercord/server deploy --prod --legacy --ignore-scripts /opt/server
 
@@ -20,11 +22,15 @@ WORKDIR /app
 COPY --from=dependencies --chown=node:node /opt/server/ ./
 COPY --from=dependencies /workspace/packages/protocol/package.json /workspace-packages/protocol/package.json
 COPY --from=dependencies /workspace/packages/protocol/src /workspace-packages/protocol/src
+COPY --from=dependencies /workspace/packages/markdown/package.json /workspace-packages/markdown/package.json
+COPY --from=dependencies /workspace/packages/markdown/src /workspace-packages/markdown/src
 # Node does not strip TypeScript under node_modules. Workspace source dependencies
 # are deliberately copied outside it and linked back; external packages stay JS.
-RUN rm -r node_modules/@silvercord/protocol && \
-    ln -s /workspace-packages/protocol node_modules/@silvercord/protocol && \
-    ln -s /app/node_modules /workspace-packages/protocol/node_modules
+RUN for package in protocol markdown; do \
+      rm -r "node_modules/@silvercord/$package" && \
+      ln -s "/workspace-packages/$package" "node_modules/@silvercord/$package" && \
+      ln -s /app/node_modules "/workspace-packages/$package/node_modules"; \
+    done
 USER node
 EXPOSE 4000
 CMD ["node", "src/main.ts"]

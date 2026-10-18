@@ -13,6 +13,10 @@ import {
   createSessionRevocations,
   type SessionRevocations,
 } from './modules/auth/session-revocations.ts';
+import {
+  DEFAULT_PRESENCE_TIMINGS,
+  type PresenceTimings,
+} from './modules/presence/presence-service.ts';
 
 /** Process-wide infrastructure, built once in `main.ts` (or per test file). */
 export interface AppContext {
@@ -27,6 +31,7 @@ export interface AppContext {
   readonly secretBox: SecretBox;
   readonly events: EventPublisher;
   readonly gateway: GatewayOptions;
+  readonly presence: PresenceTimings;
 }
 
 export async function createAppContext(
@@ -47,6 +52,7 @@ export async function createAppContext(
     secretBox: overrides.secretBox ?? createSecretBox(env.TOTP_ENCRYPTION_KEY),
     events: overrides.events ?? createEventPublisher(valkey),
     gateway: overrides.gateway ?? DEFAULT_GATEWAY_OPTIONS,
+    presence: overrides.presence ?? DEFAULT_PRESENCE_TIMINGS,
   };
 }
 

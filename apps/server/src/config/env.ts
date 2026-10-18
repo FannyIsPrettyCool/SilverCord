@@ -53,6 +53,8 @@ const envSchema = z
           .map((origin) => origin.trim())
           .filter(Boolean),
       ),
+    /** Maximum members of a group DM, including its owner. */
+    GROUP_DM_MAX_MEMBERS: z.coerce.number().int().min(3).max(25).default(10),
     /** Optional k-anonymity check against Have I Been Pwned; calls an external service. */
     HIBP_ENABLED: booleanFlag,
   })

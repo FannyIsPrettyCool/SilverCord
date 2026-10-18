@@ -9,6 +9,7 @@ import { DEFAULT_GATEWAY_OPTIONS } from '../src/gateway/gateway-server.ts';
 import type { Mailer, MailMessage } from '../src/infra/mailer.ts';
 import type { RateLimiter } from '../src/infra/rate-limiter.ts';
 import { createValkey } from '../src/infra/valkey.ts';
+import type { PresenceTimings } from '../src/modules/presence/presence-service.ts';
 import { createTestDatabase } from './database.ts';
 
 export interface CapturingMailer extends Mailer {
@@ -58,6 +59,7 @@ export async function createTestApp(
     rateLimiter?: RateLimiter;
     logLines?: string[];
     gateway?: Partial<GatewayOptions>;
+    presence?: PresenceTimings;
   } = {},
 ): Promise<TestApp> {
   const database = await createTestDatabase();
@@ -83,6 +85,7 @@ export async function createTestApp(
         ? {}
         : { rateLimiter: unlimited }),
     gateway: { ...DEFAULT_GATEWAY_OPTIONS, ...options.gateway },
+    ...(options.presence ? { presence: options.presence } : {}),
   });
   const lines = options.logLines;
   const app = await buildApp(
