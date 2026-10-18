@@ -1,4 +1,5 @@
 import type {
+  Activity,
   BadgeAward,
   CustomStatus,
   PresenceStatus,
@@ -10,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useMediaUrl } from '../../api/media.ts';
 import { MarkdownView } from '../chat/MarkdownView.tsx';
 import { Avatar, avatarPath } from '../presence/Avatar.tsx';
+import { ActivityList } from './ActivityList.tsx';
 import { BadgeShelf } from './BadgeShelf.tsx';
 import styles from './profile.module.css';
 
@@ -29,6 +31,7 @@ export interface CardData {
   readonly memberSince?: string | undefined;
   readonly nickname?: string | null | undefined;
   readonly badges?: readonly BadgeAward[] | undefined;
+  readonly activities?: readonly Activity[] | undefined;
 }
 
 /** Banner image, else banner colour, else the avatar's dominant colour, else the accent. */
@@ -123,6 +126,7 @@ export function ProfileCard({
           {card.customStatus ? <StatusLine status={card.customStatus} /> : null}
         </header>
         {card.badges?.length ? <BadgeShelf awards={card.badges} /> : null}
+        {card.activities?.length ? <ActivityList activities={card.activities} /> : null}
         {card.bio ? (
           <section className={styles['bio']}>
             <MarkdownView content={card.bio} context={{ users: new Map(), selfId: null }} />

@@ -12,6 +12,7 @@ import { ConversationList } from '../chat/ConversationList.tsx';
 import { GuildNavigation, GuildSidebar } from '../guilds/GuildNavigation.tsx';
 import { Avatar } from '../presence/Avatar.tsx';
 import { StatusMenu } from '../presence/StatusMenu.tsx';
+import { ActivityRelay } from '../profiles/ActivityRelay.tsx';
 import { CustomStatusDialog } from '../profiles/CustomStatusDialog.tsx';
 import { StatusLine } from '../profiles/ProfileCard.tsx';
 import { ProfileDialog } from '../profiles/ProfileDialog.tsx';
@@ -137,6 +138,7 @@ export function AppShell() {
         <Outlet />
       </main>
       <ProfileDialog />
+      <ActivityRelay />
       {/* Outside the popover, which unmounts on close; the menu opens it through the ref. */}
       <CustomStatusDialog
         trigger={(open) => {

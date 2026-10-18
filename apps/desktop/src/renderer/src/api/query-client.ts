@@ -43,5 +43,8 @@ export const keys = {
   ownProfile: ['own-profile'],
   badgeDefinitions: ['badge-definitions'],
   ownBadges: ['own-badges'],
+  ownActivity: ['own-activity'],
+  activityGames: ['activity-games'],
+  rpcApps: ['rpc-apps'],
   guildProfile: (guildId: string) => ['guild-profile', guildId],
 } as const;

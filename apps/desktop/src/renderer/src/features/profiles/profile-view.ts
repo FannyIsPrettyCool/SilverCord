@@ -39,6 +39,7 @@ export function cardFrom(
       memberSince: profile.memberSince,
       nickname: profile.guildMember?.nickname ?? null,
       badges: profile.badges,
+      activities: profile.activities,
     };
   return {
     user,
@@ -47,6 +48,7 @@ export function cardFrom(
     bannerColor: null,
     themeColors: null,
     customStatus: summary?.customStatus,
+    activities: summary?.activity ? [summary.activity] : undefined,
     nickname: summary?.nickname ?? null,
   };
 }

@@ -5,13 +5,14 @@ import { motion } from 'motion/react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../../session/session-store.ts';
+import { ActivitySettings } from './ActivitySettings.tsx';
 import { BadgeAdmin } from './BadgeAdmin.tsx';
 import { PrivacySettings } from './PrivacySettings.tsx';
 import { ProfileSettings } from './ProfileSettings.tsx';
 import { ServerProfileSettings } from './ServerProfileSettings.tsx';
 import styles from './settings.module.css';
 
-export const SETTINGS_SECTIONS = ['profile', 'privacy', 'servers', 'badges'] as const;
+export const SETTINGS_SECTIONS = ['profile', 'privacy', 'activity', 'servers', 'badges'] as const;
 type Section = (typeof SETTINGS_SECTIONS)[number];
 const isSection = (value: string): value is Section =>
   (SETTINGS_SECTIONS as readonly string[]).includes(value);
@@ -19,6 +20,7 @@ const isSection = (value: string): value is Section =>
 const LABELS = {
   profile: 'settings.profile',
   privacy: 'settings.privacy',
+  activity: 'settings.activity',
   servers: 'settings.serverProfiles',
   badges: 'badges.admin',
 } as const;
@@ -73,6 +75,7 @@ export function SettingsView() {
         </header>
         {section === 'profile' ? <ProfileSettings /> : null}
         {section === 'privacy' ? <PrivacySettings /> : null}
+        {section === 'activity' ? <ActivitySettings /> : null}
         {section === 'servers' ? <ServerProfileSettings /> : null}
         {section === 'badges' && admin ? <BadgeAdmin /> : null}
       </section>

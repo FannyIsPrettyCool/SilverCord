@@ -1,3 +1,4 @@
+import { type ChildProcess, spawn } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -76,7 +77,7 @@ for (const theme of THEMES) {
     });
 
     // Editor: reached from the user panel menu.
-    await page.getByRole('button', { name: 'Status' }).click();
+    await page.getByRole('button', { name: 'Status', exact: true }).click();
     await page.getByRole('button', { name: 'Edit profile' }).click();
     await expect(page.getByRole('heading', { name: 'Profile', exact: true })).toBeVisible();
     await page.getByLabel('Display name').fill('Aurora');
@@ -143,32 +144,64 @@ for (const theme of THEMES) {
     await page.getByRole('button', { name: 'Close settings' }).click();
 
     // Custom status from the user panel.
-    await page.getByRole('button', { name: 'Status' }).click();
+    await page.getByRole('button', { name: 'Status', exact: true }).click();
     await page.getByRole('button', { name: /custom status/ }).click();
     await page.getByLabel('Emoji').fill('🌙');
     await page.getByRole('textbox', { name: 'Status' }).fill('Shipping profiles');
     await shoot('custom-status');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByRole('heading', { name: /custom status/ })).toHaveCount(0);
     await expect(page.getByText('Shipping profiles').first()).toBeVisible();
 
-    // Popout and full view from a conversation.
-    await page
-      .getByRole('navigation', { name: 'Conversations' })
-      .getByRole('link', { name: 'Tide' })
-      .click();
-    await expect(page.getByRole('article').last()).toBeVisible({ timeout: 15_000 });
-    await page.getByRole('button', { name: 'Aurora' }).first().click();
-    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Aurora' })).toBeVisible();
-    await shoot('profile-popout-self');
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('article', { name: 'Aurora', exact: true })).toHaveCount(0);
-    await page.locator('header').getByRole('button', { name: 'Tide' }).first().click();
-    await expect(page.getByRole('button', { name: 'View full profile' })).toBeVisible();
-    await shoot('profile-popout');
-    await page.getByRole('button', { name: 'View full profile' }).click();
-    await shoot('profile-full');
-    await page.keyboard.press('Escape');
+    // Activity: typed plus a Local RPC program the user approves.
+    await page.getByRole('button', { name: 'Status', exact: true }).click();
+    await page.getByRole('button', { name: 'Edit profile' }).click();
+    await page.getByRole('link', { name: 'Activity', exact: true }).click();
+    for (const source of ['Typed activity', 'Local RPC']) {
+      const box = page.getByRole('checkbox', { name: source });
+      if ((await box.getAttribute('aria-checked')) !== 'true') await box.click();
+      await expect(box).toHaveAttribute('aria-checked', 'true');
+    }
+    await page.getByLabel('Name', { exact: true }).fill('Profile polish');
+    await page.getByLabel('Details', { exact: true }).fill('Phase 5');
+    await page.getByRole('button', { name: 'Set activity' }).click();
+    await expect(page.getByRole('button', { name: 'Clear activity' })).toBeVisible();
+    await shoot('settings-activity');
+    let rpc: ChildProcess | undefined;
+    try {
+      rpc = spawn(
+        process.execPath,
+        [join(import.meta.dirname, '../../../../tools/rpc-example.mjs'), 'Tour', 'Tetrominoes'],
+        { stdio: 'ignore' },
+      );
+      const allow = page.getByRole('button', { name: 'Allow', exact: true });
+      if (await allow.isVisible({ timeout: 15_000 }).catch(() => false)) {
+        await shoot('rpc-request');
+        await allow.click();
+      }
+      await page.waitForTimeout(6_000);
+      await page.getByRole('button', { name: 'Close settings' }).click();
 
+      // Popout and full view from a conversation.
+      await page
+        .getByRole('navigation', { name: 'Conversations' })
+        .getByRole('link', { name: 'Tide' })
+        .click();
+      await expect(page.getByRole('article').last()).toBeVisible({ timeout: 15_000 });
+      await page.getByRole('button', { name: 'Aurora' }).first().click();
+      await expect(page.getByRole('dialog').getByRole('heading', { name: 'Aurora' })).toBeVisible();
+      await shoot('profile-popout-self');
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('article', { name: 'Aurora', exact: true })).toHaveCount(0);
+      await page.locator('header').getByRole('button', { name: 'Tide' }).first().click();
+      await expect(page.getByRole('button', { name: 'View full profile' })).toBeVisible();
+      await shoot('profile-popout');
+      await page.getByRole('button', { name: 'View full profile' }).click();
+      await shoot('profile-full');
+      await page.keyboard.press('Escape');
+    } finally {
+      rpc?.kill();
+    }
     await page.getByRole('button', { name: 'Sign out' }).click();
     await app.close();
   });
