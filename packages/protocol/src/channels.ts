@@ -8,6 +8,8 @@ export const channelTypeSchema = z.enum(['dm', 'group_dm']);
 export type ChannelType = z.infer<typeof channelTypeSchema>;
 
 export const GROUP_DM_DEFAULT_MAX_MEMBERS = 10;
+/** Hard ceiling for the instance setting; the server enforces its configured maximum. */
+export const GROUP_DM_MAX_MEMBERS_LIMIT = 25;
 /** Counts are capped so badges never need an unbounded scan; clients show "99+". */
 export const UNREAD_COUNT_CAP = 100;
 
@@ -57,7 +59,7 @@ const uniqueIds = (max: number) =>
 export const openChannelRequestSchema = z.union([
   z.strictObject({ recipientId: snowflakeSchema }),
   z.strictObject({
-    recipientIds: uniqueIds(GROUP_DM_DEFAULT_MAX_MEMBERS - 1),
+    recipientIds: uniqueIds(GROUP_DM_MAX_MEMBERS_LIMIT - 1),
     name: channelNameSchema.optional(),
   }),
 ]);

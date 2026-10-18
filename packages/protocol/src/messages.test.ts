@@ -82,7 +82,7 @@ describe('channel contracts', () => {
     });
     for (const input of [
       { recipientIds: [] },
-      { recipientIds: Array.from({ length: 10 }, (_, index) => String(index + 1)) },
+      { recipientIds: Array.from({ length: 25 }, (_, index) => String(index + 1)) },
       { recipientIds: ['5', '5'] },
       { recipientId: '5', name: 'x' },
     ])
