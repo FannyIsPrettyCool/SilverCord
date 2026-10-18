@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { badgeAwardSchema } from './badges.ts';
 import { profileImageSchema } from './profile-media.ts';
 import { relationshipKindSchema } from './relationships.ts';
 import { snowflakeSchema } from './snowflake.ts';
@@ -178,6 +179,8 @@ export const userProfileSchema = z.strictObject({
   pronouns: z.string().nullable().optional(),
   customStatus: customStatusSchema.nullable().optional(),
   memberSince: z.iso.datetime().optional(),
+  /** Pinned first, then rarest, then newest. */
+  badges: z.array(badgeAwardSchema).optional(),
   mutualFriends: mutualsSchema.optional(),
   mutualGuilds: mutualsSchema.optional(),
   relationship: profileRelationshipSchema,

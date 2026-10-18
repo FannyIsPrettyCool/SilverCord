@@ -1,4 +1,5 @@
 export * from './auth.ts';
+export * from './badges.ts';
 export { BRAND } from './brand.ts';
 export * from './channels.ts';
 export {
