@@ -200,12 +200,13 @@ export function MessageList({ channel }: { readonly channel: ChatChannel }) {
   const context: MessageContext = useMemo(
     () => ({
       channelId: channel.id,
+      guildId: channel.guildId,
       selfId,
       users,
       density: density === 'bubble' && channel.type !== 'dm' ? 'cozy' : density,
       onJump: (id) => void jumpTo(id),
     }),
-    [channel.id, channel.type, selfId, users, density, jumpTo],
+    [channel.id, channel.guildId, channel.type, selfId, users, density, jumpTo],
   );
 
   return (

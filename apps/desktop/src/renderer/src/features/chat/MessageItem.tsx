@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMessageActions } from '../../api/chat.ts';
+import { useSummary } from '../../api/profiles.ts';
 import { EmojiPicker } from '../expressions/EmojiPicker.tsx';
 import { EmoteInline } from '../expressions/EmoteImage.tsx';
 import { Avatar, displayName } from '../presence/Avatar.tsx';
@@ -17,6 +18,7 @@ import styles from './message.module.css';
 
 export interface MessageContext {
   readonly channelId: string;
+  readonly guildId?: string | undefined;
   readonly selfId: string;
   readonly users: ReadonlyMap<string, PublicUser>;
   readonly density: Density;
@@ -255,6 +257,17 @@ function Body({
   );
 }
 
+function AuthorName({
+  user,
+  guildId,
+}: {
+  readonly user: PublicUser;
+  readonly guildId: string | undefined;
+}) {
+  const summary = useSummary(user.id, guildId);
+  return <>{summary.data?.nickname ?? displayName(user)}</>;
+}
+
 /** One message in cozy, compact or bubble density; `grouped` hides the repeated header. */
 export const MessageItem = memo(function MessageItem({
   message,
@@ -333,8 +346,8 @@ export const MessageItem = memo(function MessageItem({
           {time.short}
         </time>
       ) : author ? (
-        <ProfileTrigger user={author} label={name}>
-          <Avatar user={author} size={40} />
+        <ProfileTrigger user={author} guildId={context.guildId} label={name}>
+          <Avatar user={author} guildId={context.guildId} size={40} />
         </ProfileTrigger>
       ) : (
         <span className={styles['ghostAvatar']} aria-hidden="true" />
@@ -343,8 +356,8 @@ export const MessageItem = memo(function MessageItem({
         {!grouped || context.density === 'compact' ? (
           <header className={styles['header']}>
             {author ? (
-              <ProfileTrigger user={author} className={styles['author']}>
-                {name}
+              <ProfileTrigger user={author} guildId={context.guildId} className={styles['author']}>
+                <AuthorName user={author} guildId={context.guildId} />
               </ProfileTrigger>
             ) : (
               <span className={styles['author']}>{name}</span>
