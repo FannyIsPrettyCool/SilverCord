@@ -50,6 +50,8 @@ describe('locales', () => {
         !key.startsWith('errors.') &&
         !key.startsWith('chatErrors.') &&
         !key.startsWith('profileErrors.') &&
+        // Tooltip copy listed in docs/spec/badges.md.
+        !/^badges\.builtin\.\w+\.description$/.test(key) &&
         !key.startsWith('field.') &&
         !specApproved.has(key),
     );

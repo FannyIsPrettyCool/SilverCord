@@ -256,7 +256,16 @@
       "mutualFriends": "Amis en commun",
       "mutualGuilds": "Serveurs en commun"
     },
-    "pronounSuggestions": ["elle", "il", "iel", "elle/iel", "il/iel", "tous pronoms", "demande-moi"]
+    "pronounSuggestions": [
+      "elle",
+      "il",
+      "iel",
+      "elle/iel",
+      "il/iel",
+      "tous pronoms",
+      "demande-moi"
+    ],
+    "badges": "Badges"
   },
   "customStatus": {
     "set": "Définir un statut personnalisé",
@@ -278,6 +287,66 @@
     "conflict": "Modifié sur un autre appareil. Rechargez pour continuer.",
     "uploadFailed": "Échec de l'envoi",
     "unsupported": "Utilisez une image PNG, JPEG, GIF ou WebP",
-    "tooLarge": "Image trop lourde"
+    "tooLarge": "Image trop lourde",
+    "userNotFound": "Aucun compte avec ce nom d'utilisateur",
+    "badgeFailed": "Impossible d'enregistrer le badge"
+  },
+  "badges": {
+    "builtin": {
+      "founder": {
+        "name": "Fondateur",
+        "description": "Premier compte de cette instance"
+      },
+      "early_member": {
+        "name": "Pionnier",
+        "description": "Parmi les cent premiers comptes"
+      },
+      "anniversary": {
+        "name": "Anniversaire",
+        "description": "{count, plural, one {Membre depuis # an} other {Membre depuis # ans}}"
+      },
+      "instance_admin": {
+        "name": "Administrateur",
+        "description": "Gère cette instance"
+      },
+      "server_owner": {
+        "name": "Propriétaire",
+        "description": "Possède un serveur"
+      },
+      "verified": {
+        "name": "Vérifié",
+        "description": "Adresse e-mail vérifiée"
+      },
+      "secured": {
+        "name": "Sécurisé",
+        "description": "Double authentification activée"
+      }
+    },
+    "rarity": {
+      "common": "Commun",
+      "uncommon": "Peu commun",
+      "rare": "Rare",
+      "epic": "Épique",
+      "legendary": "Légendaire",
+      "mythic": "Mythique"
+    },
+    "pin": "Épingler",
+    "unpin": "Désépingler",
+    "pinned": "{count}/{max} épinglés",
+    "admin": "Badges",
+    "create": "Créer un badge",
+    "name": "Nom",
+    "description": "Description",
+    "rarityLabel": "Rareté",
+    "icon": "Icône",
+    "image": "Image",
+    "award": "Décerner",
+    "username": "Nom d'utilisateur",
+    "reason": "Raison",
+    "retire": "Retirer",
+    "restore": "Rétablir",
+    "awarded": "Décerné",
+    "retired": "Retiré",
+    "none": "Aucun badge"
   }
 }

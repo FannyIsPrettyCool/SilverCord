@@ -264,7 +264,8 @@
       "he/they",
       "any pronouns",
       "ask me"
-    ]
+    ],
+    "badges": "Badges"
   },
   "customStatus": {
     "set": "Set custom status",
@@ -286,6 +287,66 @@
     "conflict": "Changed on another device. Reload to continue.",
     "uploadFailed": "Upload failed",
     "unsupported": "Use a PNG, JPEG, GIF or WebP image",
-    "tooLarge": "Image too large"
+    "tooLarge": "Image too large",
+    "userNotFound": "No account with that username",
+    "badgeFailed": "Could not save the badge"
+  },
+  "badges": {
+    "builtin": {
+      "founder": {
+        "name": "Founder",
+        "description": "First account on this instance"
+      },
+      "early_member": {
+        "name": "Early member",
+        "description": "Among the first hundred accounts"
+      },
+      "anniversary": {
+        "name": "Anniversary",
+        "description": "{count, plural, one {Member for # year} other {Member for # years}}"
+      },
+      "instance_admin": {
+        "name": "Administrator",
+        "description": "Runs this instance"
+      },
+      "server_owner": {
+        "name": "Server owner",
+        "description": "Owns a server"
+      },
+      "verified": {
+        "name": "Verified",
+        "description": "Verified email address"
+      },
+      "secured": {
+        "name": "Secured",
+        "description": "Two-factor authentication on"
+      }
+    },
+    "rarity": {
+      "common": "Common",
+      "uncommon": "Uncommon",
+      "rare": "Rare",
+      "epic": "Epic",
+      "legendary": "Legendary",
+      "mythic": "Mythic"
+    },
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "pinned": "{count}/{max} pinned",
+    "admin": "Badges",
+    "create": "Create badge",
+    "name": "Name",
+    "description": "Description",
+    "rarityLabel": "Rarity",
+    "icon": "Icon",
+    "image": "Image",
+    "award": "Award",
+    "username": "Username",
+    "reason": "Reason",
+    "retire": "Retire",
+    "restore": "Restore",
+    "awarded": "Awarded",
+    "retired": "Retired",
+    "none": "No badges"
   }
 }

@@ -48,6 +48,10 @@ A CLI (`src/modules/badges/badge-cli.ts`) creates and awards badges on the host.
 
 ## Desktop
 
+Built-in tooltip copy (EN; FR in the locale file): "First account on this instance",
+"Among the first hundred accounts", "Member for # years", "Runs this instance",
+"Owns a server", "Verified email address", "Two-factor authentication on".
+
 Badge shelf on the profile card (pinned first, up to 8 then "+n"), each a round medallion with
 a rarity-coloured rim; hover/focus shows name, description, level and award date. Settings ›
 Profile lets users pin up to 6. Instance admins get Settings › Badges to create and award.
