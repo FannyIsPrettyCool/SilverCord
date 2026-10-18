@@ -28,7 +28,29 @@ able to continue from the top entry alone.
   nonroot in a read-only, network-disabled container without credentials.
 - Phase 2 is tagged `v0.2.0` at main 8df91a0; its CI is green. This branch includes the
   complete release. Working tree `D:\SilverCord-phase2-review` is on main for release operations.
+- The public homepage/Windows download fix from main b48e662 is also merged here;
+  it is live at https://silvercord.islandmon.cloud/ (details in the next entry).
 - SMTP and encrypted off-host backup storage still need external provider credentials.
+
+## 2026-10-18 — Public homepage and Windows download
+
+- The owner found a raw API 404 at the production root on iPhone. Added `apps/site`:
+  prerendered EN/FR HTML, shared Aurora tokens/icon/Figtree, centered responsive download
+  panel, clear desktop/browser/mobile availability, no runtime scripts or third parties.
+- Brought the minimal homepage and NSIS Windows x64 installer forward from Phase 7.
+  The update feed, Linux packages, automatic platform selection and alternate themes remain
+  Phase 7. Installer built from verified v0.2.0 output; no signing/update claim is made.
+- Site build: `pnpm --filter @silvercord/site build`. Caddy serves the site and installer
+  separately while preserving API/gateway/health and separate authenticated CDN behavior.
+  See `docs/spec/download-site.md` and RUNBOOK for public static paths/deployment.
+- Verified desktop/390px phone/320px narrow/French rendering, keyboard focus, no horizontal
+  overflow, no external requests; all-package checks pass. Public EN/FR HTML and installer
+  return 200; a full 125,439,672-byte HTTP download matches the local release SHA-256.
+  API health is 200; API-host media remains 404 and unauthenticated CDN media remains 401.
+- Static release is published at `/srv/silvercord-site/releases/502284795190ed09dbbcb375f6dc0d41d882da05`;
+  `current` points there. Caddy config was validated and reloaded; the API was not restarted.
+- Phase 3 foundations remain on `feat/permissions-engine` in `D:\SilverCord`; do not
+  deploy the unfinished guild features. SMTP/off-host storage credentials remain external.
 
 ## 2026-10-18 — Phase 2 release `v0.2.0`
 

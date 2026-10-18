@@ -1,0 +1,15 @@
+{
+  "title": "SilverCord — Application de bureau",
+  "description": "Téléchargez SilverCord pour Windows. Amis, messages et médias privés dans l’application de bureau SilverCord.",
+  "navigation": "Langue",
+  "desktop": "Application de bureau",
+  "features": "Amis · Messages · Médias privés",
+  "platform": "Windows 11 · 64 bits",
+  "downloadLabel": "Télécharger pour Windows",
+  "downloadDetail": "Programme d’installation · version",
+  "notice": "SilverCord s’utilise sur ordinateur. La messagerie sur navigateur et mobile n’est pas disponible.",
+  "checksum": "Télécharger les empreintes SHA-256",
+  "source": "Code source",
+  "release": "Version",
+  "step": "Téléchargez le programme d’installation sur votre ordinateur Windows, installez SilverCord, puis connectez-vous."
+}
