@@ -1,4 +1,5 @@
-import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, lt, ne, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import type { Executor } from '../../db/executor.ts';
 import { type ChannelRow, channelMembers, channels, dmPairs } from './channels-schema.ts';
 
@@ -9,6 +10,24 @@ export const channelsRepository = {
     const query = ex.select().from(channels).where(eq(channels.id, channelId)).limit(1);
     const [row] = await (lock ? query.for(lock) : query);
     return row;
+  },
+  /** Distinct members of the user's DMs and groups (bounded). */
+  async peerIds(ex: Executor, userId: bigint, limit: number): Promise<bigint[]> {
+    const peer = alias(channelMembers, 'peer');
+    const rows = await ex
+      .selectDistinct({ userId: peer.userId })
+      .from(channelMembers)
+      .innerJoin(peer, eq(peer.channelId, channelMembers.channelId))
+      .innerJoin(channels, eq(channels.id, channelMembers.channelId))
+      .where(
+        and(
+          eq(channelMembers.userId, userId),
+          ne(peer.userId, userId),
+          inArray(channels.type, ['dm', 'group_dm']),
+        ),
+      )
+      .limit(limit);
+    return rows.map((row) => row.userId);
   },
   async isMember(ex: Executor, channelId: bigint, userId: bigint): Promise<boolean> {
     const [row] = await ex

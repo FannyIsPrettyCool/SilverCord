@@ -260,6 +260,8 @@ export function createChannelsService(deps: ChannelsDependencies) {
     },
 
     /** Whether a DM's peer currently accepts direct interaction from `userId`. */
+    /** People sharing a DM or group with the user, for profile invalidation fan-out. */
+    peerIds: (ex: Executor, userId: bigint, limit: number) => repo.peerIds(ex, userId, limit),
     async canInteract(ex: Executor, channelId: bigint, userId: bigint): Promise<boolean> {
       const pair = await repo.dmPair(ex, channelId);
       if (!pair) return true;

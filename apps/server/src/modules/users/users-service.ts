@@ -25,6 +25,7 @@ export interface UsersService {
   hasAnyUser(ex: Executor): Promise<boolean>;
   markEmailVerified(ex: Executor, id: bigint): Promise<void>;
   setPasswordHash(ex: Executor, id: bigint, passwordHash: string): Promise<void>;
+  setDisplayName(ex: Executor, id: bigint, displayName: string | null): Promise<void>;
   toCurrentUser(row: UserRow, mfaEnabled: boolean): CurrentUser;
 }
 
@@ -87,6 +88,9 @@ export function createUsersService(): UsersService {
           updatedAt: sql`now()`,
         })
         .where(eq(users.id, id));
+    },
+    async setDisplayName(ex, id, displayName) {
+      await ex.update(users).set({ displayName, updatedAt: sql`now()` }).where(eq(users.id, id));
     },
     async setPasswordHash(ex, id, passwordHash) {
       await ex.update(users).set({ passwordHash, updatedAt: sql`now()` }).where(eq(users.id, id));

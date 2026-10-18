@@ -1,5 +1,6 @@
 import type {
   PublicUser,
+  RelationshipKind,
   RelationshipListQuery,
   RelationshipMetadata,
   RelationshipPage,
@@ -267,6 +268,27 @@ export function createRelationshipsService({ users, nextId, outbox }: Relationsh
     },
     async hasBlockAmong(ex: Executor, userIds: readonly bigint[]): Promise<boolean> {
       return repo.anyBlockAmong(ex, userIds);
+    },
+    /**
+     * The viewer's side of one pair for profile views: kind (`blocked` only for the viewer's own
+     * block), whether either side blocks, and the viewer's private note.
+     */
+    async standing(ex: Executor, viewerId: bigint, targetId: bigint) {
+      const blocks = viewerId === targetId ? [] : await repo.blocks(ex, viewerId, targetId);
+      const pair = viewerId === targetId ? undefined : await repo.pair(ex, viewerId, targetId);
+      const ownBlock = blocks.some((block) => block.ownerId === viewerId);
+      const kind: RelationshipKind | 'none' = ownBlock
+        ? 'blocked'
+        : !pair || pair.state === 'none'
+          ? 'none'
+          : pair.state === 'friends'
+            ? 'friends'
+            : pair.requestedBy === viewerId
+              ? 'outgoing'
+              : 'incoming';
+      const note =
+        viewerId === targetId ? null : (await repo.metadata(ex, viewerId, targetId)).note;
+      return { kind, blocked: blocks.length > 0, note };
     },
     async friendIdsAmong(
       ex: Executor,
