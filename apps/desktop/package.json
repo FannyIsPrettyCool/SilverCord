@@ -31,6 +31,7 @@
     "vite": "8.3.4"
   },
   "dependencies": {
+    "@fontsource/noto-color-emoji": "5.3.2",
     "@phosphor-icons/react": "2.1.10",
     "@silvercord/markdown": "workspace:*",
     "@silvercord/permissions": "workspace:*",
@@ -47,6 +48,8 @@
     "@tiptap/starter-kit": "3.31.4",
     "@tiptap/suggestion": "3.31.4",
     "blurhash": "2.0.5",
+    "emojibase": "17.0.0",
+    "emojibase-data": "17.0.0",
     "i18next": "26.5.0",
     "i18next-icu": "2.6.1",
     "intl-messageformat": "12.1.3",
