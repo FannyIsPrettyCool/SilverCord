@@ -21,3 +21,6 @@ playwright-report/
 .claude/settings.local.json
 release/
 storybook-static/
+
+# Local media storage and decoder jobs (dev)
+apps/server/.data/
