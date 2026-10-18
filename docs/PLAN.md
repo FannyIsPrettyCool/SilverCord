@@ -73,7 +73,7 @@ security checklist test passes; threat model written.
 - [x] Positive Electron notifications permission regression, including serialized app origin
 - [x] Centered auth panels (owner request), short-window scrolling and real MFA screenshot flow
 - [x] Phase-end reviewer and security auditor: all confirmed high/medium findings resolved
-- [ ] Release gate: latest CI, merge review → UI → main, tag `v0.1.0`
+- [x] Release gate: latest CI, merge review → UI → main, tag `v0.1.0`
 
 ## Phase 2 — Social & messaging
 

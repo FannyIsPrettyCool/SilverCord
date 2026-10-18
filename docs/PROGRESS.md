@@ -3,6 +3,17 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — Phase 1 released (`v0.1.0`)
+
+- Verified: review → UI → main merges are on `origin/main` (39608ce); its CI run is green;
+  local `pnpm verify:all` green. Tagged `v0.1.0`. No earlier tag had been pushed.
+- The main checkout had stale CRLF working files (Biome failed); re-checked them out as LF.
+- Phase 2 specs, ADR-0008 and VPS ops drafts lived untracked in `D:\SilverCord-phase1`;
+  an uncommitted relationships slice lived in `D:\SilverCord-social` (older base). Both are
+  being folded into phase 2 branches from `main`.
+- Next: phase 2 — commit specs, deploy the API to `silvercord.islandmon.cloud`, then
+  relationships → channels/messages → markdown → presence/typing → read states → media → UI.
+
 ## 2026-10-18 — Phase 1 final review and VPS preparation
 
 - Renderer gateway recovery fixed with eight new regressions: heartbeats wait for READY,
