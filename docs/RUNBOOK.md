@@ -62,11 +62,13 @@ loss of the VPS until a restic target is configured (needs storage credentials).
 ## Restore drill
 
 ```sh
-sudo bash infra/scripts/restore.sh /etc/silvercord/production.env   /var/backups/silvercord/<file>.dump silvercord_restore_<name>
+sudo bash infra/scripts/restore.sh /etc/silvercord/production.env \
+  /var/backups/silvercord/<file>.dump silvercord_restore_<name>
 ```
 
 Restores into a new isolated database and never touches production. First drill:
 2026-10-18 into `silvercord_restore_drill_20261018` (user and session counts matched).
 The phase 8 drill from scratch (fresh host) is still pending.
+
 ## Monitoring — pending (phase 8)
 ## Incident checklist — pending (phase 8)
