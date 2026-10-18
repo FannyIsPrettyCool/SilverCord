@@ -27,7 +27,7 @@ test('opens a hardened empty window', async () => {
   expect(exposure).toEqual({
     hasRequire: false,
     hasProcess: false,
-    bridgeKeys: ['config', 'auth', 'window'],
+    bridgeKeys: ['config', 'auth', 'window', 'media'],
   });
   expect(page.url()).toBe('app://bundle/index.html#/sign-in');
 
