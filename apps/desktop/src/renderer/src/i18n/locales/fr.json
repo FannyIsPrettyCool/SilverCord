@@ -187,5 +187,97 @@
       "announcement": "Annonces",
       "thread": "Fil"
     }
+  },
+  "profile": {
+    "memberSince": "Membre depuis",
+    "edit": "Modifier le profil",
+    "message": "Envoyer un message",
+    "addFriend": "Ajouter en ami",
+    "requestSent": "Demande envoyée",
+    "viewFull": "Voir le profil complet",
+    "about": "À propos",
+    "mutualServers": "Serveurs en commun",
+    "mutualFriends": "Amis en commun",
+    "note": "Note",
+    "close": "Fermer",
+    "none": "Aucun",
+    "tabs": "Sections du profil"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "close": "Fermer les paramètres",
+    "profile": "Profil",
+    "privacy": "Confidentialité du profil",
+    "serverProfiles": "Profils de serveur",
+    "displayName": "Nom affiché",
+    "pronouns": "Pronoms",
+    "bio": "À propos de moi",
+    "avatar": "Avatar",
+    "banner": "Bannière",
+    "change": "Modifier",
+    "remove": "Retirer",
+    "accent": "Couleur d'accent",
+    "bannerColor": "Couleur de bannière",
+    "theme": "Thème du profil",
+    "themePrimary": "Principale",
+    "themeSecondary": "Secondaire",
+    "auto": "Automatique",
+    "save": "Enregistrer",
+    "reset": "Réinitialiser",
+    "saved": "Enregistré",
+    "unsaved": "Modifications non enregistrées",
+    "count": "{{count}}/{{max}}",
+    "preview": "Aperçu",
+    "uploading": "Envoi {{percent}} %",
+    "processing": "Traitement",
+    "nickname": "Pseudo",
+    "server": "Serveur",
+    "noServers": "Aucun serveur",
+    "useColour": "Utiliser une couleur",
+    "crop": {
+      "title": "Recadrer l'image",
+      "zoom": "Zoom",
+      "apply": "Appliquer"
+    },
+    "audience": {
+      "everyone": "Tout le monde",
+      "mutual_guilds": "Amis et membres des serveurs",
+      "friends": "Amis",
+      "only_me": "Moi uniquement"
+    },
+    "section": {
+      "bio": "À propos de moi",
+      "pronouns": "Pronoms",
+      "banner": "Bannière",
+      "badges": "Badges",
+      "memberSince": "Membre depuis",
+      "customStatus": "Statut personnalisé",
+      "activity": "Activité",
+      "mutualFriends": "Amis en commun",
+      "mutualGuilds": "Serveurs en commun"
+    },
+    "pronounSuggestions": ["elle", "il", "iel", "elle/iel", "il/iel", "tous pronoms", "demande-moi"]
+  },
+  "customStatus": {
+    "set": "Définir un statut personnalisé",
+    "edit": "Modifier le statut personnalisé",
+    "text": "Statut",
+    "emoji": "Emoji",
+    "clearAfter": "Effacer après",
+    "clear": "Effacer le statut",
+    "save": "Enregistrer",
+    "after": {
+      "30m": "30 minutes",
+      "1h": "1 heure",
+      "4h": "4 heures",
+      "today": "Aujourd'hui",
+      "never": "Jamais"
+    }
+  },
+  "profileErrors": {
+    "conflict": "Modifié sur un autre appareil. Rechargez pour continuer.",
+    "uploadFailed": "Échec de l'envoi",
+    "unsupported": "Utilisez une image PNG, JPEG, GIF ou WebP",
+    "tooLarge": "Image trop lourde"
   }
 }

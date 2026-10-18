@@ -42,6 +42,8 @@ describe('locales', () => {
       'chat.editConflict',
       // docs/spec/guild-screens.md (ICU count + unit)
       'guilds.memberCount',
+      // docs/spec/profile-screens.md
+      'settings.audience.mutual_guilds',
     ]);
     const lookup = (key: string) =>
       key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], en);
@@ -49,6 +51,7 @@ describe('locales', () => {
       (key) =>
         !key.startsWith('errors.') &&
         !key.startsWith('chatErrors.') &&
+        !key.startsWith('profileErrors.') &&
         !key.startsWith('field.') &&
         !specApproved.has(key),
     );

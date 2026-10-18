@@ -187,5 +187,105 @@
       "announcement": "Announcements",
       "thread": "Thread"
     }
+  },
+  "profile": {
+    "memberSince": "Member since",
+    "edit": "Edit profile",
+    "message": "Message",
+    "addFriend": "Add friend",
+    "requestSent": "Request sent",
+    "viewFull": "View full profile",
+    "about": "About",
+    "mutualServers": "Mutual servers",
+    "mutualFriends": "Mutual friends",
+    "note": "Note",
+    "close": "Close",
+    "none": "None",
+    "tabs": "Profile sections"
+  },
+  "settings": {
+    "title": "Settings",
+    "close": "Close settings",
+    "profile": "Profile",
+    "privacy": "Profile privacy",
+    "serverProfiles": "Server profiles",
+    "displayName": "Display name",
+    "pronouns": "Pronouns",
+    "bio": "About me",
+    "avatar": "Avatar",
+    "banner": "Banner",
+    "change": "Change",
+    "remove": "Remove",
+    "accent": "Accent colour",
+    "bannerColor": "Banner colour",
+    "theme": "Profile theme",
+    "themePrimary": "Primary",
+    "themeSecondary": "Secondary",
+    "auto": "Automatic",
+    "save": "Save",
+    "reset": "Reset",
+    "saved": "Saved",
+    "unsaved": "Unsaved changes",
+    "count": "{{count}}/{{max}}",
+    "preview": "Preview",
+    "uploading": "Uploading {{percent}}%",
+    "processing": "Processing",
+    "nickname": "Nickname",
+    "server": "Server",
+    "noServers": "No servers",
+    "useColour": "Use a colour",
+    "crop": {
+      "title": "Crop image",
+      "zoom": "Zoom",
+      "apply": "Apply"
+    },
+    "audience": {
+      "everyone": "Everyone",
+      "mutual_guilds": "Friends and server members",
+      "friends": "Friends",
+      "only_me": "Only me"
+    },
+    "section": {
+      "bio": "About me",
+      "pronouns": "Pronouns",
+      "banner": "Banner",
+      "badges": "Badges",
+      "memberSince": "Member since",
+      "customStatus": "Custom status",
+      "activity": "Activity",
+      "mutualFriends": "Mutual friends",
+      "mutualGuilds": "Mutual servers"
+    },
+    "pronounSuggestions": [
+      "she/her",
+      "he/him",
+      "they/them",
+      "she/they",
+      "he/they",
+      "any pronouns",
+      "ask me"
+    ]
+  },
+  "customStatus": {
+    "set": "Set custom status",
+    "edit": "Edit custom status",
+    "text": "Status",
+    "emoji": "Emoji",
+    "clearAfter": "Clear after",
+    "clear": "Clear status",
+    "save": "Save",
+    "after": {
+      "30m": "30 minutes",
+      "1h": "1 hour",
+      "4h": "4 hours",
+      "today": "Today",
+      "never": "Never"
+    }
+  },
+  "profileErrors": {
+    "conflict": "Changed on another device. Reload to continue.",
+    "uploadFailed": "Upload failed",
+    "unsupported": "Use a PNG, JPEG, GIF or WebP image",
+    "tooLarge": "Image too large"
   }
 }
