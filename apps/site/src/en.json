@@ -1,0 +1,15 @@
+{
+  "title": "SilverCord — Desktop app",
+  "description": "Download SilverCord for Windows. Friends, messages and private media in the SilverCord desktop app.",
+  "navigation": "Language",
+  "desktop": "Desktop app",
+  "features": "Friends · Messages · Private media",
+  "platform": "Windows 11 · 64-bit",
+  "downloadLabel": "Download for Windows",
+  "downloadDetail": "Installer · version",
+  "notice": "SilverCord runs on your computer. Browser and mobile chat are not available.",
+  "checksum": "Download SHA-256 checksums",
+  "source": "Source code",
+  "release": "Release",
+  "step": "Download the installer on your Windows computer, install SilverCord, then sign in."
+}
