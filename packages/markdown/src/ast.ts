@@ -23,6 +23,15 @@ export type InlineNode =
   /** `id` is a snowflake string for user/role/channel, null for everyone/here. */
   | { readonly type: 'mention'; readonly kind: MentionKind; readonly id: string | null }
   | { readonly type: 'timestamp'; readonly unix: number; readonly style: TimestampStyle }
+  /** `<:name:id>` / `<a:name:id>` (docs/spec/expressions.md); `name` is the fallback text. */
+  | {
+      readonly type: 'emote';
+      readonly id: string;
+      readonly name: string;
+      readonly animated: boolean;
+    }
+  /** `<sticker:id>` */
+  | { readonly type: 'sticker'; readonly id: string }
   | { readonly type: 'break' };
 
 export type BlockNode =

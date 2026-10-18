@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { BlockNode, Document, InlineNode } from './ast.ts';
 import { parse } from './parse.ts';
-import { allInlineNodes, mentionedUserIds, toPlainText } from './walk.ts';
+import { allInlineNodes, expressionIds, mentionedUserIds, toPlainText } from './walk.ts';
 
 const paragraph = (source: string): readonly InlineNode[] => {
   const [block] = parse(source).children;
@@ -285,5 +285,31 @@ describe('properties', () => {
       parse(source);
       expect(Date.now() - started, unit).toBeLessThan(250);
     }
+  });
+});
+
+describe('expressions', () => {
+  it('parses emote and sticker tokens outside code only', () => {
+    const document = parse('hi <:wave:123> <a:party_cat:456> `<:no:789>` <sticker:42>');
+    const inline = document.children[0];
+    if (inline?.type !== 'paragraph') throw new Error('paragraph');
+    expect(inline.children.filter((node) => node.type !== 'text')).toEqual([
+      { type: 'emote', id: '123', name: 'wave', animated: false },
+      { type: 'emote', id: '456', name: 'party_cat', animated: true },
+      { type: 'code', value: '<:no:789>' },
+      { type: 'sticker', id: '42' },
+    ]);
+    expect(expressionIds(document)).toEqual({ emotes: ['123', '456'], stickers: ['42'] });
+    expect(toPlainText(document)).toContain(':wave:');
+  });
+
+  it('leaves malformed tokens as text', () => {
+    for (const source of [
+      '<:x:1>',
+      '<:toolong_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:1>',
+      '<:ok:abc>',
+      '<sticker:>',
+    ])
+      expect(expressionIds(parse(source))).toEqual({ emotes: [], stickers: [] });
   });
 });

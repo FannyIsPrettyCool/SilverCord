@@ -74,6 +74,19 @@ const rules: readonly Rule[] = [
     return mention(kind, match[2], match[0].length);
   },
   (rest) => {
+    const match = /^<(a?):([A-Za-z0-9_]{2,32}):(\d{1,20})>/.exec(rest);
+    if (!match?.[2] || !match[3] || !validId(match[3])) return null;
+    return {
+      length: match[0].length,
+      nodes: [{ type: 'emote', id: match[3], name: match[2], animated: match[1] === 'a' }],
+    };
+  },
+  (rest) => {
+    const match = /^<sticker:(\d{1,20})>/.exec(rest);
+    if (!match?.[1] || !validId(match[1])) return null;
+    return { length: match[0].length, nodes: [{ type: 'sticker', id: match[1] }] };
+  },
+  (rest) => {
     const match = /^<t:(-?\d{1,13})(?::([tTdDfFR]))?>/.exec(rest);
     if (!match?.[1]) return null;
     const unix = Number(match[1]);

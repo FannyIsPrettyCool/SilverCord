@@ -60,6 +60,11 @@ function inlineText(nodes: readonly InlineNode[]): string {
       case 'spoiler':
         text += '▮▮▮';
         break;
+      case 'emote':
+        text += `:${node.name}:`;
+        break;
+      case 'sticker':
+        break;
       default:
         text += inlineText(node.children);
     }
@@ -84,4 +89,15 @@ function blockText(block: BlockNode): string {
 /** Plain text for excerpts and notifications; spoilers stay hidden. */
 export function toPlainText(document: Document): string {
   return document.children.map(blockText).join('\n');
+}
+
+/** Emote and sticker ids used outside code, in first-seen order (docs/spec/expressions.md). */
+export function expressionIds(document: Document): { emotes: string[]; stickers: string[] } {
+  const emotes = new Set<string>();
+  const stickers = new Set<string>();
+  for (const node of blockInlines(document.children)) {
+    if (node.type === 'emote') emotes.add(node.id);
+    else if (node.type === 'sticker') stickers.add(node.id);
+  }
+  return { emotes: [...emotes], stickers: [...stickers] };
 }
