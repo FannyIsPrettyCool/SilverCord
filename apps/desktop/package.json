@@ -31,7 +31,6 @@
     "vite": "8.3.4"
   },
   "dependencies": {
-    "@fontsource/noto-color-emoji": "5.3.2",
     "@phosphor-icons/react": "2.1.10",
     "@silvercord/markdown": "workspace:*",
     "@silvercord/permissions": "workspace:*",

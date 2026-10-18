@@ -33,6 +33,7 @@
   "dependencies": {
     "@fontsource-variable/figtree": "5.3.0",
     "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource/noto-color-emoji": "5.3.2",
     "@radix-ui/react-checkbox": "1.4.1",
     "@radix-ui/react-slot": "1.5.0",
     "motion": "14.3.0",
