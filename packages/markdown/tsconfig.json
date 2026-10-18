@@ -1,4 +1,8 @@
 {
   "extends": "../config/tsconfig.base.json",
+  "compilerOptions": {
+    // Runs in Node and the renderer; only the WHATWG URL global is used from DOM.
+    "lib": ["ES2024", "DOM"]
+  },
   "include": ["src"]
 }
