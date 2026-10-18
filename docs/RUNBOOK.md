@@ -59,6 +59,11 @@ into `/var/backups/silvercord/nightly-<UTC>.dump` with a `.sha256`. Logs:
 `journalctl -u silvercord-backup.service`. No off-host copy yet: dumps do not survive
 loss of the VPS until a restic target is configured (needs storage credentials).
 
+Database and media archives are taken while the running API and worker are drained
+and stopped. Clients reconnect after those same services restart. A per-environment
+operations lock excludes deployments and overlapping backups. Failures restart the
+previously running services; already stopped services remain stopped.
+
 ## Staging (loopback only)
 
 A second copy of the stack runs on the VPS for UI work and live tests, never routed by Caddy:
@@ -83,7 +88,11 @@ Stop it with `docker compose ... down` (keeps volumes) when not needed.
 Uploads live in the `silvercord-prod_media-storage` volume; the worker copies one job at a time
 into `media-jobs`, where the network-less `media-decoder` container processes it (ADR-0009).
 `backup.sh` writes `<name>.media.tar` beside each dump; restore media by extracting it into a
-fresh volume. Without a `cdn.` DNS record, media is served by the API itself.
+fresh volume. Private bytes use `https://cdn.silvercord.islandmon.cloud/media/...`;
+the API host rejects media paths and the CDN rejects other API paths. Both DNS A
+records point to `145.239.79.30`; Caddy handles TLS and the server authorizes every
+media fetch. Tokens remain headers, never URL parameters. Owner-instance desktop
+builds select this origin automatically; self-hosters can set `SILVERCORD_MEDIA_URL`.
 
 ## Restore drill
 

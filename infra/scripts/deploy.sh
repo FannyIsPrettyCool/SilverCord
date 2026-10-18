@@ -19,9 +19,8 @@ revision=$(git rev-parse --verify HEAD)
 unset POSTGRES_PASSWORD DATABASE_PASSWORD JWT_SECRET TOTP_ENCRYPTION_KEY SMTP_URL MAIL_FROM COMPOSE_PROFILES
 compose=(docker compose --env-file "$env_file" -f "$root/infra/docker-compose.prod.yml")
 "${compose[@]}" config --quiet
-# Only one deploy/backup-migration sequence may run at once.
-exec 9> "$backup_directory/.deploy.lock"
-flock -n 9 || { printf 'Another deployment is running.\n' >&2; exit 2; }
+# Keep the same per-instance lock across backup, migration and replacement.
+source "$root/infra/scripts/ops-lock.sh"
 image_of() {
   local container
   container=$("${compose[@]}" ps -q "$1")
