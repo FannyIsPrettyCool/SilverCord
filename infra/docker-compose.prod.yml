@@ -1,4 +1,6 @@
 # Host-native Caddy owns 80/443 alongside IslandMon. No container competes for them.
+# COMPOSE_PROJECT_NAME, API_PORT and MAILPIT_PORT in the env file run an isolated,
+# loopback-only staging copy next to production (docs/RUNBOOK.md).
 name: silvercord-prod
 
 x-bounds: &bounds
@@ -19,7 +21,8 @@ x-app-env: &app-env
   TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?set a random base64 32-byte key}
   SMTP_URL: ${SMTP_URL:?configure SMTP or explicitly use the staging mailpit profile}
   MAIL_FROM: ${MAIL_FROM:?configure the sender address}
-  CORS_ORIGINS: app://bundle
+  # A loopback staging copy may add http://localhost:5173 for the dev renderer.
+  CORS_ORIGINS: ${CORS_ORIGINS:-app://bundle}
   HIBP_ENABLED: 'false'
   MEDIA_STORAGE_DIR: /data/media
   MEDIA_JOBS_DIR: /data/jobs
@@ -98,7 +101,7 @@ services:
     read_only: true
     cap_drop: [ALL]
     tmpfs: ['/tmp:rw,noexec,nosuid,size=32m']
-    ports: [127.0.0.1:14000:4000]
+    ports: ['127.0.0.1:${API_PORT:-14000}:4000']
     networks: [backend, outbound]
     volumes: [media-storage:/data/media]
     cpus: 2
@@ -169,7 +172,7 @@ services:
     cap_drop: [ALL]
     tmpfs: ['/tmp:rw,noexec,nosuid,size=64m']
     networks: [backend]
-    ports: [127.0.0.1:18025:8025]
+    ports: ['127.0.0.1:${MAILPIT_PORT:-18025}:8025']
     environment:
       MP_MAX_MESSAGES: '100'
       MP_DATABASE: /tmp/mailpit.db

@@ -52,6 +52,9 @@ if ! "${compose[@]}" up -d --wait --wait-timeout 120; then
   fi
   exit 1
 fi
-docker tag "$SILVERCORD_IMAGE" silvercord-api:current
-docker tag "$SILVERCORD_DECODER_IMAGE" silvercord-decoder:current
+# Staging projects keep their own moving tag so they never retarget production's.
+project=$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$env_file" | tail -n 1)
+current=${project:+$project-}current
+docker tag "$SILVERCORD_IMAGE" "silvercord-api:$current"
+docker tag "$SILVERCORD_DECODER_IMAGE" "silvercord-decoder:$current"
 printf 'Deployed %s; check public HTTPS and gateway after Caddy/DNS configuration.\n' "$revision"
