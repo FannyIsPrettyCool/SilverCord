@@ -49,7 +49,7 @@ test('aurora and tide chat in their DM in real time', async () => {
     // Tide reacts; aurora's copy updates without reloading.
     await received.hover();
     await received.getByRole('button', { name: 'Add reaction' }).click();
-    await tide.page.getByRole('button', { name: '🎉' }).click();
+    await tide.page.getByRole('button', { name: '🎉', exact: true }).click();
     const auroraCopy = aurora.page.getByRole('article').filter({ hasText: marker });
     await expect(auroraCopy.getByRole('button', { name: /🎉/ })).toBeVisible({ timeout: 10_000 });
 
