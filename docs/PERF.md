@@ -14,6 +14,7 @@ flick, about three times a typical wheel step) and records every frame interval.
 |---|---|---|---|---|---|---|---|
 | 2026-10-18 | before row optimizations | 1,939 | 20.9 ms | 34.8 ms | 69.5 ms | 78.8 % | 16.7 % |
 | 2026-10-18 | lazy toolbar, cached formatters and parses | 1,939 | 6.9 ms | 7.3 ms | 14.0 ms | 0.1 % | 0 % |
+| 2026-10-18 | Phase 2 audit fixes, bounded viewport refresh | 1,939 | 7.0 ms | 13.9 ms | 14.0 ms | 0.67 % | 0 % |
 
 Hardware: AMD Ryzen 9 5950X, Radeon RX 7800 XT, 144 Hz display, 24 GB, Windows 11, Electron 44,
 glass tier Low. The ~22 rendered rows per frame are the virtualizer's window plus overscan.

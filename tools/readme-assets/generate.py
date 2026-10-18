@@ -110,9 +110,9 @@ def roadmap(current: int) -> str:
 def main() -> None:
     current = int(sys.argv[1]) if len(sys.argv) > 1 else 0
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "hero-dark.svg").write_text(hero(dark=True))
-    (OUT / "hero-light.svg").write_text(hero(dark=False))
-    (OUT / "roadmap.svg").write_text(roadmap(current))
+    (OUT / "hero-dark.svg").write_text(hero(dark=True), encoding="utf-8", newline="\n")
+    (OUT / "hero-light.svg").write_text(hero(dark=False), encoding="utf-8", newline="\n")
+    (OUT / "roadmap.svg").write_text(roadmap(current), encoding="utf-8", newline="\n")
 
 
 if __name__ == "__main__":
