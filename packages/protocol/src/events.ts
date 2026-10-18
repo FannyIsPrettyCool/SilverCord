@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { guildChangedSchema } from './guilds.ts';
+import { profileChangedSchema } from './profiles.ts';
 import { snowflakeSchema } from './snowflake.ts';
 
 /*
@@ -44,4 +45,6 @@ export const transientEventSchemas = {
   PRESENCE_CHANGED: presenceChangedSchema,
   TYPING_CHANGED: typingChangedSchema,
   MEDIA_CHANGED: mediaChangedSchema,
+  /** Profile, avatar, custom status or privacy changed (docs/spec/profiles.md). */
+  PROFILE_CHANGED: profileChangedSchema,
 } as const;

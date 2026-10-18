@@ -24,6 +24,7 @@ export {
 } from './pagination.ts';
 export * from './presence.ts';
 export * from './profile-media.ts';
+export * from './profiles.ts';
 export * from './relationships.ts';
 export {
   createSnowflakeGenerator,
