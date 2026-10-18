@@ -8,6 +8,7 @@ import type {
   GuildChannel,
   GuildChannelCreate,
   GuildChannelPatch,
+  VisibleMessage,
 } from '@silvercord/protocol';
 
 /** Renderer workflow and keyboard behavior with deterministic REST fixtures. Server authorization
@@ -21,6 +22,7 @@ test('manages a server and channels while preserving Home navigation', async () 
   const createdAt = '2026-10-18T00:00:00.000Z';
   const guilds: Guild[] = [];
   const channels: GuildChannel[] = [];
+  const messages: VisibleMessage[] = [];
   const errors: string[] = [];
   let rejectNextCreate = true;
   let holdNextCreate = false;
@@ -135,6 +137,40 @@ test('manages a server and channels while preserving Home navigation', async () 
         }
         return reply(channel);
       }
+      const messagePath = /^\/api\/v1\/channels\/(\d+)\/messages$/.exec(path);
+      if (messagePath?.[1]) {
+        if (request.method() === 'GET')
+          return reply({
+            items: messages.filter((item) => item.channelId === messagePath[1]),
+            nextBefore: null,
+            nextAfter: null,
+          });
+        const message: VisibleMessage = {
+          id: String(1000 + messages.length),
+          channelId: messagePath[1],
+          hidden: false,
+          author: { id: '1', username: 'aurora', displayName: 'Aurora' },
+          content: (request.postDataJSON() as { content: string }).content,
+          mentions: [],
+          reply: null,
+          reactions: [],
+          attachments: [],
+          version: 1,
+          createdAt,
+          editedAt: null,
+        };
+        messages.unshift(message);
+        return reply(message);
+      }
+      const readPath = /^\/api\/v1\/channels\/(\d+)\/read-state$/.exec(path);
+      if (readPath?.[1])
+        return reply({
+          channelId: readPath[1],
+          lastReadMessageId: (request.postDataJSON() as { messageId: string }).messageId,
+        });
+      if (path.endsWith('/typing'))
+        return request.method() === 'GET' ? reply({ items: [] }) : route.fulfill({ status: 204 });
+      if (path === '/api/v1/users/@me/expressions') return reply({ guilds: [] });
       if (path === '/api/v1/users/@me/presence') return reply({ status: 'online' });
       return reply({ items: [], nextBefore: null });
     });
@@ -178,8 +214,13 @@ test('manages a server and channels while preserving Home navigation', async () 
     await expect(
       page.getByRole('paragraph').filter({ hasText: 'Sketches and sound' }),
     ).toBeVisible();
-    await expect(page.getByText('Messaging unavailable')).toBeVisible();
-    await expect(page.getByRole('textbox')).toHaveCount(0);
+    const composer = page.getByRole('textbox', { name: 'Message #studio', exact: true });
+    await expect(composer).toBeVisible();
+    await composer.fill('A first message in the studio');
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await expect(
+      page.getByRole('log').getByText('A first message in the studio', { exact: true }),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Edit channel', exact: true }).click();
     const edit = page.getByRole('dialog', { name: 'Edit channel' });
     await edit.getByLabel('Channel name').fill('sketchbook');
@@ -253,7 +294,10 @@ test('manages a server and channels while preserving Home navigation', async () 
       'app://bundle/index.html?tier=low&still&locale-check=fr#/app/guilds/100/channels/102',
     );
     await expect(page.getByRole('heading', { name: 'sketchbook', exact: true })).toBeVisible();
-    await expect(page.getByText('Messages indisponibles')).toBeVisible();
+    await expect(
+      page.getByText('Vous n’avez pas la permission d’envoyer des messages dans ce salon.'),
+    ).toBeVisible();
+    await expect(page.getByRole('textbox')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Créer un salon', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Modifier le salon', exact: true })).toHaveCount(
       0,
