@@ -14,7 +14,7 @@ backup_directory=$(realpath -e -- "$2")
 mode=$(stat -c '%a' -- "$env_file")
 (( (8#$mode & 077) == 0 )) || { printf 'Environment file must be private (chmod 600).\n' >&2; exit 2; }
 cd -- "$root"
-[[ -z "$(git status --porcelain)" ]] || { printf 'Commit changes before deploying.\n' >&2; exit 2; }
+[[ -z "$(GIT_OPTIONAL_LOCKS=0 git status --porcelain)" ]] || { printf 'Commit changes before deploying.\n' >&2; exit 2; }
 revision=$(git rev-parse --verify HEAD)
 unset POSTGRES_PASSWORD DATABASE_PASSWORD JWT_SECRET TOTP_ENCRYPTION_KEY SMTP_URL MAIL_FROM COMPOSE_PROFILES
 compose=(docker compose --env-file "$env_file" -f "$root/infra/docker-compose.prod.yml")
