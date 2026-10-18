@@ -15,13 +15,26 @@ import {
   createSessionRuntime,
   type SessionRuntime,
 } from './session-runtime.ts';
-import type { SessionStore } from './session-store.ts';
+import type { GatewaySession, SessionStore } from './session-store.ts';
 
 export interface GatewayOptions {
   readonly heartbeatIntervalMs: number;
   readonly identifyTimeoutMs: number;
   readonly opsPerMinute: number;
   readonly maxConnectionsPerUser: number;
+}
+
+/**
+ * Socket lifecycle observers (presence leases, typing cleanup). Called synchronously and must
+ * not throw; implementations handle their own errors.
+ */
+export interface GatewayLifecycle {
+  /** A socket now receives this session's events (after READY or RESUMED). */
+  attached(session: GatewaySession): void;
+  /** An acknowledged heartbeat on an attached session. */
+  heartbeat(session: GatewaySession): void;
+  /** The socket closed; the runtime may live on for resume but holds no presence. */
+  detached(session: GatewaySession): void;
 }
 
 /** Per-process state shared by every connection. */
@@ -41,6 +54,7 @@ export interface ConnectionDependencies {
   /** Authoritative (database) check that the REST session behind a socket is still valid. */
   readonly isAuthSessionActive: (sessionId: bigint) => Promise<boolean>;
   readonly state: GatewayState;
+  readonly lifecycle?: GatewayLifecycle;
   readonly log: { warn(object: object, message: string): void };
 }
 
@@ -193,6 +207,7 @@ export function handleConnection(
     runtimes.set(session.id, created);
     runtime = created;
     state = 'ready';
+    deps.lifecycle?.attached(session);
   }
 
   async function resume(frame: Extract<ClientFrame, { op: 3 }>) {
@@ -226,6 +241,7 @@ export function handleConnection(
     }
     runtime = candidate;
     state = 'ready';
+    deps.lifecycle?.attached(candidate.session);
     await candidate.dispatch('RESUMED', { replayed: adopted });
   }
 
@@ -251,7 +267,10 @@ export function handleConnection(
       armHeartbeatDeadline();
       send({ op: GatewayOp.HEARTBEAT_ACK, d: {} });
       const current = runtime;
-      if (current) void current.run(() => deps.sessions.touch(current.session.id));
+      if (current) {
+        void current.run(() => deps.sessions.touch(current.session.id));
+        deps.lifecycle?.heartbeat(current.session);
+      }
       heartbeats += 1;
       // A kick can be lost while Valkey pub/sub reconnects: re-check the session now and then.
       if (current && heartbeats % REVALIDATE_EVERY_HEARTBEATS === 0) {
@@ -293,7 +312,10 @@ export function handleConnection(
     clearTimeout(identifyTimer);
     clearTimeout(heartbeatTimer);
     releaseConnection();
-    runtime?.detach(attachment);
+    if (runtime) {
+      runtime.detach(attachment);
+      deps.lifecycle?.detached(runtime.session);
+    }
   });
 
   send({ op: GatewayOp.HELLO, d: { heartbeatIntervalMs: options.heartbeatIntervalMs } });
