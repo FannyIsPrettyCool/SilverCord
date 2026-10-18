@@ -27,6 +27,9 @@ export const queryClient = new QueryClient({
 export const keys = {
   relationships: (kind?: string) => (kind ? ['relationships', kind] : ['relationships']),
   privacy: ['privacy'],
+  guilds: ['guilds'],
+  guild: (guildId: string) => ['guild', guildId],
+  guildChannels: (guildId?: string) => (guildId ? ['guild-channels', guildId] : ['guild-channels']),
   channels: ['channels'],
   channel: (channelId: string) => ['channel', channelId],
   messages: (channelId: string) => ['messages', channelId],
