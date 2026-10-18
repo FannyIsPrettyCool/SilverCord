@@ -3,6 +3,23 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — Phase 2 audit fixes and CDN release checks
+
+- Worktree `D:\SilverCord-phase2-review`, branch `fix/phase2-review`, based on
+  `origin/main` (33b825f). Original checkout's Phase 3 permission commits and unfinished
+  guild schema are preserved on `feat/permissions-engine`.
+- Latest main CI exposed quadratic parsing of unmatched opening brackets. Masked links
+  now use a precomputed delimiter index; all 27 markdown tests pass, including escaped
+  delimiters, invalid labels and the original adversarial performance regression.
+- Audit fixes in progress: orphan chunk rollback cleanup, Linux decoder file isolation,
+  per-attempt object keys, account-bound renderer requests/caches, history/read/typing
+  reconciliation, atomic presence leases, consistent DB/media backups and separate CDN.
+- Owner added `cdn.silvercord.islandmon.cloud`; DNS resolves to the VPS. HTTPS configuration,
+  final rollout, CI and cross-machine acceptance remain before the Phase 2 tag.
+- Verification so far: 124 real Postgres/Valkey integration tests, 27 isolated Linux media
+  unit/integration cases, all-package checks and ten Electron smoke/security tests pass.
+- External dependencies remain SMTP and encrypted off-host storage credentials.
+
 ## 2026-10-18 — Phase 2 implemented and deployed (review pending, then `v0.2.0`)
 
 - Server: relationships/blocks/privacy, transactional outbox (ADR-0008), DMs and groups with

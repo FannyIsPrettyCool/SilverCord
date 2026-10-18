@@ -1,5 +1,6 @@
 import type { InlineNode, MentionKind, TimestampStyle } from './ast.ts';
 import { safeLinkUrl } from './links.ts';
+import { maskedLinks } from './masked-links.ts';
 
 /** Shared parse budget: past either limit, the remainder renders as plain text. */
 export interface Budget {
@@ -13,6 +14,7 @@ interface Context {
   readonly depth: number;
   /** Links are disabled inside masked-link labels so links never nest. */
   readonly links: boolean;
+  readonly masked?: ReturnType<typeof maskedLinks>;
 }
 
 type Match = { readonly length: number; readonly nodes: readonly InlineNode[] };
@@ -86,16 +88,17 @@ const rules: readonly Rule[] = [
   },
   (rest, _previous, context) => {
     if (!context.links) return null;
-    const match = /^\[((?:\\[\s\S]|[^\\\]\n])+)\]\(\s*<?([^\s<>()]+)>?\s*\)/.exec(rest);
-    if (!match?.[1] || !match[2]) return null;
-    const url = safeLinkUrl(match[2]);
-    if (!url) return null;
-    const children = parseInlineText(match[1], {
+    const link = context.masked?.get(rest.length);
+    if (!link) return null;
+    const children = parseInlineText(link.label, {
       ...context,
       depth: context.depth + 1,
       links: false,
     });
-    return { length: match[0].length, nodes: [{ type: 'link', url, masked: true, children }] };
+    return {
+      length: link.length,
+      nodes: [{ type: 'link', url: link.url, masked: true, children }],
+    };
   },
   (rest, previous, context) => {
     if (!context.links || WORD.test(previous)) return null;
@@ -137,6 +140,7 @@ function pushText(out: InlineNode[], value: string) {
 
 /** Parses one inline run. Pure; never throws on any input. */
 export function parseInlineText(source: string, context: Context): InlineNode[] {
+  context = { ...context, masked: context.links ? maskedLinks(source) : new Map() };
   const out: InlineNode[] = [];
   const { budget } = context;
   let index = 0;
