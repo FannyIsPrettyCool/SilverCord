@@ -1,7 +1,13 @@
 import type { CurrentUser } from '@silvercord/protocol';
 import { create } from 'zustand';
 import type { RegisterInput, SessionSnapshot } from '../../../shared/ipc-contract.ts';
+import { forgetAccessToken } from '../api/api-client.ts';
+import { forgetMedia } from '../api/media.ts';
+import { queryClient } from '../api/query-client.ts';
+import { resetSync } from '../api/sync.ts';
 import { DesktopError, desktop, unwrap } from '../desktop.ts';
+import { resetChatState } from '../features/chat/chat-state.ts';
+import { clearDrafts } from '../features/chat/drafts.ts';
 
 type Status = 'restoring' | 'signed-out' | 'signed-in';
 
@@ -78,8 +84,16 @@ export const useSession = create<SessionState>()((set, get) => {
       adopt(await unwrap(desktop().auth.register(input)));
     },
     async signOut() {
+      const userId = get().user?.id;
       set({ mfaPending: false });
       await unwrap(desktop().auth.logout()).catch(() => null);
+      // Nothing from this account may outlive it in memory or local storage.
+      forgetAccessToken();
+      forgetMedia();
+      resetSync();
+      resetChatState();
+      queryClient.clear();
+      if (userId) clearDrafts(userId);
       set({ status: 'signed-out', user: null });
     },
     updateUser(user) {
