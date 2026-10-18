@@ -56,3 +56,9 @@ contact it: `GET /gifs/trending`, `GET /gifs/search?q=` (cached 10 min in Valkey
 rate limited), media streamed through the CDN origin's `/gifs/...` route with the SSRF-safe
 fetcher (allow-listed Klipy hosts only). Disabled (routes 404, picker hidden) until
 `KLIPY_API_KEY` is set. Attribution "Powered by KLIPY" in the picker as their terms require.
+
+
+Manager helper copy: “2–32 letters, numbers or underscores. PNG, JPEG, WebP or animated GIF.”
+and “Upload a static or animated sticker.” Error paragraph: “Could not update expressions.
+Check your permissions and try again.” These explanations are exempt from the three-word
+control-label limit. GIF search is excluded from this release by owner decision (2026-10-18).

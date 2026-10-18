@@ -70,7 +70,8 @@
     "email": "Invalid email"
   },
   "common": {
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "social": {
     "friends": "Friends",
@@ -186,7 +187,10 @@
       "guild_category": "Category",
       "announcement": "Announcements",
       "thread": "Thread"
-    }
+    },
+    "historyUnavailable": "You cannot read this channel’s history.",
+    "readOnly": "You do not have permission to send messages in this channel.",
+    "typingOne": "Someone typing"
   },
   "profile": {
     "memberSince": "Member since",
@@ -350,7 +354,29 @@
     "restore": "Restore",
     "awarded": "Awarded",
     "retired": "Retired",
-    "none": "No badges"
+    "none": "No badges",
+    "visual": {
+      "title": "Animation studio",
+      "effect": "Rim effect",
+      "particles": "Particles",
+      "intensity": "Intensity",
+      "color": "Accent colour",
+      "automatic": "Use rarity preset",
+      "edit": "Edit animation",
+      "effects": {
+        "none": "Still",
+        "aurora": "Aurora",
+        "orbit": "Orbital rings",
+        "ember": "Ember glow",
+        "prism": "Prismatic halo"
+      },
+      "particleTypes": {
+        "none": "None",
+        "sparks": "Rising sparks",
+        "stars": "Stardust",
+        "snow": "Orbiting motes"
+      }
+    }
   },
   "activity": {
     "source": {
@@ -416,6 +442,9 @@
     "add": "Add",
     "delete": "Delete",
     "rename": "Rename",
-    "fontCredit": "Emoji: Noto Color Emoji (OFL)"
+    "fontCredit": "Emoji: Noto Color Emoji (OFL)",
+    "emoteHint": "2–32 letters, numbers or underscores. PNG, JPEG, WebP or animated GIF.",
+    "stickerHint": "Upload a static or animated sticker.",
+    "failed": "Could not update expressions. Check your permissions and try again."
   }
 }

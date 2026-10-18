@@ -44,6 +44,12 @@ describe('locales', () => {
       'guilds.memberCount',
       // docs/spec/expressions.md (font attribution)
       'expressions.fontCredit',
+      // Explanatory copy in guild-screens.md and expressions.md.
+      'guilds.historyUnavailable',
+      'guilds.readOnly',
+      'expressions.emoteHint',
+      'expressions.stickerHint',
+      'expressions.failed',
     ]);
     const lookup = (key: string) =>
       key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], en);

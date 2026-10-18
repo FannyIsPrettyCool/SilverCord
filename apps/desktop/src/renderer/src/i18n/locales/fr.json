@@ -70,7 +70,8 @@
     "email": "E-mail invalide"
   },
   "common": {
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "close": "Fermer"
   },
   "social": {
     "friends": "Amis",
@@ -186,7 +187,10 @@
       "guild_category": "Catégorie",
       "announcement": "Annonces",
       "thread": "Fil"
-    }
+    },
+    "historyUnavailable": "Vous ne pouvez pas lire l’historique de ce salon.",
+    "readOnly": "Vous n’avez pas la permission d’envoyer des messages dans ce salon.",
+    "typingOne": "Quelqu’un écrit"
   },
   "profile": {
     "memberSince": "Membre depuis",
@@ -350,7 +354,29 @@
     "restore": "Rétablir",
     "awarded": "Décerné",
     "retired": "Retiré",
-    "none": "Aucun badge"
+    "none": "Aucun badge",
+    "visual": {
+      "title": "Atelier d’animation",
+      "effect": "Effet de bordure",
+      "particles": "Particules",
+      "intensity": "Intensité",
+      "color": "Couleur d’accent",
+      "automatic": "Utiliser le style de rareté",
+      "edit": "Modifier l’animation",
+      "effects": {
+        "none": "Immobile",
+        "aurora": "Aurore",
+        "orbit": "Anneaux orbitaux",
+        "ember": "Braises",
+        "prism": "Halo prismatique"
+      },
+      "particleTypes": {
+        "none": "Aucune",
+        "sparks": "Étincelles",
+        "stars": "Poussière d’étoiles",
+        "snow": "Particules orbitales"
+      }
+    }
   },
   "activity": {
     "source": {
@@ -416,6 +442,9 @@
     "add": "Ajouter",
     "delete": "Supprimer",
     "rename": "Renommer",
-    "fontCredit": "Emoji : Noto Color Emoji (OFL)"
+    "fontCredit": "Emoji : Noto Color Emoji (OFL)",
+    "emoteHint": "2 à 32 lettres, chiffres ou tirets bas. PNG, JPEG, WebP ou GIF animé.",
+    "stickerHint": "Importez un autocollant fixe ou animé.",
+    "failed": "Impossible de modifier les expressions. Vérifiez vos permissions et réessayez."
   }
 }
