@@ -22,7 +22,10 @@ export interface ChannelsDependencies {
 
 /** A channel row with its current public member cards. */
 export interface ChannelBase {
-  readonly row: Omit<ChannelRow, 'updatedAt'> & { updatedAt?: Date };
+  readonly row: Pick<
+    ChannelRow,
+    'id' | 'type' | 'ownerId' | 'name' | 'version' | 'lastMessageId' | 'createdAt'
+  >;
   readonly members: PublicUser[];
 }
 
@@ -75,7 +78,12 @@ export function createChannelsService(deps: ChannelsDependencies) {
     lock?: 'update' | 'share',
   ): Promise<ChannelRow> {
     const channel = await repo.find(ex, channelId, lock);
-    if (!channel || !(await repo.isMember(ex, channelId, userId))) throw notFound();
+    if (
+      !channel ||
+      (channel.type !== 'dm' && channel.type !== 'group_dm') ||
+      !(await repo.isMember(ex, channelId, userId))
+    )
+      throw notFound();
     return channel;
   }
 

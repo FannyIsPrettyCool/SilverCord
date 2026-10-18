@@ -140,6 +140,7 @@ export const channelsRepository = {
       .where(
         and(
           eq(channelMembers.userId, userId),
+          inArray(channels.type, ['dm', 'group_dm']),
           query.before ? lt(channelMembers.channelId, BigInt(query.before)) : undefined,
           query.after ? gt(channelMembers.channelId, BigInt(query.after)) : undefined,
         ),

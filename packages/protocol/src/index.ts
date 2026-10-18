@@ -11,6 +11,8 @@ export {
 } from './errors.ts';
 export * from './events.ts';
 export * from './gateway.ts';
+export * from './guild-channels.ts';
+export * from './guilds.ts';
 export { type HealthResponse, healthResponseSchema } from './health.ts';
 export * from './media.ts';
 export * from './messages.ts';

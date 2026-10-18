@@ -16,6 +16,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { Database } from '../../db/client.ts';
+import { AppError } from '../../http/app-error.ts';
 import { requireAuth } from '../../http/authentication.ts';
 import { perUser } from '../../http/rate-limit.ts';
 import type { MessagesService } from '../messages/messages-service.ts';
@@ -46,6 +47,8 @@ const EMPTY_READ_STATE: ReadStateView = {
 
 function toChannel(base: ChannelBase, readState: ReadStateView | undefined): Channel {
   const { row } = base;
+  if (row.type !== 'dm' && row.type !== 'group_dm')
+    throw new AppError('INTERNAL', 'Invalid private channel');
   return {
     id: row.id.toString(),
     type: row.type,
