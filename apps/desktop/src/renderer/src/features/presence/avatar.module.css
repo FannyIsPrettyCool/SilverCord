@@ -18,6 +18,16 @@
   line-height: 1;
 }
 
+/* Uploaded images cover the gradient; the circle clips them, the status dot stays outside. */
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
 /* Status is shape and colour: dnd carries a bar, idle a notch, offline a ring. */
 .presence {
   position: absolute;

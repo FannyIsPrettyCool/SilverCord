@@ -5,6 +5,7 @@ import {
   refreshMessage,
   resetMessageHistories,
 } from './chat.ts';
+import { profileChanged } from './profiles.ts';
 import { keys, queryClient } from './query-client.ts';
 
 const SEEN_LIMIT = 500;
@@ -85,6 +86,11 @@ export function handleDispatch(t: string, d: unknown) {
     if (dispatchEventSchemas.PRESENCE_CHANGED.safeParse(d).success) invalidate(keys.ownPresence);
     return;
   }
+  if (t === 'PROFILE_CHANGED') {
+    const event = dispatchEventSchemas.PROFILE_CHANGED.safeParse(d);
+    if (event.success) profileChanged(event.data.userId);
+    return;
+  }
   if (t === 'TYPING_CHANGED') {
     const event = dispatchEventSchemas.TYPING_CHANGED.safeParse(d);
     if (event.success) invalidate(keys.typing(event.data.channelId));
@@ -102,6 +108,9 @@ export function reconcile(resetHistory = false) {
   invalidate(['guild']);
   invalidate(keys.guildChannels());
   invalidate(keys.presence());
+  invalidate(['summary']);
+  invalidate(['profile']);
+  invalidate(keys.ownProfile);
   for (const query of queryClient.getQueryCache().findAll({ queryKey: ['messages'] })) {
     const channelId = query.queryKey[1];
     if (typeof channelId === 'string' && query.getObserversCount() > 0)

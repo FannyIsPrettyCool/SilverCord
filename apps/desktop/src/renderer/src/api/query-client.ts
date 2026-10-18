@@ -38,4 +38,8 @@ export const keys = {
   ownPresence: ['own-presence'],
   typing: (channelId: string) => ['typing', channelId],
   upload: (uploadId: string) => ['upload', uploadId],
+  summary: (userId: string, guildId?: string) => ['summary', userId, guildId ?? ''],
+  profile: (userId: string, guildId?: string) => ['profile', userId, guildId ?? ''],
+  ownProfile: ['own-profile'],
+  guildProfile: (guildId: string) => ['guild-profile', guildId],
 } as const;

@@ -1,4 +1,4 @@
-import { errorEnvelopeSchema } from '@silvercord/protocol';
+import { errorEnvelopeSchema, MEDIA_PATH_PATTERN } from '@silvercord/protocol';
 import type { z } from 'zod';
 import type { DesktopConfig } from '../../../shared/ipc-contract.ts';
 import { DesktopError, desktop, unwrap } from '../desktop.ts';
@@ -53,9 +53,7 @@ export interface RequestOptions {
 async function send(path: string, options: RequestOptions, token: string): Promise<Response> {
   const config = await desktopConfig();
   // Only protocol media paths may use the separately configured private media origin.
-  const base = /^\/media\/\d+\/(?:display|thumbnail|download)\/[a-f0-9]{64}$/.test(path)
-    ? config.mediaUrl
-    : config.apiUrl;
+  const base = MEDIA_PATH_PATTERN.test(path) ? config.mediaUrl : config.apiUrl;
   if (!path.startsWith('/') || path.startsWith('//')) throw new Error('Invalid API path');
   const target = new URL(path, base);
   if (target.origin !== new URL(base).origin) throw new Error('Invalid API path');

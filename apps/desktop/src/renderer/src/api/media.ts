@@ -53,6 +53,27 @@ async function waitUntilProcessed(uploadId: string, signal: AbortSignal): Promis
   }
 }
 
+/** Streams the rest of `file` from the server's committed offset, one bounded chunk at a time. */
+export async function sendChunks(
+  upload: { readonly id: string; readonly offset: number; readonly chunkBytes: number },
+  file: Blob,
+  signal: AbortSignal,
+  onProgress: (fraction: number) => void,
+): Promise<void> {
+  let offset = upload.offset;
+  while (offset < file.size) {
+    const end = Math.min(file.size, offset + upload.chunkBytes);
+    const response = await api(uploadOffsetSchema, `/api/v1/uploads/${upload.id}/chunks`, {
+      method: 'PUT',
+      bytes: file.slice(offset, end),
+      headers: { 'upload-offset': String(offset) },
+      signal,
+    });
+    offset = response.offset;
+    onProgress(offset / file.size);
+  }
+}
+
 /** Reserves, streams chunks from the committed offset, completes and waits for processing. */
 async function run(localId: string) {
   const { patch } = useUploads.getState();
@@ -71,18 +92,9 @@ async function run(localId: string) {
     patch(localId, { upload, status: 'uploading', error: null });
     // Resume from what the server durably committed, not from what we think we sent.
     upload = await api(uploadSchema, `/api/v1/uploads/${upload.id}`, { signal: controller.signal });
-    let offset = upload.offset;
-    while (offset < item.file.size) {
-      const end = Math.min(item.file.size, offset + upload.chunkBytes);
-      const response = await api(uploadOffsetSchema, `/api/v1/uploads/${upload.id}/chunks`, {
-        method: 'PUT',
-        bytes: item.file.slice(offset, end),
-        headers: { 'upload-offset': String(offset) },
-        signal: controller.signal,
-      });
-      offset = response.offset;
-      patch(localId, { progress: offset / item.file.size });
-    }
+    await sendChunks(upload, item.file, controller.signal, (progress) =>
+      patch(localId, { progress }),
+    );
     await api(uploadSchema, `/api/v1/uploads/${upload.id}/complete`, {
       method: 'POST',
       body: {},
