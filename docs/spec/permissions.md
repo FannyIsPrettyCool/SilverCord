@@ -59,7 +59,9 @@ SPEAK, VIDEO, STREAM, USE_VAD, CREATE_INVITE, CHANGE_NICKNAME.
    send-dependent bits (MENTION_EVERYONE, ATTACH_FILES, EMBED_LINKS) are cleared; in a voice
    channel without CONNECT the voice bits (SPEAK…MOVE_MEMBERS) are cleared; a timed-out member
    keeps only VIEW_CHANNEL and READ_MESSAGE_HISTORY. Guild-scope bits never appear in a channel
-   result (`CHANNEL_SCOPE` mask).
+   result (`CHANNEL_SCOPE` mask). Owners and administrators bypass timeout masks; the moderation
+   action guard refuses to apply a timeout to either, including when the actor is the owner.
+   Remove the target's administrator role first if a timeout is required.
 
 ## Hierarchy (`canManageRole`, `canActOn`, `canEditRole`, `canEditOverwrite`)
 
@@ -73,6 +75,20 @@ role position; the owner outranks everyone.
 - No escalation: a non-owner may only set allow bits it holds itself (guild base for roles,
   channel result for overwrites), may not grant ADMINISTRATOR unless it is the owner, and may
   not move a role to or above its own rank.
+- `canAssignRole` also refuses an existing ADMINISTRATOR role for every non-owner, including
+  another administrator. Administrator-role assignment changes are reserved for the owner.
+- `canEditOverwrite(guild, actor, currentChannel, target, replacement)` receives the complete
+  current channel and a role/member target. `replacement` is `{allow, deny}` or `null` to delete
+  that overwrite. The service must supply fresh, locked state; validate that member targets
+  belong to the guild. Role targets must be `@everyone` or a role of this guild.
+- Overwrite authorization computes the actor's current channel permissions itself. For a
+  non-owner it requires MANAGE_ROLES, compares old and new masks, and permits changing only bits
+  the actor currently holds. Removing a deny and deleting an overwrite count as changes;
+  preserving an existing deny does not require holding its denied bit. It then computes the
+  proposed complete channel and rejects any growth in the actor's effective permissions.
+  This applies to everyone, role and member targets, including the actor's own overwrites.
+  New masks contain only CHANNEL_SCOPE bits, including for owners. Overwrite rows are unique
+  by `(channel, target_type, target_id)`; partial or stale snapshots cannot authorize writes.
 
 ## Server enforcement
 
@@ -92,7 +108,11 @@ role position; the owner outranks everyone.
 1. fast-check properties: monotonicity (roles and allows never remove, denies never add),
    overwrite precedence (member > roles > everyone), admin/owner bypass, implicit view rule,
    hierarchy (cannot manage equal/higher roles), no escalation through any sequence of permitted
-   role edits, assignment or overwrite edit.
+   role edits, assignment or overwrite edit. The role model applies accepted positions exactly,
+   including insertion/reorder shifts; non-admin scenarios are generated explicitly. Overwrite
+   sequences include replacement and deletion for everyone, actor roles, self and other members.
+   Regressions cover removal of an unheld deny, owner-only administrator delegation, and refusal
+   of administrator/owner timeout targets.
 2. Permission matrix integration suite: for every guild route, a member without the bit is
    refused and one with it succeeds; hidden channels are 404.
 3. A route registered without `config.permission` fails app construction (unit test) and the

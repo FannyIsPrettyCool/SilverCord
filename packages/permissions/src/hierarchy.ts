@@ -1,5 +1,12 @@
 import { ALL_PERMISSIONS, CHANNEL_SCOPE, Permission } from './bits.ts';
-import { computeGuildPermissions, type GuildInput, type MemberInput } from './compute.ts';
+import {
+  type ChannelInput,
+  computeChannelPermissions,
+  computeGuildPermissions,
+  type GuildInput,
+  type MemberInput,
+  type Overwrite,
+} from './compute.ts';
 
 /** Highest role position of a member; the owner outranks every role. */
 export function memberRank(guild: GuildInput, member: MemberInput): number {
@@ -37,14 +44,18 @@ export function canActOn(
 ): boolean {
   if (target.userId === guild.ownerId) return false;
   if (!holds(guild, actor, bit)) return false;
+  // Administrators bypass timeout masks, so applying a timeout would claim a restriction that
+  // has no effect. Their administrator role must be removed before they can be timed out.
+  if ((bit & Permission.MODERATE_MEMBERS) !== 0n && holds(guild, target, Permission.ADMINISTRATOR))
+    return false;
   if (actor.userId === target.userId) return bit === Permission.CHANGE_NICKNAME;
   return memberRank(guild, target) < memberRank(guild, actor);
 }
 
 /**
  * May `actor` add or remove `roleId` on `target` (possibly itself)? Besides rank, a non-owner may
- * only hand out roles whose bits it already holds: otherwise assigning a role created by the
- * owner would be an escalation path.
+ * only hand out roles whose bits it already holds. Administrator-role assignment changes are
+ * owner-only, including when the actor is another administrator.
  */
 export function canAssignRole(
   guild: GuildInput,
@@ -58,7 +69,11 @@ export function canAssignRole(
   if (actor.userId === guild.ownerId) return true;
   const role = guild.roles.get(roleId);
   const held = computeGuildPermissions(guild, actor);
-  return role !== undefined && (role.permissions & ~held) === 0n;
+  return (
+    role !== undefined &&
+    (role.permissions & Permission.ADMINISTRATOR) === 0n &&
+    (role.permissions & ~held) === 0n
+  );
 }
 
 export interface RoleChange {
@@ -105,19 +120,37 @@ export function canEditRole(guild: GuildInput, actor: MemberInput, change: RoleC
   return true;
 }
 
+export type OverwriteTarget = Pick<Overwrite, 'type' | 'id'>;
+export type OverwriteValue = Pick<Overwrite, 'allow' | 'deny'>;
+
 /**
- * Channel overwrite edits need MANAGE_ROLES in that channel and may only allow or deny bits the
- * actor itself has there (`actorChannelPermissions`).
+ * Authorizes a replacement or deletion (`replacement: null`) against the complete current
+ * channel. Removed denies count as changes too: clearing one may restore denied permissions.
+ * No caller-supplied held bits or partial overwrite snapshot can authorize the operation.
  */
 export function canEditOverwrite(
   guild: GuildInput,
   actor: MemberInput,
-  actorChannelPermissions: bigint,
-  change: { readonly allow: bigint; readonly deny: bigint },
+  channel: ChannelInput,
+  target: OverwriteTarget,
+  replacement: OverwriteValue | null,
 ): boolean {
-  if (actor.userId === guild.ownerId) return ((change.allow | change.deny) & ~CHANNEL_SCOPE) === 0n;
-  if ((actorChannelPermissions & Permission.MANAGE_ROLES) === 0n) return false;
-  const touched = change.allow | change.deny;
-  if ((touched & ~CHANNEL_SCOPE) !== 0n) return false;
-  return (touched & ~actorChannelPermissions) === 0n;
+  if (target.type === 'role' && target.id !== guild.everyone.id && !guild.roles.has(target.id))
+    return false;
+  const allow = replacement?.allow ?? 0n;
+  const deny = replacement?.deny ?? 0n;
+  if (((allow | deny) & ~CHANNEL_SCOPE) !== 0n) return false;
+  if (actor.userId === guild.ownerId) return true;
+  const held = computeChannelPermissions(guild, actor, channel);
+  if ((held & Permission.MANAGE_ROLES) === 0n) return false;
+
+  const matches = (overwrite: Overwrite) =>
+    overwrite.type === target.type && overwrite.id === target.id;
+  const previous = channel.overwrites.find(matches);
+  const touched = ((previous?.allow ?? 0n) ^ allow) | ((previous?.deny ?? 0n) ^ deny);
+  if ((touched & ~held) !== 0n) return false;
+  const overwrites = channel.overwrites.filter((overwrite) => !matches(overwrite));
+  if (replacement) overwrites.push({ ...target, ...replacement });
+  const after = computeChannelPermissions(guild, actor, { ...channel, overwrites });
+  return (after & ~held) === 0n;
 }

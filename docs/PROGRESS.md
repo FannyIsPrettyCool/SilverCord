@@ -6,12 +6,19 @@ able to continue from the top entry alone.
 ## 2026-10-18 — Phase 3 permission foundation preserved
 
 - `feat/permissions-engine` contains the permission spec, bigint resolution/hierarchy engine,
-  property tests and guild spec/ADR-0010 (five commits including this progress update).
+  property tests and guild spec/ADR-0010.
   The engine is implemented; guild routes, authorization enforcement and UI remain unfinished.
+- Foundation security review fixed overwrite deletion/removal of denies restoring permissions,
+  non-owner assignment of administrator roles and ineffective administrator timeouts. Sequence
+  properties now apply actual accepted role positions and overwrite replacement/deletion.
+  All 19 permission tests and typecheck pass.
 - Original untracked `apps/server/src/modules/guilds/guilds-schema.ts` is a draft, not a
   migration or deployed feature. It remains outside commits until reviewed/completed.
+  Its member-role FK now includes guild id so cross-guild roles cannot be assigned; the
+  migration and real database constraint regression still need implementation.
 - Phase 2 audit fixes are isolated in `D:\SilverCord-phase2-review` on `fix/phase2-review`.
-  Finish its acceptance/CI/release, then merge updated main into this branch before guild work.
+  Audit fixes are merged/deployed on main (582d5d2); final visual/release checks remain.
+  Merge updated main into this branch after the Phase 2 tag before guild work.
 - SMTP and encrypted off-host backup storage still need external provider credentials.
 
 ## 2026-10-18 — Phase 2 implemented and deployed (review pending, then `v0.2.0`)

@@ -60,6 +60,23 @@ const guildArb = fc
       }),
   );
 
+/** Non-admin cases must not be drowned out by ADMINISTRATOR making every assertion trivial. */
+const nonAdminGuildArb = guildArb.map(
+  (guild): GuildInput => ({
+    ...guild,
+    everyone: {
+      ...guild.everyone,
+      permissions: guild.everyone.permissions & ~Permission.ADMINISTRATOR,
+    },
+    roles: new Map(
+      [...guild.roles].map(([id, role]) => [
+        id,
+        { ...role, permissions: role.permissions & ~Permission.ADMINISTRATOR },
+      ]),
+    ),
+  }),
+);
+
 const memberArb = (guild: GuildInput) =>
   fc.record({
     userId: fc.constantFrom('u1', 'u2', 'u3'),
@@ -237,6 +254,132 @@ describe('permission resolution', () => {
 });
 
 describe('hierarchy', () => {
+  const restrictedGuild: GuildInput = {
+    ownerId: OWNER,
+    everyone: {
+      id: GUILD_ID,
+      position: 0,
+      permissions:
+        Permission.VIEW_CHANNEL |
+        Permission.SEND_MESSAGES |
+        Permission.READ_MESSAGE_HISTORY |
+        Permission.MANAGE_ROLES |
+        Permission.MODERATE_MEMBERS,
+    },
+    roles: new Map([
+      ['top', { id: 'top', position: 10, permissions: 0n }],
+      ['admin', { id: 'admin', position: 1, permissions: Permission.ADMINISTRATOR }],
+    ]),
+  };
+  const manager: MemberInput = { userId: 'u1', roleIds: ['top'] };
+
+  it.each([
+    { type: 'role' as const, id: GUILD_ID },
+    { type: 'role' as const, id: 'top' },
+    { type: 'member' as const, id: 'u1' },
+  ])('cannot clear or delete a denied privilege from $type $id', (target) => {
+    const channel: ChannelInput = {
+      kind: 'text',
+      overwrites: [{ ...target, allow: 0n, deny: Permission.SEND_MESSAGES }],
+    };
+    const before = computeChannelPermissions(restrictedGuild, manager, channel);
+    expect(has(before, Permission.SEND_MESSAGES)).toBe(false);
+    expect(
+      canEditOverwrite(restrictedGuild, manager, channel, target, { allow: 0n, deny: 0n }),
+    ).toBe(false);
+    expect(canEditOverwrite(restrictedGuild, manager, channel, target, null)).toBe(false);
+    expect(
+      canEditOverwrite(restrictedGuild, manager, channel, target, {
+        allow: 0n,
+        deny: Permission.SEND_MESSAGES,
+      }),
+    ).toBe(true);
+  });
+
+  it('allows changes to held bits while preserving an untouched denial the actor does not hold', () => {
+    const target = { type: 'member' as const, id: 'u1' };
+    const channel: ChannelInput = {
+      kind: 'text',
+      overwrites: [{ ...target, allow: 0n, deny: Permission.SEND_MESSAGES }],
+    };
+    expect(
+      canEditOverwrite(restrictedGuild, manager, channel, target, {
+        allow: 0n,
+        deny: Permission.SEND_MESSAGES | Permission.READ_MESSAGE_HISTORY,
+      }),
+    ).toBe(true);
+  });
+
+  it('does not apply another member overwrite to the actor, and permits the owner to clear denies', () => {
+    const target = { type: 'member' as const, id: 'u2' };
+    const channel: ChannelInput = {
+      kind: 'text',
+      overwrites: [{ ...target, allow: 0n, deny: Permission.SEND_MESSAGES }],
+    };
+    expect(canEditOverwrite(restrictedGuild, manager, channel, target, null)).toBe(true);
+    const ownTarget = { type: 'member' as const, id: 'u1' };
+    const ownDenied: ChannelInput = {
+      ...channel,
+      overwrites: [{ ...ownTarget, allow: 0n, deny: Permission.SEND_MESSAGES }],
+    };
+    expect(
+      canEditOverwrite(restrictedGuild, { userId: OWNER, roleIds: [] }, ownDenied, ownTarget, null),
+    ).toBe(true);
+  });
+
+  it('refuses cross-guild role targets and guild-scope overwrite bits, including for the owner', () => {
+    const owner = { userId: OWNER, roleIds: [] };
+    const channel: ChannelInput = { kind: 'text', overwrites: [] };
+    expect(
+      canEditOverwrite(
+        restrictedGuild,
+        owner,
+        channel,
+        { type: 'role', id: 'foreign' },
+        { allow: Permission.VIEW_CHANNEL, deny: 0n },
+      ),
+    ).toBe(false);
+    expect(
+      canEditOverwrite(
+        restrictedGuild,
+        owner,
+        channel,
+        { type: 'member', id: 'u1' },
+        { allow: Permission.ADMINISTRATOR, deny: 0n },
+      ),
+    ).toBe(false);
+  });
+
+  it('reserves administrator-role delegation for the owner', () => {
+    const administrator = { ...manager, roleIds: ['top', 'admin'] };
+    expect(
+      canAssignRole(restrictedGuild, administrator, { userId: 'u2', roleIds: [] }, 'admin'),
+    ).toBe(false);
+    expect(
+      canAssignRole(
+        restrictedGuild,
+        { userId: OWNER, roleIds: [] },
+        { userId: 'u2', roleIds: [] },
+        'admin',
+      ),
+    ).toBe(true);
+  });
+
+  it('refuses ineffective timeouts of administrators, even from a higher moderator or the owner', () => {
+    const administrator = { userId: 'u2', roleIds: ['admin'] };
+    expect(canActOn(restrictedGuild, manager, administrator, Permission.MODERATE_MEMBERS)).toBe(
+      false,
+    );
+    expect(
+      canActOn(
+        restrictedGuild,
+        { userId: OWNER, roleIds: [] },
+        administrator,
+        Permission.MODERATE_MEMBERS,
+      ),
+    ).toBe(false);
+  });
+
   it('never lets a non-owner manage a role at or above its rank, or @everyone', () => {
     fc.assert(
       fc.property(scenarioArb, ([guild, member]) => {
@@ -293,7 +436,7 @@ describe('hierarchy', () => {
   it('admits no privilege escalation through any sequence of permitted edits', () => {
     fc.assert(
       fc.property(
-        guildArb,
+        nonAdminGuildArb,
         fc.subarray(['r0', 'r1', 'r2', 'r3', 'r4', 'r5']),
         fc.array(operationArb, { maxLength: 12 }),
         (initial, actorRoles, operations) => {
@@ -307,6 +450,22 @@ describe('hierarchy', () => {
             roleIds: roleIds.get(userId) ?? [],
           });
           const before = computeGuildPermissions(guild, member('u1'));
+          const recipientBefore = computeGuildPermissions(guild, member('u2'));
+          const applyRoleChange = (id: string, permissions: bigint, position: number) => {
+            const previous = guild.roles.get(id);
+            const roles = new Map<string, RoleInput>();
+            for (const role of guild.roles.values()) {
+              if (role.id === id) continue;
+              const afterRemoval =
+                previous && role.position > previous.position ? role.position - 1 : role.position;
+              roles.set(role.id, {
+                ...role,
+                position: afterRemoval >= position ? afterRemoval + 1 : afterRemoval,
+              });
+            }
+            roles.set(id, { id, permissions, position });
+            guild = { ...guild, roles };
+          };
           let created = 0;
           for (const operation of operations) {
             const actor = member('u1');
@@ -321,9 +480,7 @@ describe('hierarchy', () => {
               )
                 continue;
               const id = `new${created++}`;
-              const roles = new Map(guild.roles);
-              roles.set(id, { id, permissions: operation.permissions, position: 100 + created });
-              guild = { ...guild, roles };
+              applyRoleChange(id, operation.permissions, operation.position);
             } else if (operation.kind === 'edit') {
               const id = ids[operation.role % ids.length];
               if (!id) continue;
@@ -333,10 +490,9 @@ describe('hierarchy', () => {
                 ...(operation.position === undefined ? {} : { position: operation.position }),
               };
               if (!canEditRole(guild, actor, change)) continue;
-              const roles = new Map(guild.roles);
-              const role = roles.get(id);
-              if (role) roles.set(id, { ...role, permissions: operation.permissions });
-              guild = { ...guild, roles };
+              const role = guild.roles.get(id);
+              if (role)
+                applyRoleChange(id, operation.permissions, operation.position ?? role.position);
             } else {
               const id = ids[operation.role % ids.length];
               if (!id || !canAssignRole(guild, actor, member(operation.target), id)) continue;
@@ -347,38 +503,61 @@ describe('hierarchy', () => {
           }
           expect(subset(computeGuildPermissions(guild, member('u1')), before)).toBe(true);
           expect(
-            subset(
-              computeGuildPermissions(guild, member('u2')),
-              before |
-                computeGuildPermissions(initial, member('u2')) |
-                initial.everyone.permissions |
-                guild.everyone.permissions,
-            ),
+            subset(computeGuildPermissions(guild, member('u2')), before | recipientBefore),
           ).toBe(true);
         },
       ),
     );
   });
 
-  it('only lets overwrites touch channel bits the actor holds there', () => {
+  it('admits no channel escalation through sequences of role/member/everyone overwrite changes or deletions', () => {
     fc.assert(
       fc.property(
-        guildArb,
-        channelBitsArb,
-        channelBitsArb,
-        channelBitsArb,
-        (guild, held, allow, deny) => {
-          const actor: MemberInput = { userId: 'u1', roleIds: [] };
-          const permitted = canEditOverwrite(guild, actor, held | Permission.MANAGE_ROLES, {
-            allow,
-            deny,
-          });
-          expect(permitted).toBe(((allow | deny) & ~(held | Permission.MANAGE_ROLES)) === 0n);
-          expect(
-            canEditOverwrite(guild, actor, held & ~Permission.MANAGE_ROLES, { allow, deny }),
-          ).toBe(false);
+        nonAdminGuildArb,
+        fc.array(
+          fc.record({
+            target: fc.nat(20),
+            allow: channelBitsArb,
+            deny: channelBitsArb,
+            remove: fc.boolean(),
+          }),
+          { maxLength: 30 },
+        ),
+        (initial, operations) => {
+          const guild: GuildInput = {
+            ...initial,
+            everyone: {
+              ...initial.everyone,
+              permissions:
+                initial.everyone.permissions | Permission.VIEW_CHANNEL | Permission.MANAGE_ROLES,
+            },
+          };
+          const actor: MemberInput = { userId: 'u1', roleIds: [...guild.roles.keys()] };
+          let channel: ChannelInput = { kind: 'text', overwrites: [] };
+          const before = computeChannelPermissions(guild, actor, channel);
+          const targets = [
+            { type: 'role' as const, id: GUILD_ID },
+            ...[...guild.roles.keys()].map((id) => ({ type: 'role' as const, id })),
+            { type: 'member' as const, id: 'u1' },
+            { type: 'member' as const, id: 'u2' },
+          ];
+          for (const operation of operations) {
+            const target = targets[operation.target % targets.length];
+            if (!target) continue;
+            const replacement = operation.remove
+              ? null
+              : { allow: operation.allow, deny: operation.deny };
+            if (!canEditOverwrite(guild, actor, channel, target, replacement)) continue;
+            const overwrites = channel.overwrites.filter(
+              (overwrite) => overwrite.type !== target.type || overwrite.id !== target.id,
+            );
+            if (replacement) overwrites.push({ ...target, ...replacement });
+            channel = { ...channel, overwrites };
+            expect(subset(computeChannelPermissions(guild, actor, channel), before)).toBe(true);
+          }
         },
       ),
+      { numRuns: 300 },
     );
   });
 });
