@@ -37,9 +37,9 @@ function Body({ userId, guildId }: { readonly userId: string; readonly guildId?:
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'about', label: t('profile.about') },
   ];
-  if (data.mutualGuilds)
+  if (data.mutualGuilds?.count)
     tabs.push({ id: 'servers', label: t('profile.mutualServers'), count: data.mutualGuilds.count });
-  if (data.mutualFriends)
+  if (data.mutualFriends?.count)
     tabs.push({
       id: 'friends',
       label: t('profile.mutualFriends'),
@@ -48,37 +48,37 @@ function Body({ userId, guildId }: { readonly userId: string; readonly guildId?:
 
   return (
     <ProfileCard card={card} size="full" presence={statusOf(userId)}>
-      <div role="tablist" aria-label={t('profile.tabs')} className={styles['tabs']}>
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            id={`${tabsId}-${item.id}`}
-            aria-selected={tab === item.id}
-            aria-controls={`${tabsId}-panel`}
-            className={styles['tab']}
-            onClick={() => setTab(item.id)}
-          >
-            {tab === item.id ? (
-              <motion.span
-                layoutId={`${tabsId}-pill`}
-                className={styles['tabPill']}
-                transition={{ type: 'spring', stiffness: 420, damping: 32, mass: 0.8 }}
-              />
-            ) : null}
-            <span className={styles['tabLabel']}>{item.label}</span>
-            {item.count !== undefined ? (
-              <span className={styles['tabCount']}>{item.count}</span>
-            ) : null}
-          </button>
-        ))}
-      </div>
+      {tabs.length > 1 ? (
+        <div role="tablist" aria-label={t('profile.tabs')} className={styles['tabs']}>
+          {tabs.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              id={`${tabsId}-${item.id}`}
+              aria-selected={tab === item.id}
+              aria-controls={`${tabsId}-panel`}
+              className={styles['tab']}
+              onClick={() => setTab(item.id)}
+            >
+              {tab === item.id ? (
+                <motion.span
+                  layoutId={`${tabsId}-pill`}
+                  className={styles['tabPill']}
+                  transition={{ type: 'spring', stiffness: 420, damping: 32, mass: 0.8 }}
+                />
+              ) : null}
+              <span className={styles['tabLabel']}>{item.label}</span>
+              {item.count !== undefined ? (
+                <span className={styles['tabCount']}>{item.count}</span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div
         id={`${tabsId}-panel`}
-        role="tabpanel"
-        aria-labelledby={`${tabsId}-${tab}`}
-        className={styles['panelBody']}
+        {...(tabs.length > 1 ? { role: 'tabpanel', 'aria-labelledby': `${tabsId}-${tab}` } : {})}
       >
         {tab === 'about' && data.note ? (
           <dl className={styles['facts']}>

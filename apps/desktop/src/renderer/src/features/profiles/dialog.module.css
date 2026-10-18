@@ -98,10 +98,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.panelBody {
-  min-height: 120px;
-}
-
 .list {
   display: grid;
   gap: 2px;

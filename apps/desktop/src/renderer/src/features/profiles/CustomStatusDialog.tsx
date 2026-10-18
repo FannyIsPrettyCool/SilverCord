@@ -41,7 +41,7 @@ export function CustomStatusDialog({
   const open = () => {
     setText(current?.text ?? '');
     setEmoji(current?.emoji && !current.emoji.startsWith('custom:') ? current.emoji : '');
-    setClearAfter(current?.expiresAt ? 'today' : 'never');
+    setClearAfter(current && !current.expiresAt ? 'never' : 'today');
     save.reset();
     dialog.current?.showModal();
   };

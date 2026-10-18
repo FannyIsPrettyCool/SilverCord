@@ -3,13 +3,13 @@
  * raised surface so contrast never depends on user colours.
  */
 .card {
-  --card-surface: var(--color-content-raised);
   position: relative;
   display: grid;
   overflow: hidden;
   border-radius: var(--radius-4);
   width: 340px;
-  background: var(--card-surface);
+  background:
+    linear-gradient(var(--color-content-raised), var(--color-content-raised)), var(--color-base);
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--card-accent) 30%, transparent),
     0 18px 48px color-mix(in srgb, var(--card-banner) 22%, transparent);
@@ -21,7 +21,7 @@
         color-mix(in srgb, var(--card-theme-a) 26%, transparent),
         color-mix(in srgb, var(--card-theme-b) 22%, transparent)
       ),
-      var(--card-surface);
+      linear-gradient(var(--color-content-raised), var(--color-content-raised)), var(--color-base);
   }
 
   &[data-size="full"] {
@@ -70,14 +70,17 @@
   display: inline-grid;
   border-radius: 50%;
   padding: 5px;
-  background: var(--card-surface);
+  background:
+    linear-gradient(var(--color-content-raised), var(--color-content-raised)), var(--color-base);
 
   .card[data-themed] & {
-    background: linear-gradient(
-      170deg,
-      color-mix(in srgb, var(--card-theme-a) 26%, var(--card-surface)),
-      color-mix(in srgb, var(--card-theme-b) 22%, var(--card-surface))
-    );
+    background:
+      linear-gradient(
+        170deg,
+        color-mix(in srgb, var(--card-theme-a) 26%, transparent),
+        color-mix(in srgb, var(--card-theme-b) 22%, transparent)
+      ),
+      linear-gradient(var(--color-content-raised), var(--color-content-raised)), var(--color-base);
   }
 }
 
