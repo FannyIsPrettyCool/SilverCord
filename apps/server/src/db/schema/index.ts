@@ -7,5 +7,6 @@ export * from '../../modules/guilds/guilds-schema.ts';
 export * from '../../modules/media/media-schema.ts';
 export * from '../../modules/messages/messages-schema.ts';
 export * from '../../modules/presence/presence-schema.ts';
+export * from '../../modules/profiles/profiles-schema.ts';
 export * from '../../modules/relationships/relationships-schema.ts';
 export * from '../../modules/users/users-schema.ts';

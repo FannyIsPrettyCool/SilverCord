@@ -71,6 +71,13 @@
       "when": 1792344471744,
       "tag": "0009_profile_media",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792345132821,
+      "tag": "0010_profiles",
+      "breakpoints": true
     }
   ]
 }
