@@ -102,11 +102,12 @@ export function MessageList({ channel }: { readonly channel: Channel }) {
     anchor.current = null;
   }, [rows, virtualizer]);
 
-  // New rows while reading the bottom: follow them.
+  // New rows, or rows growing as they are measured, while reading the bottom: follow them.
   const lastKey = rows.at(-1)?.key;
+  const totalSize = virtualizer.getTotalSize();
   useLayoutEffect(() => {
-    if (atBottom && lastKey) scrollToEnd();
-  }, [lastKey, atBottom, scrollToEnd]);
+    if (atBottom && lastKey && totalSize > 0) scrollToEnd();
+  }, [lastKey, totalSize, atBottom, scrollToEnd]);
 
   const loadOlder = useCallback(() => {
     if (!messages.hasNextPage || messages.isFetchingNextPage) return;

@@ -34,7 +34,8 @@
     margin: 0;
   }
 
-  & p.is-editor-empty:first-child::before {
+  /* Tiptap's class names are global, not CSS-module scoped. */
+  & p:global(.is-editor-empty):first-child::before {
     content: attr(data-placeholder);
     float: left;
     height: 0;

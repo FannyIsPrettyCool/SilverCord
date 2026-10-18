@@ -29,7 +29,9 @@
 
 .gutterTime {
   padding-top: 4px;
-  text-align: center;
+  justify-self: center;
+  white-space: nowrap;
+  font-size: 11px;
   opacity: 0;
   transition: opacity 120ms ease-out;
 }
@@ -274,6 +276,18 @@
 
     & .content {
       color: inherit;
+    }
+
+    /* Markdown inside an accent bubble: keep quotes and links legible. */
+    & blockquote {
+      color: inherit;
+      opacity: 0.85;
+      border-left-color: currentColor;
+    }
+
+    & a {
+      color: inherit;
+      text-decoration: underline;
     }
   }
 }
