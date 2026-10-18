@@ -56,12 +56,17 @@ export const editMessageRequestSchema = z.strictObject({
 });
 export type EditMessageRequest = z.infer<typeof editMessageRequestSchema>;
 
-/** One fully-qualified RGI emoji sequence (unicode only until custom emotes in phase 5). */
+/**
+ * One fully-qualified RGI emoji sequence, or `custom:<emoteId>` for a custom emote the actor
+ * may use (docs/spec/expressions.md).
+ */
 export const reactionEmojiSchema = z
   .string()
   .min(1)
   .max(64)
-  .regex(/^\p{RGI_Emoji}$/v, 'must be a single emoji');
+  .refine((value) => /^\p{RGI_Emoji}$/v.test(value) || /^custom:\d{1,20}$/.test(value), {
+    message: 'must be a single emoji',
+  });
 
 export const messageParamsSchema = z.strictObject({
   channelId: snowflakeSchema,

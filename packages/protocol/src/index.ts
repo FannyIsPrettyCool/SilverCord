@@ -12,6 +12,7 @@ export {
   fieldIssueSchema,
 } from './errors.ts';
 export * from './events.ts';
+export * from './expressions.ts';
 export * from './gateway.ts';
 export * from './guild-channels.ts';
 export * from './guilds.ts';
