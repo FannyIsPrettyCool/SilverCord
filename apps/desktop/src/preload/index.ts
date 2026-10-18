@@ -28,6 +28,9 @@ const bridge = {
   window: {
     toggleMaximize: () => invoke('window:toggle-maximize'),
   },
+  media: {
+    download: (input: IpcInput<'media:download'>) => invoke('media:download', input),
+  },
 } as const;
 
 export type DesktopBridge = typeof bridge;

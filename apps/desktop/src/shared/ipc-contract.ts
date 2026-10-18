@@ -52,6 +52,8 @@ export interface IpcChannels {
   'auth:logout': [undefined, null];
   'auth:forgot-password': [{ email: string }, null];
   'window:toggle-maximize': [undefined, boolean];
+  /** Saves an attachment through a native dialog; false when the user cancels. */
+  'media:download': [{ path: string; filename: string }, boolean];
 }
 
 export type IpcChannel = keyof IpcChannels;
@@ -68,4 +70,5 @@ export const IPC_CHANNELS = [
   'auth:logout',
   'auth:forgot-password',
   'window:toggle-maximize',
+  'media:download',
 ] as const satisfies readonly IpcChannel[];

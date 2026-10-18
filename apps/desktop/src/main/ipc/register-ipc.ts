@@ -18,6 +18,7 @@ import {
   type IpcResult,
 } from '../../shared/ipc-contract.ts';
 import { ApiError, type AuthAgent } from '../auth/auth-agent.ts';
+import { downloadMedia, MEDIA_PATH_PATTERN } from '../media-download.ts';
 import { isTrustedSender } from './trusted-sender.ts';
 
 const none = z.undefined();
@@ -47,6 +48,10 @@ const inputSchemas: { [C in IpcChannel]: z.ZodType<IpcInput<C>> } = {
   'auth:logout': none,
   'auth:forgot-password': z.object({ email: emailSchema }),
   'window:toggle-maximize': none,
+  'media:download': z.object({
+    path: z.string().regex(MEDIA_PATH_PATTERN),
+    filename: z.string().min(1).max(128),
+  }),
 };
 
 type Handlers = { [C in IpcChannel]: (input: IpcInput<C>) => Promise<IpcOutput<C>> | IpcOutput<C> };
@@ -81,6 +86,8 @@ export function registerIpc(deps: IpcDependencies): void {
       await deps.auth.logout();
       return null;
     },
+    'media:download': ({ path, filename }) =>
+      downloadMedia({ ...deps, window: deps.window() }, path, filename),
     'window:toggle-maximize': () => {
       const window = deps.window();
       if (!window) return false;
