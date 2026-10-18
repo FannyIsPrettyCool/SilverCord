@@ -85,6 +85,13 @@
       "when": 1792347737510,
       "tag": "0011_badges",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792348942836,
+      "tag": "0012_activity",
+      "breakpoints": true
     }
   ]
 }

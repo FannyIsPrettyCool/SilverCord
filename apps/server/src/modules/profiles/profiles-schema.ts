@@ -1,4 +1,4 @@
-import type { ProfilePrivacy } from '@silvercord/protocol';
+import type { ActivityInput, ActivitySources, ProfilePrivacy } from '@silvercord/protocol';
 import { sql } from 'drizzle-orm';
 import {
   check,
@@ -37,6 +37,10 @@ export const userProfiles = pgTable(
     customStatusExpiresAt: timestamptz(),
     /** Partial audience map; defaults are merged on read. */
     privacy: jsonb().$type<Partial<ProfilePrivacy>>().notNull().default({}),
+    /** docs/spec/activity.md: every source is off until turned on. */
+    activitySources: jsonb().$type<Partial<ActivitySources>>().notNull().default({}),
+    manualActivity: jsonb().$type<ActivityInput>(),
+    manualActivityExpiresAt: timestamptz(),
     version: integer().notNull().default(1),
     updatedAt: timestamptz().notNull().default(sql`now()`),
   },
@@ -53,6 +57,9 @@ export const userProfiles = pgTable(
     ),
     check('user_profiles_custom_status_length', sql`char_length(${table.customStatusText}) <= 128`),
     check('user_profiles_version_positive', sql`${table.version} > 0`),
+    index('user_profiles_activity_expiry_idx')
+      .on(table.manualActivityExpiresAt)
+      .where(sql`${table.manualActivityExpiresAt} is not null`),
     index('user_profiles_status_expiry_idx')
       .on(table.customStatusExpiresAt)
       .where(sql`${table.customStatusExpiresAt} is not null`),
