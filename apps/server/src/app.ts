@@ -3,7 +3,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { registerHealthRoutes } from './api/health-routes.ts';
 import type { AppContext } from './context.ts';
-import { createEventOutbox, createOutboxDispatcher } from './events/outbox.ts';
+import { createOutboxDispatcher } from './events/outbox.ts';
 import { createEventSubscriber } from './gateway/event-bus.ts';
 import { registerGateway } from './gateway/gateway-server.ts';
 import { createSessionStore } from './gateway/session-store.ts';
@@ -16,16 +16,13 @@ import { registerAuthRoutes } from './modules/auth/auth-routes.ts';
 import { createAuthService } from './modules/auth/auth-service.ts';
 import { createCodeHasher } from './modules/auth/crypto/code-hasher.ts';
 import { registerChannelsRoutes } from './modules/channels/channels-routes.ts';
-import { createChannelsService } from './modules/channels/channels-service.ts';
+import { createMediaQueue } from './modules/media/media-queue.ts';
+import { registerMediaRoutes } from './modules/media/media-routes.ts';
 import { registerMessagesRoutes } from './modules/messages/messages-routes.ts';
-import { createMessagesService, noMessageMedia } from './modules/messages/messages-service.ts';
-import { createPresenceLeases } from './modules/presence/presence-leases.ts';
 import { registerPresenceRoutes } from './modules/presence/presence-routes.ts';
-import { createPresenceService } from './modules/presence/presence-service.ts';
-import { createTypingService } from './modules/presence/typing-service.ts';
 import { registerRelationshipsRoutes } from './modules/relationships/relationships-routes.ts';
-import { createRelationshipsService } from './modules/relationships/relationships-service.ts';
 import { createUsersService } from './modules/users/users-service.ts';
+import { createChatServices } from './services.ts';
 
 export const VERSION = '0.1.0';
 
@@ -70,7 +67,7 @@ export async function buildApp(
   await app.register(cors, {
     origin: env.CORS_ORIGINS,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
-    allowedHeaders: ['authorization', 'content-type', 'idempotency-key'],
+    allowedHeaders: ['authorization', 'content-type', 'idempotency-key', 'upload-offset'],
     credentials: false,
     maxAge: 600,
   });
@@ -102,45 +99,15 @@ export async function buildApp(
   registerHealthRoutes(app, VERSION);
   registerAuthRoutes(app, auth);
 
-  const db = context.database.db;
-  const users = createUsersService();
-  const outbox = createEventOutbox(context.nextId);
-  const relationships = createRelationshipsService({ users, nextId: context.nextId, outbox });
+  const mediaQueue = createMediaQueue(env.VALKEY_URL);
+  app.addHook('onClose', () => mediaQueue.close());
+  const services = createChatServices(context, { log: app.log, enqueueMedia: mediaQueue.enqueue });
+  const { db, relationships, channels, messages, presence, typing, media, storage } = services;
   registerRelationshipsRoutes(app, db, relationships);
-  const channels = createChannelsService({
-    users,
-    relationships,
-    outbox,
-    nextId: context.nextId,
-    groupMaxMembers: env.GROUP_DM_MAX_MEMBERS,
-  });
-  const messages = createMessagesService({
-    users,
-    relationships,
-    channels,
-    outbox,
-    media: noMessageMedia,
-    nextId: context.nextId,
-  });
-  const presence = createPresenceService({
-    db,
-    leases: createPresenceLeases(context.valkey),
-    relationships,
-    events: context.events,
-    log: app.log,
-    timings: context.presence,
-  });
-  const typing = createTypingService({
-    db,
-    valkey: context.valkey,
-    channels,
-    relationships,
-    events: context.events,
-    log: app.log,
-  });
   registerChannelsRoutes(app, db, channels, messages, typing);
   registerMessagesRoutes(app, db, messages, typing);
   registerPresenceRoutes(app, db, presence, typing);
+  await registerMediaRoutes(app, media, storage);
   app.addHook('onReady', () => presence.start());
   app.addHook('onClose', async () => {
     await presence.close();

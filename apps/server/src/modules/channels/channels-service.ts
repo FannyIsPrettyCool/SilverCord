@@ -13,6 +13,11 @@ export interface ChannelsDependencies {
   readonly outbox: EventOutbox;
   readonly nextId: () => bigint;
   readonly groupMaxMembers: number;
+  /**
+   * Runs inside the transaction that deletes a channel; returns work to do after commit
+   * (e.g. removing stored objects whose rows the delete cascades away).
+   */
+  readonly onDelete?: (tx: Transaction, channelId: bigint) => Promise<() => Promise<void>>;
 }
 
 /** A channel row with its current public member cards. */
@@ -202,6 +207,7 @@ export function createChannelsService(deps: ChannelsDependencies) {
     },
 
     async removeMember(ex: Executor, actorId: bigint, channelId: bigint, userId: bigint) {
+      let afterCommit: (() => Promise<void>) | undefined;
       await ex.transaction(async (tx) => {
         const channel = await requireMember(tx, channelId, actorId, 'update');
         if (channel.type !== 'group_dm')
@@ -212,6 +218,7 @@ export function createChannelsService(deps: ChannelsDependencies) {
         if (!current.includes(userId)) throw new AppError('NOT_FOUND', 'Member not found');
         const remaining = current.filter((id) => id !== userId);
         if (remaining.length === 0) {
+          afterCommit = await deps.onDelete?.(tx, channelId);
           await repo.delete(tx, channelId);
           await announce(tx, channelId, [userId]);
           return;
@@ -222,6 +229,7 @@ export function createChannelsService(deps: ChannelsDependencies) {
         await repo.update(tx, channelId, { ownerId });
         await announce(tx, channelId, current);
       });
+      await afterCommit?.();
     },
 
     /**

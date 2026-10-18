@@ -10,6 +10,20 @@ x-bounds: &bounds
       max-file: '3'
   security_opt: [no-new-privileges:true]
 
+x-app-env: &app-env
+  NODE_ENV: production
+  LOG_LEVEL: info
+  DATABASE_URL: postgresql://silvercord:${DATABASE_PASSWORD:?set application password}@postgres:5432/silvercord
+  VALKEY_URL: redis://valkey:6379
+  JWT_SECRET: ${JWT_SECRET:?set a random JWT secret}
+  TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?set a random base64 32-byte key}
+  SMTP_URL: ${SMTP_URL:?configure SMTP or explicitly use the staging mailpit profile}
+  MAIL_FROM: ${MAIL_FROM:?configure the sender address}
+  CORS_ORIGINS: app://bundle
+  HIBP_ENABLED: 'false'
+  MEDIA_STORAGE_DIR: /data/media
+  MEDIA_JOBS_DIR: /data/jobs
+
 x-postgres-image: &postgres-image postgres:18.6@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
 
 services:
@@ -86,25 +100,17 @@ services:
     tmpfs: ['/tmp:rw,noexec,nosuid,size=32m']
     ports: [127.0.0.1:14000:4000]
     networks: [backend, outbound]
+    volumes: [media-storage:/data/media]
     cpus: 2
     mem_limit: 1g
     pids_limit: 150
     stop_grace_period: 15s
     environment:
-      NODE_ENV: production
+      <<: *app-env
       HOST: 0.0.0.0
       PORT: '4000'
       TRUST_PROXY: 'true'
-      LOG_LEVEL: info
       WORKER_ID: '0'
-      DATABASE_URL: postgresql://silvercord:${DATABASE_PASSWORD:?set application password}@postgres:5432/silvercord
-      VALKEY_URL: redis://valkey:6379
-      JWT_SECRET: ${JWT_SECRET:?set a random JWT secret}
-      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?set a random base64 32-byte key}
-      SMTP_URL: ${SMTP_URL:?configure SMTP or explicitly use the staging mailpit profile}
-      MAIL_FROM: ${MAIL_FROM:?configure the sender address}
-      CORS_ORIGINS: app://bundle
-      HIBP_ENABLED: 'false'
     depends_on:
       postgres: {condition: service_healthy}
       valkey: {condition: service_healthy}
@@ -114,6 +120,45 @@ services:
       timeout: 5s
       start_period: 20s
       retries: 4
+
+  # Media orchestrator: DB, Valkey and storage access, no internet (backend is internal).
+  worker:
+    <<: *bounds
+    image: ${SILVERCORD_IMAGE:-silvercord-api:current}
+    init: true
+    command: [node, src/worker-main.ts]
+    read_only: true
+    cap_drop: [ALL]
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=32m']
+    networks: [backend]
+    volumes: [media-storage:/data/media, media-jobs:/data/jobs]
+    cpus: 1
+    mem_limit: 512m
+    pids_limit: 100
+    stop_grace_period: 40s
+    environment:
+      <<: *app-env
+      WORKER_ID: '1'
+      MEDIA_DECODER: container
+    depends_on:
+      postgres: {condition: service_healthy}
+      valkey: {condition: service_healthy}
+
+  # Hostile-input decoding (ADR-0009): no network, no secrets, only the jobs volume.
+  media-decoder:
+    <<: *bounds
+    image: ${SILVERCORD_DECODER_IMAGE:-silvercord-decoder:current}
+    init: true
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=256m']
+    volumes: [media-jobs:/data/jobs]
+    cpus: 1
+    mem_limit: 1g
+    pids_limit: 64
+    environment:
+      NODE_ENV: production
 
   mailpit:
     <<: *bounds
@@ -146,3 +191,5 @@ networks:
 volumes:
   postgres-data:
   valkey-data:
+  media-storage:
+  media-jobs:
