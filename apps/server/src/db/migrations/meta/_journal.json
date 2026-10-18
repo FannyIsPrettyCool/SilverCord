@@ -64,6 +64,13 @@
       "when": 1792331764232,
       "tag": "0008_guild_channels",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792344471744,
+      "tag": "0009_profile_media",
+      "breakpoints": true
     }
   ]
 }

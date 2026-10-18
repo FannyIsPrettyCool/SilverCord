@@ -2,9 +2,18 @@ import { execFile } from 'node:child_process';
 import { open } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import type { MediaVariant, UploadFailure } from '@silvercord/protocol';
+import {
+  type Crop,
+  cropSchema,
+  type MediaVariant,
+  PROFILE_MEDIA_SHAPES,
+  type ProfileMediaPurpose,
+  profileMediaPurposeSchema,
+  type UploadFailure,
+} from '@silvercord/protocol';
 import { encode } from 'blurhash';
 import sharp, { type Sharp, type SharpOptions } from 'sharp';
+import { z } from 'zod';
 import type { Sniffed } from '../sniff.ts';
 
 const run = promisify(execFile);
@@ -26,6 +35,14 @@ export const LIMITS = {
   maxVideoMs: 6 * 60 * 60 * 1000,
 } as const;
 
+/** What the orchestrator asks for, written to `<job>/spec.json` (ADR-0011). */
+export const decodeSpecSchema = z.strictObject({
+  purpose: z.union([z.literal('attachment'), profileMediaPurposeSchema]),
+  crop: cropSchema.nullable(),
+});
+export type DecodeSpec = z.infer<typeof decodeSpecSchema>;
+export const ATTACHMENT_SPEC: DecodeSpec = { purpose: 'attachment', crop: null };
+
 export interface DecodedVariant {
   readonly variant: MediaVariant;
   /** File name inside the output directory. */
@@ -44,6 +61,8 @@ export type DecodeResult =
       readonly height: number;
       readonly durationMs: number | null;
       readonly blurhash: string | null;
+      /** 0xRRGGBB of the first frame; profile-class purposes only. */
+      readonly dominantColor: number | null;
       readonly variants: readonly DecodedVariant[];
     }
   /** Not renderable inline here (e.g. no ffmpeg for video/APNG): serve as a download. */
@@ -178,6 +197,7 @@ async function decodeImage(
     height: downloadInfo.pageHeight ?? downloadInfo.height,
     durationMs: null,
     blurhash: await blurhashOf(sharp(path, { ...options, animated: false }).rotate()),
+    dominantColor: null,
     variants: [
       display,
       thumbnail,
@@ -192,7 +212,127 @@ async function decodeImage(
   };
 }
 
-async function decodeAnimatedPng(path: string, outDir: string): Promise<DecodeResult> {
+/** The crop to apply: the requested one (validated against the frame) or a centred frame. */
+export function frameCrop(
+  width: number,
+  height: number,
+  aspect: number | null,
+  requested: Crop | null,
+): Crop {
+  if (requested) {
+    if (requested.x + requested.width > width || requested.y + requested.height > height)
+      throw new DecodeFailure('MALFORMED');
+    return requested;
+  }
+  if (aspect === null) return { x: 0, y: 0, width, height };
+  const cropWidth = Math.min(width, Math.round(height * aspect));
+  const cropHeight = Math.min(height, Math.round(cropWidth / aspect));
+  return {
+    x: Math.floor((width - cropWidth) / 2),
+    y: Math.floor((height - cropHeight) / 2),
+    width: cropWidth,
+    height: cropHeight,
+  };
+}
+
+async function framed(
+  source: Sharp,
+  crop: Crop,
+  box: { readonly width: number; readonly height: number },
+  fixed: boolean,
+  file: string,
+  outDir: string,
+  variant: MediaVariant,
+): Promise<DecodedVariant> {
+  const info = await source
+    .clone()
+    .extract({ left: crop.x, top: crop.y, width: crop.width, height: crop.height })
+    .resize({
+      width: box.width,
+      height: box.height,
+      fit: fixed ? 'cover' : 'inside',
+      withoutEnlargement: !fixed,
+    })
+    .webp({ quality: 88, effort: 4 })
+    .toFile(join(outDir, file));
+  return {
+    variant,
+    file,
+    mime: 'image/webp',
+    width: info.width,
+    height: info.pageHeight ?? info.height,
+  };
+}
+
+/**
+ * Avatars, banners, emotes, stickers and badge icons: cropped, resized, animation preserved,
+ * never a re-encoded original (ADR-0011).
+ */
+async function decodeProfileImage(
+  path: string,
+  format: 'jpeg' | 'png' | 'gif' | 'webp',
+  outDir: string,
+  purpose: ProfileMediaPurpose,
+  requested: Crop | null,
+): Promise<DecodeResult> {
+  const options: SharpOptions = {
+    limitInputPixels: LIMITS.maxFramePixels,
+    failOn: 'error',
+    sequentialRead: true,
+  };
+  const animatedInput = format === 'gif' || format === 'webp';
+  const probe = await sharp(path, { ...options, animated: animatedInput }).metadata();
+  const width = probe.width;
+  const frames = probe.pages ?? 1;
+  const frameHeight = probe.pageHeight ?? probe.height;
+  if (!width || !frameHeight) throw new DecodeFailure('MALFORMED');
+  checkDimensions(width, frameHeight, frames);
+  const animated = animatedInput && frames > 1;
+  // Crops address the oriented image, so orientation is materialized before extraction.
+  const first = animated
+    ? sharp(path, { ...options, animated: false })
+    : sharp(
+        await sharp(path, { ...options, animated: false })
+          .rotate()
+          .png()
+          .toBuffer(),
+        options,
+      );
+  const oriented = animated ? { width, height: frameHeight } : await first.metadata();
+  if (!oriented.width || !oriented.height) throw new DecodeFailure('MALFORMED');
+  const shape = PROFILE_MEDIA_SHAPES[purpose];
+  const crop = frameCrop(oriented.width, oriented.height, shape.aspect, requested);
+  const fixed = shape.aspect !== null;
+  const base = animated ? sharp(path, { ...options, animated: true }) : first;
+  const display = await framed(base, crop, shape.display, fixed, 'display.webp', outDir, 'display');
+  const thumbnail = await framed(
+    base,
+    crop,
+    shape.thumbnail,
+    fixed,
+    'thumbnail.webp',
+    outDir,
+    'thumbnail',
+  );
+  const variants = [display, thumbnail];
+  if (animated)
+    variants.push(await framed(first, crop, shape.display, fixed, 'still.webp', outDir, 'still'));
+  const thumb = sharp(join(outDir, 'thumbnail.webp'), { ...options, animated: false });
+  const { dominant } = await thumb.clone().stats();
+  return {
+    ok: true,
+    kind: 'image',
+    animated,
+    width: display.width ?? shape.display.width,
+    height: display.height ?? shape.display.height,
+    durationMs: null,
+    blurhash: await blurhashOf(thumb),
+    dominantColor: (dominant.r << 16) | (dominant.g << 8) | dominant.b,
+    variants,
+  };
+}
+
+async function decodeAnimatedPng(path: string, outDir: string): Promise<string> {
   // libvips cannot read APNG frames; ffmpeg decodes them into a sanitized animated WebP.
   const converted = join(outDir, 'apng.webp');
   await run(
@@ -215,7 +355,7 @@ async function decodeAnimatedPng(path: string, outDir: string): Promise<DecodeRe
     ],
     { timeout: 20_000, env: TOOL_ENV, maxBuffer: 1024 * 1024 },
   );
-  return decodeImage(converted, 'webp', outDir);
+  return converted;
 }
 
 async function decodeVideo(
@@ -280,6 +420,7 @@ async function decodeVideo(
     height: stream.height,
     durationMs,
     blurhash: await blurhashOf(poster),
+    dominantColor: null,
     variants: [
       display,
       thumbnail,
@@ -303,9 +444,20 @@ export async function decode(
   path: string,
   sniffed: Sniffed,
   outDir: string,
+  spec: DecodeSpec = ATTACHMENT_SPEC,
 ): Promise<DecodeResult> {
   try {
     if (sniffed.kind === 'rejected') return { ok: false, failure: 'UNSUPPORTED_TYPE' };
+    if (spec.purpose !== 'attachment') {
+      // Profile-class media is images only; an APNG needs ffmpeg to keep its frames.
+      if (sniffed.kind !== 'image') return { ok: false, failure: 'UNSUPPORTED_TYPE' };
+      if (sniffed.format === 'png' && (await isAnimatedPng(path))) {
+        if (!(await hasFfmpeg())) return { ok: false, failure: 'UNSUPPORTED_TYPE' };
+        const converted = await decodeAnimatedPng(path, outDir);
+        return await decodeProfileImage(converted, 'webp', outDir, spec.purpose, spec.crop);
+      }
+      return await decodeProfileImage(path, sniffed.format, outDir, spec.purpose, spec.crop);
+    }
     if (sniffed.kind === 'file') return { ok: true, kind: 'file' };
     if (sniffed.kind === 'video') {
       return (await hasFfmpeg())
@@ -315,7 +467,7 @@ export async function decode(
     if (sniffed.format === 'png' && (await isAnimatedPng(path))) {
       // Never silently flatten animation: without ffmpeg an APNG stays download-only.
       return (await hasFfmpeg())
-        ? await decodeAnimatedPng(path, outDir)
+        ? await decodeImage(await decodeAnimatedPng(path, outDir), 'webp', outDir)
         : { ok: true, kind: 'file' };
     }
     return await decodeImage(path, sniffed.format, outDir);

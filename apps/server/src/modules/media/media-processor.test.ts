@@ -25,6 +25,7 @@ const imageResult = {
   animated: false,
   durationMs: null,
   blurhash: null,
+  dominantColor: null,
   variants: [
     { variant: 'download', file: 'download.jpg', mime: 'image/jpeg', width: 1, height: 1 },
   ],

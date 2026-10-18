@@ -23,6 +23,7 @@ export {
   PAGE_LIMIT_MAX,
 } from './pagination.ts';
 export * from './presence.ts';
+export * from './profile-media.ts';
 export * from './relationships.ts';
 export {
   createSnowflakeGenerator,

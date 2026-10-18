@@ -17,12 +17,21 @@ const childScript = join(here, 'decode-child.ts');
 const appRoot = resolve(here, '../../../..');
 const sharpEntry = realpathSync(createRequire(import.meta.url).resolve('sharp'));
 const modulesRoot = sharpEntry.slice(0, sharpEntry.indexOf(`${sep}node_modules${sep}`) + 13);
+/**
+ * Purpose shapes and crop schemas come from the workspace protocol package; its own
+ * `node_modules` links must be readable for module resolution (targets are in modulesRoot).
+ */
+const protocolRoot = resolve(
+  dirname(realpathSync(createRequire(import.meta.url).resolve('@silvercord/protocol'))),
+  '..',
+);
 
 const variantSchema = z.strictObject({
-  variant: z.enum(['display', 'thumbnail', 'download']),
+  variant: z.enum(['display', 'thumbnail', 'download', 'still']),
   file: z.enum([
     'display.webp',
     'thumbnail.webp',
+    'still.webp',
     'download.jpg',
     'download.png',
     'download.gif',
@@ -44,6 +53,7 @@ export const decodeResultSchema = z.union([
     height: z.number().int().positive().max(8192),
     durationMs: z.number().int().nonnegative().nullable(),
     blurhash: z.string().max(64).nullable(),
+    dominantColor: z.number().int().min(0).max(0xffffff).nullable(),
     variants: z.array(variantSchema).min(1).max(3),
   }),
   z.strictObject({ ok: z.literal(true), kind: z.literal('file') }),
@@ -87,6 +97,7 @@ export function runDecodeChild(
         '--permission',
         `--allow-fs-read=${appRoot}`,
         `--allow-fs-read=${modulesRoot}`,
+        `--allow-fs-read=${protocolRoot}`,
         `--allow-fs-read=${job}`,
         `--allow-fs-write=${job}`,
         '--allow-addons',

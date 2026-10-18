@@ -6,8 +6,13 @@ export const UPLOAD_MAX_BYTES_DEFAULT = 25 * 1024 * 1024;
 export const UPLOAD_CHUNK_MAX_BYTES = 4 * 1024 * 1024;
 export const ATTACHMENTS_PER_MESSAGE_MAX = 10;
 
-export const mediaVariantSchema = z.enum(['display', 'thumbnail', 'download']);
+/** `still` is the first frame of an animated profile image (ADR-0011); attachments never have one. */
+export const mediaVariantSchema = z.enum(['display', 'thumbnail', 'download', 'still']);
 export type MediaVariant = z.infer<typeof mediaVariantSchema>;
+
+/** CDN path of one variant: `/media/:uploadId/:variant/:hash`. Requires a bearer token. */
+export const MEDIA_PATH_PATTERN =
+  /^\/media\/\d{1,19}\/(display|thumbnail|download|still)\/[a-f0-9]{64}$/;
 
 export const uploadStateSchema = z.enum([
   'uploading',
@@ -39,7 +44,7 @@ export const uploadFilenameSchema = z
 export const variantViewSchema = z.strictObject({
   variant: mediaVariantSchema,
   /** Path on the CDN origin: `/media/:uploadId/:variant/:hash`. Requires a bearer token. */
-  path: z.string().regex(/^\/media\/\d{1,19}\/(display|thumbnail|download)\/[a-f0-9]{64}$/),
+  path: z.string().regex(MEDIA_PATH_PATTERN),
   contentType: z.string(),
   sizeBytes: z.number().int().nonnegative(),
   width: z.number().int().positive().nullable(),

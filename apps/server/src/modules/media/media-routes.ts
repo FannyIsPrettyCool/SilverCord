@@ -2,9 +2,12 @@ import type { Readable } from 'node:stream';
 import {
   attachmentSchema,
   channelParamsSchema,
+  completeUploadRequestSchema,
+  createProfileUploadRequestSchema,
   createUploadRequestSchema,
   errorEnvelopeSchema,
   mediaVariantSchema,
+  profileUploadSchema,
   snowflakeSchema,
   uploadChunkHeadersSchema,
   uploadOffsetSchema,
@@ -34,6 +37,9 @@ const errors = {
   429: errorEnvelopeSchema,
 };
 const tags = ['media'];
+/** Attachment uploads keep their 0.2.0 shape; profile-class uploads have their own (ADR-0011). */
+const anyUploadSchema = z.union([uploadSchema, profileUploadSchema]);
+const uploadCreate = [perUser('upload.create', { capacity: 5, refillPerSecond: 5 / 60 })];
 const uploadRead = [perUser('upload.read', { capacity: 60, refillPerSecond: 2 })];
 const uploadWrite = [perUser('upload.write', { capacity: 10, refillPerSecond: 1 })];
 /** Rendering a channel fetches many thumbnails at once; clients cache blobs per session. */
@@ -76,11 +82,31 @@ export async function registerMediaRoutes(
         config: {
           permission: nonGuildAccess,
           auth: 'user',
-          rateLimit: [perUser('upload.create', { capacity: 5, refillPerSecond: 5 / 60 })],
+          rateLimit: uploadCreate,
         },
       },
       async (request) =>
         media.create(requireAuth(request).userId, BigInt(request.params.channelId), request.body),
+    );
+
+    r.post(
+      '/api/v1/uploads',
+      {
+        schema: {
+          tags,
+          body: createProfileUploadRequestSchema,
+          response: { ...errors, 200: profileUploadSchema },
+        },
+        config: {
+          permission: {
+            scope: 'none',
+            reason: 'Each profile media purpose authorizes its own guild or instance scope',
+          },
+          auth: 'user',
+          rateLimit: uploadCreate,
+        },
+      },
+      async (request) => media.createProfile(requireAuth(request).userId, request.body),
     );
 
     r.put(
@@ -115,7 +141,7 @@ export async function registerMediaRoutes(
     r.get(
       '/api/v1/uploads/:uploadId',
       {
-        schema: { tags, params: uploadParamsSchema, response: { ...errors, 200: uploadSchema } },
+        schema: { tags, params: uploadParamsSchema, response: { ...errors, 200: anyUploadSchema } },
         config: {
           permission: nonGuildAccess,
           auth: 'user',
@@ -131,8 +157,8 @@ export async function registerMediaRoutes(
         schema: {
           tags,
           params: uploadParamsSchema,
-          body: z.strictObject({}).optional(),
-          response: { ...errors, 200: uploadSchema },
+          body: completeUploadRequestSchema.optional(),
+          response: { ...errors, 200: anyUploadSchema },
         },
         config: {
           permission: nonGuildAccess,
@@ -141,7 +167,11 @@ export async function registerMediaRoutes(
         },
       },
       async (request) =>
-        media.complete(requireAuth(request).userId, BigInt(request.params.uploadId)),
+        media.complete(
+          requireAuth(request).userId,
+          BigInt(request.params.uploadId),
+          request.body?.crop,
+        ),
     );
 
     r.delete(

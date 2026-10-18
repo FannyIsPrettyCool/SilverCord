@@ -5,12 +5,14 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
 } from 'drizzle-orm/pg-core';
 import { bytea, snowflake, timestamptz } from '../../db/columns.ts';
 import { channels } from '../channels/channels-schema.ts';
+import { guilds } from '../guilds/guilds-schema.ts';
 import { messages } from '../messages/messages-schema.ts';
 import { users } from '../users/users-schema.ts';
 
@@ -23,7 +25,22 @@ const UPLOAD_STATES = [
   'deleting',
 ] as const;
 
-/** A file reserved for one channel by its owner (docs/spec/media.md). */
+export const UPLOAD_PURPOSES = [
+  'attachment',
+  'avatar',
+  'banner',
+  'guild_avatar',
+  'guild_banner',
+  'emote',
+  'sticker',
+  'badge_icon',
+] as const;
+export type UploadPurpose = (typeof UPLOAD_PURPOSES)[number];
+
+/**
+ * A file reserved by its owner for one channel (docs/spec/media.md) or, for profile-class
+ * purposes, for an account, guild or the instance (ADR-0011).
+ */
 export const mediaUploads = pgTable(
   'media_uploads',
   {
@@ -31,9 +48,12 @@ export const mediaUploads = pgTable(
     ownerId: snowflake()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    channelId: snowflake()
-      .notNull()
-      .references(() => channels.id, { onDelete: 'cascade' }),
+    purpose: text({ enum: UPLOAD_PURPOSES }).notNull().default('attachment'),
+    channelId: snowflake().references(() => channels.id, { onDelete: 'cascade' }),
+    guildId: snowflake().references(() => guilds.id, { onDelete: 'cascade' }),
+    /** Source-pixel crop requested at completion; applied by the decoder. */
+    crop: jsonb().$type<{ x: number; y: number; width: number; height: number }>(),
+    dominantColor: integer(),
     filename: text().notNull(),
     sizeBytes: bigint({ mode: 'number' }).notNull(),
     receivedBytes: bigint({ mode: 'number' }).notNull().default(0),
@@ -58,6 +78,14 @@ export const mediaUploads = pgTable(
       'media_uploads_state_valid',
       sql`${table.state} in ('uploading', 'processing', 'ready', 'attached', 'failed', 'deleting')`,
     ),
+    check(
+      'media_uploads_purpose_scope',
+      sql`(${table.purpose} = 'attachment' and ${table.channelId} is not null and ${table.guildId} is null) or (${table.purpose} in ('guild_avatar', 'guild_banner', 'emote', 'sticker') and ${table.guildId} is not null and ${table.channelId} is null) or (${table.purpose} in ('avatar', 'banner', 'badge_icon') and ${table.channelId} is null and ${table.guildId} is null)`,
+    ),
+    check(
+      'media_uploads_dominant_color_range',
+      sql`${table.dominantColor} is null or ${table.dominantColor} between 0 and 16777215`,
+    ),
     check('media_uploads_filename_length', sql`char_length(${table.filename}) between 1 and 128`),
     check(
       'media_uploads_bytes_valid',
@@ -65,6 +93,7 @@ export const mediaUploads = pgTable(
     ),
     index('media_uploads_owner_state_idx').on(table.ownerId, table.state),
     index('media_uploads_channel_idx').on(table.channelId),
+    index('media_uploads_guild_idx').on(table.guildId),
     index('media_uploads_state_expiry_idx').on(table.state, table.expiresAt),
   ],
 );
@@ -93,7 +122,7 @@ export const mediaVariants = pgTable(
     uploadId: snowflake()
       .notNull()
       .references(() => mediaUploads.id, { onDelete: 'cascade' }),
-    variant: text({ enum: ['display', 'thumbnail', 'download'] }).notNull(),
+    variant: text({ enum: ['display', 'thumbnail', 'download', 'still'] }).notNull(),
     storageKey: text().notNull(),
     sha256: text().notNull(),
     sizeBytes: bigint({ mode: 'number' }).notNull(),
@@ -105,7 +134,7 @@ export const mediaVariants = pgTable(
     primaryKey({ columns: [table.uploadId, table.variant] }),
     check(
       'media_variants_variant_valid',
-      sql`${table.variant} in ('display', 'thumbnail', 'download')`,
+      sql`${table.variant} in ('display', 'thumbnail', 'download', 'still')`,
     ),
     check('media_variants_hash_hex', sql`${table.sha256} ~ '^[a-f0-9]{64}$'`),
   ],

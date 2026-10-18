@@ -23,6 +23,13 @@ export const mediaRepository = {
     const [row] = await (lock ? query.for(lock) : query);
     return row;
   },
+  async findMany(ex: Executor, uploadIds: readonly bigint[]) {
+    if (uploadIds.length === 0) return [];
+    return ex
+      .select()
+      .from(mediaUploads)
+      .where(inArray(mediaUploads.id, [...uploadIds]));
+  },
   async insert(ex: Executor, row: typeof mediaUploads.$inferInsert): Promise<UploadRow> {
     const [inserted] = await ex.insert(mediaUploads).values(row).returning();
     if (!inserted) throw new Error('insert returned no row');

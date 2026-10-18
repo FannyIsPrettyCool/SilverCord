@@ -5,10 +5,10 @@ import { join } from 'node:path';
 import { platform } from 'node:process';
 import { Readable } from 'node:stream';
 import { setTimeout as sleep } from 'node:timers/promises';
-import type { MediaVariant, UploadFailure } from '@silvercord/protocol';
+import type { MediaVariant, ProfileMediaPurpose, UploadFailure } from '@silvercord/protocol';
 import type { Database } from '../../db/client.ts';
 import { channels as buses, type EventPublisher } from '../../gateway/event-bus.ts';
-import type { DecodeResult } from './decoder/decode.ts';
+import type { DecodeResult, DecodeSpec } from './decoder/decode.ts';
 import { JobDirectory, JobFileLimit, UnsafeJobFile } from './decoder/job-files.ts';
 import { DECODE_TIMEOUT_MS, readDecodeResult, runDecodeChild } from './decoder/run-decoder.ts';
 import { mediaRepository as repo } from './media-repository.ts';
@@ -172,6 +172,14 @@ export function createMediaProcessor(deps: ProcessorDependencies) {
         await input.close();
       }
 
+      const spec: DecodeSpec = {
+        purpose: row.purpose === 'attachment' ? 'attachment' : (row.purpose as ProfileMediaPurpose),
+        crop: row.crop ?? null,
+      };
+      await writeFile(job.childPath('spec.json'), JSON.stringify(spec), {
+        flag: 'wx',
+        mode: 0o600,
+      });
       const result = await decodeIn(jobDir, job);
       if (!result.ok) return await fail(row, result.failure);
 
@@ -218,7 +226,10 @@ export function createMediaProcessor(deps: ProcessorDependencies) {
         });
       }
 
-      const download = outputs.find((output) => output.variant === 'download');
+      // Profile-class images have no download; their display variant fixes the MIME.
+      const download =
+        outputs.find((output) => output.variant === 'download') ??
+        outputs.find((output) => output.variant === 'display');
       const updated = await db.transaction(async (tx) => {
         const locked = await repo.find(tx, uploadId, 'update');
         if (locked?.state !== 'processing') return null;
@@ -236,6 +247,7 @@ export function createMediaProcessor(deps: ProcessorDependencies) {
           durationMs: result.kind === 'file' ? null : result.durationMs,
           blurhash: result.kind === 'file' ? null : result.blurhash,
           animated: result.kind === 'file' ? false : result.animated,
+          dominantColor: result.kind === 'file' ? null : result.dominantColor,
           storedBytes: total,
           reservedBytes: 0,
         });
