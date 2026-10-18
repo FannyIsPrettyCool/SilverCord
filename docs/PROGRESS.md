@@ -3,6 +3,17 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — Phase 5 (profiles & expression) started ahead of guild messaging
+
+- Owner decision: profiles come before guild messaging/invites (phase 3 remainder waits).
+  Branch `feat/profile-phase-5-profiles` from main 1d3c1ce.
+- Plan, in order: ADR-0011 media purposes → profile schema/privacy/summaries/events →
+  desktop avatars/popout/full view/editor → badges → per-server profiles → activity
+  (manual, game detection, local RPC, media session) → emotes/stickers/emoji picker → GIF.
+- Old 0.2.0 desktops parse responses strictly: new profile data uses new endpoints and the new
+  `PROFILE_CHANGED` dispatch only (ADR-0011 §5).
+- GIF: Tenor's API shut down on 2026-06-30; Klipy is the provider. Needs an owner API key.
+
 ## 2026-10-18 — Guild management slice shipped; profiles are next after phase 3
 
 - Server lifecycle (create/list/view/rename/leave) and category/text/voice/announcement

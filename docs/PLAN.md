@@ -141,11 +141,18 @@ Next targeted phase after phase 3 (owner decision, 2026-10-18); phase 4 voice wa
 
 Accept: profile popout and full view polished, privacy toggles honored server-side.
 
-- [ ] Profile fields (banner, avatar, pronouns, status, custom status, bio, accent)
-- [ ] Badges (definitions, awards, rules, pinning)
-- [ ] Activity: manual, game detection, local RPC (`docs/rpc.md`), media session
-- [ ] Custom emotes/stickers, emoji picker (licensed set), GIF picker (verified provider)
-- [ ] Per-server profiles
+Started 2026-10-18 on `feat/profile-phase-5-profiles` (owner moved it ahead of guild messaging).
+
+- [x] `docs/spec/profiles.md`, ADR-0011 (profile media purposes, additive payloads)
+- [ ] Profile media purposes: avatar/banner/guild/emote/sticker/badge uploads, crop, still frame, dominant colour, liveness CDN checks
+- [ ] Profile fields (banner, avatar, pronouns, custom status, bio, accent, theme colours) + per-section privacy audiences
+- [ ] User summaries endpoint, `PROFILE_CHANGED`, private notes
+- [ ] Desktop: avatars everywhere, profile popout, full profile view, profile editor with crop, custom status dialog
+- [ ] Badges (definitions, awards, rules, pinning) — `docs/spec/badges.md`
+- [ ] Per-server profiles (nickname, avatar, banner, bio, pronouns)
+- [ ] Activity: manual, game detection, local RPC (`docs/rpc.md`), media session — `docs/spec/activity.md`
+- [ ] Custom emotes/stickers, emoji picker (licensed set) — `docs/spec/expressions.md`
+- [ ] GIF picker: Klipy provider (Tenor API shut down 2026-06-30); needs an owner API key
 
 ## Phase 6 — Widgets & theming
 
