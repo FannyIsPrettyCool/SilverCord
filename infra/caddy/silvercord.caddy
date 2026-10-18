@@ -1,4 +1,4 @@
-# Import this additional site from the existing host Caddyfile after DNS resolves.
+# Import these additional sites from the existing host Caddyfile after DNS resolves.
 # Keep play.islandmon.cloud and its handlers unchanged.
 silvercord.islandmon.cloud {
 	header {
@@ -6,6 +6,28 @@ silvercord.islandmon.cloud {
 		Referrer-Policy no-referrer
 		-Server
 	}
-	# Caddy sets X-Forwarded-* and ignores untrusted incoming forwarding headers.
-	reverse_proxy 127.0.0.1:14000
+	# Private media bytes are available only through the separate CDN origin.
+	@media path /media /media/*
+	handle @media {
+		respond 404
+	}
+	handle {
+		# Caddy sets X-Forwarded-* and ignores untrusted incoming forwarding headers.
+		reverse_proxy 127.0.0.1:14000
+	}
+}
+
+cdn.silvercord.islandmon.cloud {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+	# The API route checks the bearer session, current membership and block state.
+	handle /media/* {
+		reverse_proxy 127.0.0.1:14000
+	}
+	handle {
+		respond 404
+	}
 }
