@@ -80,6 +80,57 @@ export const relationshipsRepository = {
         ),
       );
   },
+  async blockedTargets(ex: Executor, ownerId: bigint): Promise<bigint[]> {
+    const rows = await ex
+      .select({ targetId: userBlocks.targetId })
+      .from(userBlocks)
+      .where(eq(userBlocks.ownerId, ownerId));
+    return rows.map((row) => row.targetId);
+  },
+  /** Ids in `others` that block `userId` or are blocked by it. */
+  async blockedEitherWay(ex: Executor, userId: bigint, others: readonly bigint[]) {
+    if (others.length === 0) return [];
+    const list = [...others];
+    const rows = await ex
+      .select({ ownerId: userBlocks.ownerId, targetId: userBlocks.targetId })
+      .from(userBlocks)
+      .where(
+        or(
+          and(eq(userBlocks.ownerId, userId), inArray(userBlocks.targetId, list)),
+          and(eq(userBlocks.targetId, userId), inArray(userBlocks.ownerId, list)),
+        ),
+      );
+    return rows.map((row) => (row.ownerId === userId ? row.targetId : row.ownerId));
+  },
+  async anyBlockAmong(ex: Executor, ids: readonly bigint[]): Promise<boolean> {
+    if (ids.length < 2) return false;
+    const list = [...ids];
+    const [row] = await ex
+      .select({ id: userBlocks.id })
+      .from(userBlocks)
+      .where(and(inArray(userBlocks.ownerId, list), inArray(userBlocks.targetId, list)))
+      .limit(1);
+    return row !== undefined;
+  },
+  /** Accepted friends of `ownerId`, optionally restricted to `candidates`. */
+  async friendIds(ex: Executor, ownerId: bigint, candidates?: readonly bigint[]) {
+    if (candidates?.length === 0) return [];
+    const restrict = (column: typeof relationshipPairs.userLow) =>
+      candidates ? inArray(column, [...candidates]) : undefined;
+    const rows = await ex
+      .select({ low: relationshipPairs.userLow, high: relationshipPairs.userHigh })
+      .from(relationshipPairs)
+      .where(
+        and(
+          eq(relationshipPairs.state, 'friends'),
+          or(
+            and(eq(relationshipPairs.userLow, ownerId), restrict(relationshipPairs.userHigh)),
+            and(eq(relationshipPairs.userHigh, ownerId), restrict(relationshipPairs.userLow)),
+          ),
+        ),
+      );
+    return rows.map((row) => (row.low === ownerId ? row.high : row.low));
+  },
   async block(ex: Executor, id: bigint, ownerId: bigint, targetId: bigint) {
     return (
       (

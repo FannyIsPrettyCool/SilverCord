@@ -60,6 +60,23 @@ export function createRelationshipsService({ users, nextId, outbox }: Relationsh
     return user;
   }
 
+  /**
+   * Subjects whose presence the viewer may see: accepted friends with no block either way.
+   * Read-only and unlocked; callers re-evaluate on every snapshot.
+   */
+  async function presenceVisible(
+    ex: Executor,
+    viewerId: bigint,
+    subjectIds: readonly bigint[],
+  ): Promise<Set<bigint>> {
+    const others = subjectIds.filter((id) => id !== viewerId);
+    const friends = await repo.friendIds(ex, viewerId, others);
+    const blocked = new Set(await repo.blockedEitherWay(ex, viewerId, friends));
+    const visible = new Set(friends.filter((id) => !blocked.has(id)));
+    if (subjectIds.includes(viewerId)) visible.add(viewerId);
+    return visible;
+  }
+
   return {
     async request(ex: Executor, ownerId: bigint, username: string): Promise<RelationshipView> {
       return ex.transaction(async (tx) => {
@@ -227,14 +244,36 @@ export function createRelationshipsService({ users, nextId, outbox }: Relationsh
       });
     },
     async canSeePresence(ex: Executor, viewerId: bigint, subjectId: bigint): Promise<boolean> {
-      return ex.transaction(async (tx) => {
-        if (viewerId === subjectId) return true;
-        if ((await repo.lockPrivacy(tx, [viewerId, subjectId])).length !== 2) return false;
-        return (
-          (await repo.blocks(tx, viewerId, subjectId)).length === 0 &&
-          (await repo.pair(tx, viewerId, subjectId))?.state === 'friends'
-        );
-      });
+      if (viewerId === subjectId) return true;
+      return (await presenceVisible(ex, viewerId, [subjectId])).has(subjectId);
+    },
+    presenceVisible,
+    /** Users who may currently see `subjectId`'s presence (for invalidation fan-out). */
+    async presenceAudience(ex: Executor, subjectId: bigint): Promise<bigint[]> {
+      const friends = await repo.friendIds(ex, subjectId);
+      const blocked = new Set(await repo.blockedEitherWay(ex, subjectId, friends));
+      return friends.filter((id) => !blocked.has(id));
+    },
+    /** Locks social rows in ascending id order; first step of every cross-user write. */
+    async lockSocial(ex: Executor, userIds: readonly bigint[]): Promise<number> {
+      return (await repo.lockPrivacy(ex, userIds)).length;
+    },
+    /** Users the viewer has blocked; their content is hidden from the viewer. */
+    async blockedByViewer(ex: Executor, viewerId: bigint): Promise<Set<bigint>> {
+      return new Set(await repo.blockedTargets(ex, viewerId));
+    },
+    async blockedEitherWay(ex: Executor, userId: bigint, others: readonly bigint[]) {
+      return new Set(await repo.blockedEitherWay(ex, userId, others));
+    },
+    async hasBlockAmong(ex: Executor, userIds: readonly bigint[]): Promise<boolean> {
+      return repo.anyBlockAmong(ex, userIds);
+    },
+    async friendIdsAmong(
+      ex: Executor,
+      ownerId: bigint,
+      candidates: readonly bigint[],
+    ): Promise<Set<bigint>> {
+      return new Set(await repo.friendIds(ex, ownerId, candidates));
     },
   };
 }
