@@ -43,7 +43,7 @@ fit 320 px) and the guildId; needs MANAGE_EMOJIS. Changes emit `GUILD_CHANGED` t
 ## Emoji picker
 
 Unicode 16 data from `emojibase-data` 17 (MIT) in EN/FR, drawn with the bundled Noto Color
-Emoji font (OFL-1.1, credited in the about view): categories, search by name, shortcode and
+Emoji font (OFL-1.1, credited as "Emoji: Noto Color Emoji (OFL)" in the picker footer): categories, search by name, shortcode and
 keyword in the UI language, skin-tone choice (remembered), recents (per account, 32), and a
 section per guild for custom emotes. Opened from the composer, the reaction button and the
 custom status dialog; keyboard: arrows move, Enter picks, Escape closes; typed `:sho` in the

@@ -42,6 +42,8 @@ describe('locales', () => {
       'chat.editConflict',
       // docs/spec/guild-screens.md (ICU count + unit)
       'guilds.memberCount',
+      // docs/spec/expressions.md (font attribution)
+      'expressions.fontCredit',
     ]);
     const lookup = (key: string) =>
       key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], en);

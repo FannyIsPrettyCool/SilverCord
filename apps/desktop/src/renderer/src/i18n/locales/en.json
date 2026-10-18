@@ -290,7 +290,9 @@
     "unsupported": "Use a PNG, JPEG, GIF or WebP image",
     "tooLarge": "Image too large",
     "userNotFound": "No account with that username",
-    "badgeFailed": "Could not save the badge"
+    "badgeFailed": "Could not save the badge",
+    "nameTaken": "That name is already used",
+    "limitReached": "This server is full of them"
   },
   "badges": {
     "builtin": {
@@ -393,5 +395,27 @@
     "typed": "Typed activity",
     "links": "Links",
     "kind": "Type"
+  },
+  "expressions": {
+    "picker": "Emoji",
+    "search": "Search",
+    "recent": "Recent",
+    "skinTone": "Skin tone",
+    "tones": ["Default", "Light", "Medium-light", "Medium", "Medium-dark", "Dark"],
+    "emotes": "Emotes",
+    "stickers": "Stickers",
+    "noResults": "No matches",
+    "addReaction": "Add reaction",
+    "insert": "Insert emoji",
+    "sendSticker": "Send sticker",
+    "manage": "Expressions",
+    "emoteName": "Name",
+    "stickerName": "Name",
+    "description": "Description",
+    "relatedEmoji": "Related emoji",
+    "add": "Add",
+    "delete": "Delete",
+    "rename": "Rename",
+    "fontCredit": "Emoji: Noto Color Emoji (OFL)"
   }
 }
