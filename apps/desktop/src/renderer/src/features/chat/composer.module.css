@@ -1,0 +1,154 @@
+.wrap {
+  position: relative;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.composer {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  --glass-radius: var(--radius-2);
+}
+
+.row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+
+.field {
+  flex: 1;
+  min-width: 0;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.editor {
+  min-height: 24px;
+  padding: var(--space-2) var(--space-2);
+  outline: none;
+  user-select: text;
+  overflow-wrap: anywhere;
+
+  & p {
+    margin: 0;
+  }
+
+  & p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: var(--color-text-faint);
+    pointer-events: none;
+  }
+
+  & code {
+    padding: 1px 4px;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--color-text) 10%, transparent);
+    font-size: 0.9em;
+  }
+}
+
+.mentionNode {
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--color-accent-soft);
+  font-weight: 600;
+}
+
+.mentions {
+  position: absolute;
+  left: var(--space-4);
+  bottom: calc(100% - var(--space-2));
+  z-index: 20;
+  min-width: 260px;
+  padding: var(--space-1);
+
+  & [role="listbox"] {
+    display: grid;
+  }
+}
+
+.mentionOption {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-4);
+  cursor: pointer;
+
+  &[aria-selected="true"] {
+    background: color-mix(in srgb, var(--color-text) 10%, transparent);
+  }
+}
+
+.mentionHandle {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+}
+
+.replyBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.uploads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0 var(--space-1);
+  list-style: none;
+}
+
+.upload {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 280px;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-field);
+  font-size: var(--text-xs);
+
+  &[data-status="failed"] {
+    box-shadow: inset 0 0 0 1px var(--color-danger);
+  }
+
+  & > button {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.progress {
+  position: absolute;
+  inset: 0;
+  width: var(--progress);
+  background: var(--color-accent-soft);
+  transition: width 200ms ease-out;
+  pointer-events: none;
+}
+
+.uploadName {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.uploadState {
+  position: relative;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
