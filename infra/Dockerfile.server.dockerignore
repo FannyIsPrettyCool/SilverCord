@@ -13,6 +13,10 @@
 !packages/protocol/package.json
 !packages/protocol/src/
 !packages/protocol/src/**
+!packages/markdown/
+!packages/markdown/package.json
+!packages/markdown/src/
+!packages/markdown/src/**
 !packages/config/
 !packages/config/package.json
 !tools/
