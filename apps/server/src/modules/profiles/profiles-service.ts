@@ -29,6 +29,7 @@ import type { MediaService } from '../media/media-service.ts';
 import type { PresenceService } from '../presence/presence-service.ts';
 import type { RelationshipsService } from '../relationships/relationships-service.ts';
 import type { UsersService } from '../users/users-service.ts';
+import type { ActivityService } from './activity-service.ts';
 import {
   type GuildMemberProfileRow,
   guildMemberProfiles,
@@ -46,6 +47,7 @@ export interface ProfilesDependencies {
   readonly presence: PresenceService;
   readonly media: MediaService;
   readonly badges: BadgesService;
+  readonly activity: ActivityService;
   readonly events: EventPublisher;
   readonly log: { warn(object: object, message: string): void };
   readonly timings?: { readonly coalesceMs: number; readonly sweepMs: number };
@@ -428,11 +430,12 @@ export function createProfilesService(deps: ProfilesDependencies) {
         if (sees(level, privacy, 'memberSince')) profile.memberSince = user.createdAt.toISOString();
         if (sees(level, privacy, 'badges'))
           profile.badges = await deps.badges.forProfile(tx, targetId);
-        if (
-          sees(level, privacy, 'customStatus') &&
-          (await onlineFor(tx, viewerId, [targetId])).has(targetId)
-        )
+        const online = (await onlineFor(tx, viewerId, [targetId])).has(targetId);
+        if (sees(level, privacy, 'customStatus') && online)
           profile.customStatus = customStatusOf(row);
+        if (sees(level, privacy, 'activity') && online)
+          profile.activities =
+            (await deps.activity.activitiesOf(tx, [targetId])).get(targetId) ?? [];
         if (level !== SELF && sees(level, privacy, 'mutualFriends')) {
           const [mine, theirs] = await Promise.all([
             relationships.presenceAudience(tx, viewerId),
@@ -487,6 +490,10 @@ export function createProfilesService(deps: ProfilesDependencies) {
         const avatarOf = (id: bigint) =>
           overrides.get(id)?.avatarUploadId ?? profileRows.get(id)?.avatarUploadId ?? null;
         const images = await media.profileMedia.images(tx, ids.map(avatarOf));
+        const activities = await deps.activity.activitiesOf(
+          tx,
+          ids.filter((id) => online.has(id)),
+        );
         return ids.map((id) => {
           const row = profileRows.get(id);
           const avatarId = avatarOf(id);
@@ -496,8 +503,11 @@ export function createProfilesService(deps: ProfilesDependencies) {
             accentColor: overrides.get(id)?.accentColor ?? row?.accentColor ?? null,
           };
           if (nicknames?.has(id)) summary.nickname = nicknames.get(id) ?? null;
-          if (sees(levels.get(id) ?? BLOCKED, privacyOf(row), 'customStatus') && online.has(id))
+          const level = levels.get(id) ?? BLOCKED;
+          if (sees(level, privacyOf(row), 'customStatus') && online.has(id))
             summary.customStatus = customStatusOf(row);
+          if (sees(level, privacyOf(row), 'activity') && online.has(id))
+            summary.activity = activities.get(id)?.[0] ?? null;
           return summary;
         });
       });
@@ -614,10 +624,10 @@ export function createProfilesService(deps: ProfilesDependencies) {
 
     start() {
       if (sweepTimer || closed) return;
-      sweepTimer = setInterval(
-        () => void this.sweepExpired().catch(report('custom status sweep failed')),
-        timings.sweepMs,
-      );
+      sweepTimer = setInterval(() => {
+        void this.sweepExpired().catch(report('custom status sweep failed'));
+        void deps.activity.sweepExpired().catch(report('activity sweep failed'));
+      }, timings.sweepMs);
       sweepTimer.unref();
     },
 

@@ -25,6 +25,7 @@ import { createMediaQueue } from './modules/media/media-queue.ts';
 import { registerMediaRoutes } from './modules/media/media-routes.ts';
 import { registerMessagesRoutes } from './modules/messages/messages-routes.ts';
 import { registerPresenceRoutes } from './modules/presence/presence-routes.ts';
+import { registerActivityRoutes } from './modules/profiles/activity-routes.ts';
 import { registerProfilesRoutes } from './modules/profiles/profiles-routes.ts';
 import { registerRelationshipsRoutes } from './modules/relationships/relationships-routes.ts';
 import { createUsersService } from './modules/users/users-service.ts';
@@ -141,6 +142,7 @@ export async function buildApp(
   await registerMediaRoutes(app, media, storage);
   registerProfilesRoutes(app, db, services.profiles);
   registerBadgesRoutes(app, services.badges);
+  registerActivityRoutes(app, services.activity);
   app.addHook('onReady', () => {
     presence.start();
     services.profiles.start();

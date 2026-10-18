@@ -13,6 +13,7 @@ import { createMessagesService } from './modules/messages/messages-service.ts';
 import { createPresenceLeases } from './modules/presence/presence-leases.ts';
 import { createPresenceService } from './modules/presence/presence-service.ts';
 import { createTypingService } from './modules/presence/typing-service.ts';
+import { createActivityService } from './modules/profiles/activity-service.ts';
 import { createProfilesService } from './modules/profiles/profiles-service.ts';
 import { createRelationshipsService } from './modules/relationships/relationships-service.ts';
 import { createUsersService } from './modules/users/users-service.ts';
@@ -108,6 +109,12 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     changed: (userId) => profiles.invalidate(userId),
     log: options.log,
   });
+  const activity = createActivityService({
+    db,
+    valkey,
+    changed: (userId) => profiles.invalidate(userId),
+    log: options.log,
+  });
   const profiles = createProfilesService({
     db,
     users,
@@ -118,6 +125,7 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     presence,
     media,
     badges,
+    activity,
     events,
     log: options.log,
   });
@@ -137,6 +145,7 @@ export function createChatServices(context: AppContext, options: ServiceOptions)
     typing,
     guildMembership,
     badges,
+    activity,
     profiles,
   };
 }
