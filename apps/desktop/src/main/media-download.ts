@@ -4,7 +4,7 @@ import { type BrowserWindow, dialog } from 'electron';
 import type { DesktopConfig } from '../shared/ipc-contract.ts';
 import type { AuthAgent } from './auth/auth-agent.ts';
 
-/** Only authorized media variant paths on the configured API origin (ADR-0009). */
+/** Only authorized media variant paths on the configured media origin (ADR-0009). */
 export const MEDIA_PATH_PATTERN = /^\/media\/\d{1,19}\/(display|thumbnail|download)\/[a-f0-9]{64}$/;
 const MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024;
 
@@ -31,7 +31,7 @@ export async function downloadMedia(
     : await dialog.showSaveDialog(options);
   if (choice.canceled || !choice.filePath) return false;
   const { accessToken } = await deps.auth.accessToken();
-  const response = await fetch(new URL(path, deps.config.apiUrl), {
+  const response = await fetch(new URL(path, deps.config.mediaUrl), {
     headers: { authorization: `Bearer ${accessToken}` },
     redirect: 'error',
   });

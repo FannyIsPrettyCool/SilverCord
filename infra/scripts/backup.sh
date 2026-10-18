@@ -14,6 +14,7 @@ mode=$(stat -c '%a' -- "$env_file")
 (( (8#$mode & 077) == 0 )) || { printf 'Environment file must be private (chmod 600).\n' >&2; exit 2; }
 unset POSTGRES_PASSWORD DATABASE_PASSWORD JWT_SECRET TOTP_ENCRYPTION_KEY SMTP_URL MAIL_FROM COMPOSE_PROFILES
 compose=(docker compose --env-file "$env_file" -f "$root/infra/docker-compose.prod.yml")
+source "$root/infra/scripts/ops-lock.sh"
 directory=$(realpath -e -- "$(dirname -- "$2")")
 name=$(basename -- "$2")
 [[ "$2" == /* && "$name" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*\.dump$ ]] || exit 2
@@ -21,9 +22,30 @@ output="$directory/$name"
 media_name="${name%.dump}.media.tar"
 [[ ! -e "$output" && ! -e "$output.sha256" && ! -e "$directory/$media_name" ]] ||
   { printf 'Backup target already exists.\n' >&2; exit 2; }
+running=()
+running_services=$("${compose[@]}" ps --status running --services)
+while IFS= read -r service; do
+  case "$service" in api|worker) running+=("$service");; esac
+done <<< "$running_services"
 temporary=$(mktemp -- "$directory/.silvercord-backup.XXXXXXXX")
 temporary_media=$(mktemp -- "$directory/.silvercord-media.XXXXXXXX")
-trap 'rm -f -- "$temporary" "$temporary_media"' EXIT
+resume() {
+  local status=$?
+  trap - EXIT
+  if (( ${#running[@]} )); then
+    "${compose[@]}" start --wait --wait-timeout 120 "${running[@]}" || status=1
+  fi
+  rm -f -- "$temporary" "$temporary_media"
+  exit "$status"
+}
+trap resume EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+# Drain both writers before taking either snapshot. This deliberately causes a short
+# reconnect window; restarting only previously running services also applies on failure.
+if (( ${#running[@]} )); then
+  "${compose[@]}" stop --timeout 60 "${running[@]}"
+fi
 "${compose[@]}" exec -T postgres pg_dump -U postgres -d silvercord \
   --format=custom --no-owner --no-acl > "$temporary"
 # Parse the archive before publishing it; pg_dump alone does not test recovery.

@@ -50,7 +50,8 @@ builds a SHA-tagged image, waits for DB/cache, writes a checked pre-migration
 backup, initializes the application role, applies forward migrations, replaces
 the API and waits for health, then points the local `silvercord-api:current` tag
 at the successful image for later manual Compose commands. One file lock
-serializes deployments. A failed
+serializes deployments and standalone backups per environment file, including the
+complete migration/replacement sequence. A failed
 API health check restores the previous image, never silently restores/drops the
 database. Migrations must be compatible with the prior image; incompatible
 migrations need a separate planned maintenance/cutover. Single API replacement
@@ -67,6 +68,13 @@ separate from container volumes. No automatic deletion is built into the script.
 An encrypted off-host restic destination, retention and restore schedule must be
 configured before calling backups disaster recovery. Local dumps alone do not
 survive host loss. Back up the private env/key file encrypted separately.
+
+The paired media archive and database dump must describe the same snapshot. Drain
+and stop only the running API/worker services before either archive begins, then
+restart those same services on success, failure or interruption. This introduces a
+short reconnect window. Decoder jobs cannot modify the private media volume.
+Never start an API/worker that was already stopped. The inherited operations lock
+allows deploy to call backup without deadlock and excludes a concurrent scheduler.
 
 `restore.sh ENV /absolute/backup.dump silvercord_restore_NAME` verifies checksum
 and archive, refuses an existing or production target, creates a fresh isolated

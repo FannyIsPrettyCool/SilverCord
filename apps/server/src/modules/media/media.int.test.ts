@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { readdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import {
   channelSchema,
   type Message,
@@ -157,7 +159,11 @@ describe('private media', () => {
     const first = photo.subarray(0, 100);
     expect((await chunk(a, upload.id, 0, first)).json()).toEqual({ offset: 100 });
     expect((await chunk(a, upload.id, 0, first)).json()).toEqual({ offset: 100 });
+    const staging = dirname(t.services.storage.localPath(`staging/${upload.id}/placeholder`));
+    expect(await readdir(staging)).toHaveLength(1);
     expectError(await chunk(a, upload.id, 0, Buffer.alloc(100, 1)), 409, 'CONFLICT');
+    // Rejected retries must not leave random objects outside the quota/chunk ledger.
+    expect(await readdir(staging)).toHaveLength(1);
     expectError(await chunk(a, upload.id, 500, photo.subarray(500, 600)), 409, 'CONFLICT');
     expectError(
       await chunk(a, upload.id, 100, Buffer.alloc(photo.length)),

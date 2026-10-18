@@ -88,4 +88,30 @@ describe('renderer MFA state', () => {
     await useSession.getState().restore();
     expect(useSession.getState().mfaPending).toBe(false);
   });
+
+  it('cannot adopt a late login after sign-out', async () => {
+    const result = Promise.withResolvers<unknown>();
+    auth.login.mockReturnValueOnce(result.promise);
+    const request = useSession.getState().signIn('user', 'password');
+    const rejected = expect(request).rejects.toMatchObject({ name: 'AbortError' });
+    await useSession.getState().signOut();
+    result.resolve({ ok: true, value: { status: 'authenticated', session: snapshot } });
+    await rejected;
+    expect(useSession.getState()).toMatchObject({ status: 'signed-out', user: null });
+  });
+
+  it('ignores a late restore failure after a successful new login', async () => {
+    const result = Promise.withResolvers<unknown>();
+    auth.restore.mockReturnValueOnce(result.promise);
+    const old = useSession.getState().restore();
+    await useSession.getState().signOut();
+    auth.login.mockResolvedValueOnce({
+      ok: true,
+      value: { status: 'authenticated', session: snapshot },
+    });
+    await useSession.getState().signIn('user', 'password');
+    result.reject(new Error('old restore failed'));
+    await old;
+    expect(useSession.getState()).toMatchObject({ status: 'signed-in', user: snapshot.user });
+  });
 });

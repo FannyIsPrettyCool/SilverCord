@@ -1,6 +1,12 @@
 import type { CurrentUser } from '@silvercord/protocol';
 import { create } from 'zustand';
 import type { RegisterInput, SessionSnapshot } from '../../../shared/ipc-contract.ts';
+import {
+  advanceAccountGeneration,
+  captureAccountGeneration,
+  isCurrentAccountGeneration,
+  requireAccountGeneration,
+} from '../api/account-generation.ts';
 import { forgetAccessToken } from '../api/api-client.ts';
 import { forgetMedia } from '../api/media.ts';
 import { queryClient } from '../api/query-client.ts';
@@ -12,6 +18,7 @@ import { clearDrafts } from '../features/chat/drafts.ts';
 type Status = 'restoring' | 'signed-out' | 'signed-in';
 
 interface SessionState {
+  readonly accountGeneration: number;
   readonly status: Status;
   readonly user: CurrentUser | null;
   /** False when the OS has no secure storage; the UI says the sign-in won't be remembered. */
@@ -29,15 +36,27 @@ interface SessionState {
 
 /** Session as seen by the renderer: the main process owns the tokens (docs/spec/auth.md). */
 export const useSession = create<SessionState>()((set, get) => {
-  const adopt = (snapshot: SessionSnapshot) =>
+  const clearAccount = () => {
+    advanceAccountGeneration();
+    set({ accountGeneration: captureAccountGeneration() });
+    forgetAccessToken();
+    forgetMedia();
+    resetSync();
+    resetChatState();
+    queryClient.clear();
+  };
+  const adopt = (snapshot: SessionSnapshot) => {
+    clearAccount();
     set({
       status: 'signed-in',
       user: snapshot.user,
       persistent: snapshot.persistent,
       mfaPending: false,
     });
+  };
 
   return {
+    accountGeneration: captureAccountGeneration(),
     status: 'restoring',
     user: null,
     persistent: true,
@@ -46,18 +65,22 @@ export const useSession = create<SessionState>()((set, get) => {
       set({ mfaPending: false });
     },
     async restore() {
+      const generation = captureAccountGeneration();
       set({ mfaPending: false });
       try {
         const snapshot = await unwrap(desktop().auth.restore());
+        requireAccountGeneration(generation);
         if (snapshot) adopt(snapshot);
         else set({ status: 'signed-out', user: null });
       } catch {
-        set({ status: 'signed-out', user: null });
+        if (isCurrentAccountGeneration(generation)) set({ status: 'signed-out', user: null });
       }
     },
     async signIn(login, password) {
+      const generation = captureAccountGeneration();
       set({ mfaPending: false });
       const outcome = await unwrap(desktop().auth.login({ login, password }));
+      requireAccountGeneration(generation);
       if (outcome.status === 'mfa-required') {
         set({ mfaPending: true });
         return 'mfa-required';
@@ -66,11 +89,15 @@ export const useSession = create<SessionState>()((set, get) => {
       return 'signed-in';
     },
     async secondFactor(factor) {
+      const generation = captureAccountGeneration();
       if (!get().mfaPending) throw new DesktopError('TOKEN_INVALID', 'Sign in again');
       try {
-        adopt(await unwrap(desktop().auth.loginSecondFactor(factor)));
+        const snapshot = await unwrap(desktop().auth.loginSecondFactor(factor));
+        requireAccountGeneration(generation);
+        adopt(snapshot);
       } catch (error) {
         if (
+          isCurrentAccountGeneration(generation) &&
           error instanceof DesktopError &&
           ['TOKEN_INVALID', 'TOKEN_EXPIRED', 'TOKEN_REUSED', 'UNAUTHENTICATED'].includes(error.code)
         ) {
@@ -80,21 +107,19 @@ export const useSession = create<SessionState>()((set, get) => {
       }
     },
     async register(input) {
+      const generation = captureAccountGeneration();
       set({ mfaPending: false });
-      adopt(await unwrap(desktop().auth.register(input)));
+      const snapshot = await unwrap(desktop().auth.register(input));
+      requireAccountGeneration(generation);
+      adopt(snapshot);
     },
     async signOut() {
       const userId = get().user?.id;
-      set({ mfaPending: false });
-      await unwrap(desktop().auth.logout()).catch(() => null);
       // Nothing from this account may outlive it in memory or local storage.
-      forgetAccessToken();
-      forgetMedia();
-      resetSync();
-      resetChatState();
-      queryClient.clear();
+      clearAccount();
       if (userId) clearDrafts(userId);
-      set({ status: 'signed-out', user: null });
+      set({ status: 'signed-out', user: null, mfaPending: false });
+      await unwrap(desktop().auth.logout()).catch(() => null);
     },
     updateUser(user) {
       set({ user });

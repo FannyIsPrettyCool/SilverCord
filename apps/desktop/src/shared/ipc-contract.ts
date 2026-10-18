@@ -36,6 +36,7 @@ export interface RegisterInput {
 
 export interface DesktopConfig {
   readonly apiUrl: string;
+  readonly mediaUrl: string;
   readonly gatewayUrl: string;
   readonly platform: 'win32' | 'linux' | 'darwin' | 'other';
   readonly version: string;
