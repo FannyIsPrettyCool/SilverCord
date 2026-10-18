@@ -28,6 +28,8 @@ jobs:
           COMMITS_FROM: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: pnpm lint:commits
       - run: pnpm verify:all
+      - name: Backup lifecycle regressions
+        run: bash infra/tests/backup.test.sh
       - run: pnpm audit --prod --audit-level high
 
   integration:

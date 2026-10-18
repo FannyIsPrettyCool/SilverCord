@@ -7,6 +7,7 @@ import {
 } from '@silvercord/protocol';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { captureAccountGeneration, isCurrentAccountGeneration } from './account-generation.ts';
 import { api, apiVoid } from './api-client.ts';
 import { keys, queryClient } from './query-client.ts';
 
@@ -39,13 +40,34 @@ export function useOwnPresence() {
 
 export function useSetOwnPresence() {
   return useMutation({
+    onMutate: () => captureAccountGeneration(),
     mutationFn: (status: OwnPresence['status']) =>
       api(ownPresenceSchema, '/api/v1/users/@me/presence', { method: 'PATCH', body: { status } }),
-    onSuccess: (own) => queryClient.setQueryData(keys.ownPresence, own),
+    onSuccess: (own, _status, generation) => {
+      if (generation !== undefined && isCurrentAccountGeneration(generation))
+        queryClient.setQueryData(keys.ownPresence, own);
+    },
   });
 }
 
 /** Peers typing now; entries also expire locally so a missed event never sticks. */
+export function watchTypingExpiry(
+  items: readonly { expiresAt: string }[],
+  onTime: (now: number) => void,
+): () => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const tick = () => {
+    const now = Date.now();
+    onTime(now);
+    const next = Math.min(
+      ...items.map((item) => Date.parse(item.expiresAt)).filter((at) => at > now),
+    );
+    if (Number.isFinite(next)) timer = setTimeout(tick, next - now + 50);
+  };
+  tick();
+  return () => clearTimeout(timer);
+}
+
 export function useTyping(channelId: string) {
   const query = useQuery({
     queryKey: keys.typing(channelId),
@@ -55,12 +77,7 @@ export function useTyping(channelId: string) {
   });
   const [now, setNow] = useState(() => Date.now());
   const items = query.data ?? [];
-  const nextExpiry = Math.min(...items.map((item) => Date.parse(item.expiresAt)));
-  useEffect(() => {
-    if (!Number.isFinite(nextExpiry)) return;
-    const timer = setTimeout(() => setNow(Date.now()), Math.max(0, nextExpiry - Date.now()) + 50);
-    return () => clearTimeout(timer);
-  }, [nextExpiry]);
+  useEffect(() => watchTypingExpiry(query.data ?? [], setNow), [query.data]);
   return items.filter((item) => Date.parse(item.expiresAt) > now).map((item) => item.userId);
 }
 

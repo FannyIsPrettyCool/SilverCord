@@ -155,6 +155,36 @@ describe('presence and typing', () => {
   });
 
   describe('leases', () => {
+    it('does not leave a lease behind when disconnect races the attach read', async () => {
+      const leases = createPresenceLeases(t.context.valkey);
+      const user = BigInt(Date.now()) * 1000n + 31n;
+      await Promise.all([
+        leases.attach(user, 'connect-and-close'),
+        leases.release(user, 'connect-and-close'),
+      ]);
+      expect(await leases.liveCount(user)).toBe(0);
+      expect(await t.context.valkey.zscore('presence:index', user.toString())).toBeNull();
+    });
+
+    it('keeps the new lease indexed when another session releases concurrently', async () => {
+      const leases = createPresenceLeases(t.context.valkey);
+      const user = BigInt(Date.now()) * 1000n + 32n;
+      await leases.attach(user, 'old');
+      await Promise.all([leases.release(user, 'old'), leases.attach(user, 'new')]);
+      expect(await leases.liveCount(user)).toBe(1);
+      expect(await t.context.valkey.zscore('presence:index', user.toString())).not.toBeNull();
+      await leases.release(user, 'new');
+    });
+
+    it('cannot revive or reindex a session after its in-flight heartbeat and release settle', async () => {
+      const leases = createPresenceLeases(t.context.valkey);
+      const user = BigInt(Date.now()) * 1000n + 33n;
+      await leases.attach(user, 'heartbeat');
+      await Promise.all([leases.refresh(user, 'heartbeat'), leases.release(user, 'heartbeat')]);
+      expect(await leases.liveCount(user)).toBe(0);
+      expect(await t.context.valkey.zscore('presence:index', user.toString())).toBeNull();
+    });
+
     it('never revives a released lease and sweeps expired ones', async () => {
       const valkey = createValkey(t.context.env.VALKEY_URL);
       let clock = 1_000_000;
@@ -233,6 +263,14 @@ describe('presence and typing', () => {
       const watcher = await connect(b);
       await call(a, 'PUT', `/channels/${channelId}/typing`, { active: true });
       expect((await watcher.dispatch('TYPING_CHANGED')).d).toEqual({ channelId });
+      const [first] = await typingOf(b, channelId);
+      await wait(4100);
+      await call(a, 'PUT', `/channels/${channelId}/typing`, { active: true });
+      expect((await watcher.dispatch('TYPING_CHANGED')).d).toEqual({ channelId });
+      const [refreshed] = await typingOf(b, channelId);
+      expect(Date.parse(refreshed?.expiresAt ?? '')).toBeGreaterThan(
+        Date.parse(first?.expiresAt ?? ''),
+      );
       await watcher.close();
     });
   });

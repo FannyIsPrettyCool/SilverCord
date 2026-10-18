@@ -1,8 +1,8 @@
 import type { DesktopConfig } from '../shared/ipc-contract.ts';
 
 /**
- * Strict CSP for the renderer (BRIEF §8.2). Network access is limited to the configured API and
- * gateway; user media will come from the CDN origin in phase 2.
+ * Strict CSP for the renderer (BRIEF §8.2). Authenticated media is fetched from the configured
+ * media origin and rendered as session-scoped blobs; raw remote embeds remain unavailable.
  */
 export function buildContentSecurityPolicy(
   config: DesktopConfig,
@@ -16,7 +16,15 @@ export function buildContentSecurityPolicy(
     'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", 'data:', 'blob:'],
     'font-src': ["'self'"],
-    'connect-src': ["'self'", config.apiUrl, new URL(config.gatewayUrl).origin, ...dev],
+    'connect-src': [
+      ...new Set([
+        "'self'",
+        config.apiUrl,
+        config.mediaUrl,
+        new URL(config.gatewayUrl).origin,
+        ...dev,
+      ]),
+    ],
     'media-src': ["'self'", 'blob:'],
     'worker-src': ["'self'", 'blob:'],
     'object-src': ["'none'"],

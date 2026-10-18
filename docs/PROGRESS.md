@@ -18,8 +18,29 @@ able to continue from the top entry alone.
   migration and real database constraint regression still need implementation.
 - Phase 2 audit fixes are isolated in `D:\SilverCord-phase2-review` on `fix/phase2-review`.
   Audit fixes are merged/deployed on main (582d5d2); final visual/release checks remain.
-  Merge updated main into this branch after the Phase 2 tag before guild work.
+  Audit fixes are now merged into this branch; take the final Phase 2 release update when tagged.
 - SMTP and encrypted off-host backup storage still need external provider credentials.
+
+## 2026-10-18 — Phase 2 audit fixes and CDN release checks
+
+- Worktree `D:\SilverCord-phase2-review`, branch `fix/phase2-review`, based on
+  `origin/main` (33b825f). Original checkout's Phase 3 permission commits and unfinished
+  guild schema are preserved on `feat/permissions-engine`.
+- Latest main CI exposed quadratic parsing of unmatched opening brackets. Masked links
+  now use a precomputed delimiter index; all 27 markdown tests pass, including escaped
+  delimiters, invalid labels and the original adversarial performance regression.
+- Audit fixes implemented and pushed: orphan chunk rollback cleanup, Linux decoder file isolation,
+  per-attempt object keys, account-bound renderer requests/caches, history/read/typing
+  reconciliation, atomic presence leases, consistent DB/media backups and separate CDN.
+- Owner added `cdn.silvercord.islandmon.cloud`; HTTPS is live. CDN media requires bearer
+  authentication (401 without it); API-host media and CDN non-media paths return 404.
+- Private staging runs 3715671 with all six services healthy. Deployment successfully
+  stopped/resumed API+worker for the consistent pre-migration database/media snapshot.
+  Production rollout, latest CI and cross-machine acceptance remain before the tag.
+- Verification so far: 124 real Postgres/Valkey integration tests, 27 isolated Linux media
+  unit/integration cases, all-package checks (98 desktop unit tests) and ten Electron
+  smoke/security tests pass. Backup lifecycle tests pass on Linux and run in CI.
+- External dependencies remain SMTP and encrypted off-host storage credentials.
 
 ## 2026-10-18 — Phase 2 implemented and deployed (review pending, then `v0.2.0`)
 

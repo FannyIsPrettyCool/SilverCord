@@ -47,3 +47,13 @@ Status is conveyed by shape and color (idle notch, dnd bar, offline ring) plus a
 The history is a focusable `log` region; toolbars appear on focus as well as hover; radio
 groups back the density and status choices; the mention list is a listbox with keyboard
 selection (arrows, Enter/Tab). Reduced motion removes the typing bounce and reaction pop.
+
+## Account and recovery lifecycle
+
+Sign-out immediately clears private queries, pending uploads, blobs and drafts.
+Requests and decoded responses belong to the account generation that started them;
+late refreshes, JSON/blobs, pagination and mutation callbacks cannot populate a new
+account's cache. Reconnect/focus resets history to one authoritative page so missed
+edits, deletes and block changes do not leave old text visible. Periodic viewport
+revalidation is bounded to twenty reads per five seconds and once per row per thirty
+seconds. Channels and relationships load all cursor pages, including older entries.

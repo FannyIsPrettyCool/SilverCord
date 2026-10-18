@@ -96,6 +96,14 @@ sandbox has no application secrets/network, bounded CPU/RAM/temp storage,
 one processing job at a time and 30 s wall timeout enforced outside the decoder.
 The job orchestrator alone has scoped Valkey/storage access; do not pass those
 credentials or network access into the decoder process.
+
+On Linux the orchestrator pins the jobs root, job and output directories by file
+descriptor and opens children with no-follow semantics. Reject symlinks, hardlinks,
+devices and FIFOs, bound both result JSON and streamed variant bytes, and hash/store
+the same opened stream. Container mode fails closed on other platforms. Each processing
+attempt owns unique private object keys, so a losing retry cannot remove a winner's
+committed objects. Conflicting chunk retries and rolled-back ledger transactions
+delete their uncommitted staging objects.
 Video probing/thumbnailing has the same process/network/time limits. Optional
 ClamAV profile scans before ready; scan errors fail closed when enabled.
 

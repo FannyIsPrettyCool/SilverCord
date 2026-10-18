@@ -2,6 +2,11 @@ import { type Upload, uploadOffsetSchema, uploadSchema } from '@silvercord/proto
 import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { DesktopError } from '../desktop.ts';
+import {
+  captureAccountGeneration,
+  isCurrentAccountGeneration,
+  requireAccountGeneration,
+} from './account-generation.ts';
 import { api, apiResponse, apiVoid } from './api-client.ts';
 
 export type UploadStatus = 'uploading' | 'processing' | 'ready' | 'failed';
@@ -69,13 +74,13 @@ async function run(localId: string) {
     let offset = upload.offset;
     while (offset < item.file.size) {
       const end = Math.min(item.file.size, offset + upload.chunkBytes);
-      const response = await apiResponse(`/api/v1/uploads/${upload.id}/chunks`, {
+      const response = await api(uploadOffsetSchema, `/api/v1/uploads/${upload.id}/chunks`, {
         method: 'PUT',
         bytes: item.file.slice(offset, end),
         headers: { 'upload-offset': String(offset) },
         signal: controller.signal,
       });
-      offset = uploadOffsetSchema.parse(await response.json()).offset;
+      offset = response.offset;
       patch(localId, { progress: offset / item.file.size });
     }
     await api(uploadSchema, `/api/v1/uploads/${upload.id}/complete`, {
@@ -97,7 +102,7 @@ async function run(localId: string) {
       error: error instanceof DesktopError ? error.code : 'NETWORK',
     });
   } finally {
-    controllers.delete(localId);
+    if (controllers.get(localId) === controller) controllers.delete(localId);
   }
 }
 
@@ -116,6 +121,7 @@ export function addUploads(channelId: string, files: readonly File[]) {
 }
 
 export function retryUpload(localId: string) {
+  controllers.get(localId)?.abort();
   useUploads.getState().patch(localId, { status: 'uploading', error: null });
   void run(localId);
 }
@@ -137,17 +143,27 @@ const blobUrls = new Map<string, Promise<string>>();
 const MAX_CACHED = 300;
 
 export function mediaUrl(path: string): Promise<string> {
+  const startedIn = captureAccountGeneration();
   let entry = blobUrls.get(path);
   if (!entry) {
     entry = apiResponse(path)
       .then((response) => response.blob())
-      .then((blob) => URL.createObjectURL(blob));
-    entry.catch(() => blobUrls.delete(path));
+      .then((blob) => {
+        requireAccountGeneration(startedIn);
+        return URL.createObjectURL(blob);
+      });
+    const current = entry;
+    entry.catch(() => {
+      if (blobUrls.get(path) === current) blobUrls.delete(path);
+    });
     blobUrls.set(path, entry);
     if (blobUrls.size > MAX_CACHED) {
       const [oldest] = blobUrls.keys();
       if (oldest) {
-        void blobUrls.get(oldest)?.then((url) => URL.revokeObjectURL(url));
+        void blobUrls
+          .get(oldest)
+          ?.then((url) => URL.revokeObjectURL(url))
+          .catch(() => undefined);
         blobUrls.delete(oldest);
       }
     }
@@ -156,20 +172,21 @@ export function mediaUrl(path: string): Promise<string> {
 }
 
 export function useMediaUrl(path: string | undefined): string | null {
-  const [url, setUrl] = useState<string | null>(null);
+  const [resolved, setResolved] = useState<{ path: string; url: string } | null>(null);
   useEffect(() => {
     if (!path) return;
     let live = true;
+    const startedIn = captureAccountGeneration();
     void mediaUrl(path)
       .then((value) => {
-        if (live) setUrl(value);
+        if (live && isCurrentAccountGeneration(startedIn)) setResolved({ path, url: value });
       })
       .catch(() => undefined);
     return () => {
       live = false;
     };
   }, [path]);
-  return path ? url : null;
+  return resolved && path === resolved.path ? resolved.url : null;
 }
 
 export function forgetMedia() {
@@ -177,5 +194,6 @@ export function forgetMedia() {
     void entry.then((url) => URL.revokeObjectURL(url)).catch(() => undefined);
   blobUrls.clear();
   for (const controller of controllers.values()) controller.abort();
+  controllers.clear();
   useUploads.getState().reset();
 }

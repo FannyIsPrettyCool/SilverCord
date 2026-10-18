@@ -50,6 +50,8 @@ export function createAuthAgent(apiUrl: string, store: TokenStore) {
   let session: { tokens: AuthTokens } | null = null;
   let mfaTicket: string | null = null;
   let refreshing: Promise<SessionSnapshot> | null = null;
+  /** A logout may finish this old rotation for revocation without adopting its result. */
+  let refreshingTokens: Promise<AuthTokens> | null = null;
   /** Bumped on logout: results of requests started before it are discarded. */
   let generation = 0;
   /** A logout clear must finish after every older disk write. */
@@ -112,12 +114,12 @@ export function createAuthAgent(apiUrl: string, store: TokenStore) {
     };
   }
 
-  async function refreshWith(refreshToken: string, startedIn: number): Promise<SessionSnapshot> {
+  async function refreshWith(
+    issued: Promise<AuthTokens>,
+    startedIn: number,
+  ): Promise<SessionSnapshot> {
     try {
-      return await adopt(
-        await call('/api/v1/auth/refresh', { refreshToken }, authTokensSchema),
-        startedIn,
-      );
+      return await adopt(await issued, startedIn);
     } catch (error) {
       // Only a rejected token ends the session; 429s, 5xx and network trouble are retried later.
       if (error instanceof ApiError && SESSION_ENDING.has(error.code) && startedIn === generation) {
@@ -129,10 +131,16 @@ export function createAuthAgent(apiUrl: string, store: TokenStore) {
   }
 
   function refreshOnce(refreshToken: string, startedIn = generation): Promise<SessionSnapshot> {
-    refreshing ??= refreshWith(refreshToken, startedIn).finally(() => {
-      refreshing = null;
+    if (refreshing) return refreshing;
+    const issued = call('/api/v1/auth/refresh', { refreshToken }, authTokensSchema);
+    refreshingTokens = issued;
+    const pending = refreshWith(issued, startedIn).finally(() => {
+      // A completed old rotation must not detach a newer account's single-flight refresh.
+      if (refreshing === pending) refreshing = null;
+      if (refreshingTokens === issued) refreshingTokens = null;
     });
-    return refreshing;
+    refreshing = pending;
+    return pending;
   }
 
   return {
@@ -196,17 +204,37 @@ export function createAuthAgent(apiUrl: string, store: TokenStore) {
     },
 
     async logout(): Promise<void> {
-      // A fresh access token, or the server-side session would outlive the "signed out" UI.
-      const current = session ? await this.accessToken().catch(() => null) : null;
+      const old = session?.tokens;
+      const pendingRotation = refreshingTokens;
+      // End the old account before any network/storage await can let a new login begin.
       generation += 1;
       session = null;
       mfaTicket = null;
+      refreshing = null;
+      refreshingTokens = null;
+      // Enqueue this clear now; any newer login saves after it in the persistence queue.
       await persist(() => store.clear());
-      if (!current) return;
+
+      let accessToken = old?.accessToken;
+      if (!old || Date.parse(old.accessTokenExpiresAt) - Date.now() <= REFRESH_MARGIN_MS) {
+        // Rotation is only for the captured old session. Never adopt or save its tokens.
+        const rotation =
+          pendingRotation ??
+          (old
+            ? call('/api/v1/auth/refresh', { refreshToken: old.refreshToken }, authTokensSchema)
+            : null);
+        accessToken = rotation
+          ? await rotation.then(
+              (tokens) => tokens.accessToken,
+              () => undefined,
+            )
+          : undefined;
+      }
+      if (!accessToken) return;
       await net
         .fetch(`${apiUrl}/api/v1/auth/logout`, {
           method: 'POST',
-          headers: { authorization: `Bearer ${current.accessToken}` },
+          headers: { authorization: `Bearer ${accessToken}` },
         })
         .catch(() => undefined);
     },

@@ -145,7 +145,7 @@ export function createMediaService(deps: MediaDependencies) {
   async function accessibleUpload(viewerId: bigint, uploadId: bigint): Promise<UploadRow> {
     const row = await repo.find(db, uploadId);
     const messageId = row ? await repo.attachmentMessage(db, uploadId) : undefined;
-    if (!row || row.state !== 'attached' || messageId === undefined) throw notFound();
+    if (row?.state !== 'attached' || messageId === undefined) throw notFound();
     await channels.requireMember(db, row.channelId, viewerId);
     // The uploader is always the message author (attach requires ownership).
     if ((await relationships.blockedByViewer(db, viewerId)).has(row.ownerId)) throw notFound();
@@ -275,20 +275,26 @@ export function createMediaService(deps: MediaDependencies) {
         throw new AppError('VALIDATION_FAILED', 'Body length does not match Content-Length');
       }
 
-      const outcome = await db.transaction(async (tx) => {
-        const locked = await owned(tx, ownerId, uploadId, 'update');
-        const existing = await repo.chunkAt(tx, uploadId, offset);
-        if (existing) {
-          if (existing.length !== length || !existing.sha256.equals(sha256))
-            throw new AppError('CONFLICT', 'A different chunk was already committed here');
-          return { offset: locked.receivedBytes, keep: false };
-        }
-        if (locked.receivedBytes !== offset || locked.state !== 'uploading')
-          throw new AppError('CONFLICT', `Expected offset ${locked.receivedBytes}`);
-        await repo.insertChunk(tx, { uploadId, offset, length, sha256, storageKey: key });
-        const updated = await repo.update(tx, uploadId, { receivedBytes: offset + length });
-        return { offset: updated.receivedBytes, keep: true };
-      });
+      const outcome = await db
+        .transaction(async (tx) => {
+          const locked = await owned(tx, ownerId, uploadId, 'update');
+          const existing = await repo.chunkAt(tx, uploadId, offset);
+          if (existing) {
+            if (existing.length !== length || !existing.sha256.equals(sha256))
+              throw new AppError('CONFLICT', 'A different chunk was already committed here');
+            return { offset: locked.receivedBytes, keep: false };
+          }
+          if (locked.receivedBytes !== offset || locked.state !== 'uploading')
+            throw new AppError('CONFLICT', `Expected offset ${locked.receivedBytes}`);
+          await repo.insertChunk(tx, { uploadId, offset, length, sha256, storageKey: key });
+          const updated = await repo.update(tx, uploadId, { receivedBytes: offset + length });
+          return { offset: updated.receivedBytes, keep: true };
+        })
+        .catch(async (error: unknown) => {
+          // This object never entered the committed ledger, so neither purge nor sweep owns it.
+          await storage.delete(key);
+          throw error;
+        });
       if (!outcome.keep) await storage.delete(key);
       return { offset: outcome.offset };
     },

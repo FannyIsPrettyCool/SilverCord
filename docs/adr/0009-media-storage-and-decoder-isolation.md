@@ -17,7 +17,7 @@ addons and wasi only), and native addons such as sharp bypass it anyway.
 
 1. **Storage.** A `StorageDriver` interface (`put`, `read`, `delete`, `exists`) with one local
    filesystem driver. Production mounts a dedicated volume. Object keys are opaque:
-   `staging/<upload>/<random>` and `objects/<upload>/<variant>-<sha256>`; nothing derives
+   `staging/<upload>/<random>` and `objects/<upload>/<attempt>-<variant>`; nothing derives
    from client filenames, and the driver refuses any resolved path outside its root. An S3
    driver (Garage/OVH) slots in behind the same interface once credentials exist.
 2. **Decoder isolation.** The BullMQ worker (orchestrator) owns DB, Valkey and storage. It copies
@@ -40,8 +40,15 @@ addons and wasi only), and native addons such as sharp bypass it anyway.
 ## Consequences
 
 - No new external service or credential is required to ship uploads.
-- Local-volume media is not covered by the Postgres-only backup; the backup job copies the
-  media volume (rsync to the backup directory) so restores keep attachments.
+- Local-volume media needs a paired database/media snapshot; the backup job drains API/worker,
+  dumps Postgres and archives the media volume before restarting the previous services.
 - If a decoder RCE occurs it lands in a container with no network, no secrets and only the
   jobs volume; the orchestrator treats every result file as hostile input (size, MIME and
   dimensions re-checked).
+
+2026-10-18 follow-up: the owner provided the media DNS record. Production now uses
+`cdn.silvercord.islandmon.cloud`; the desktop's `SILVERCORD_MEDIA_URL` configuration,
+CSP and native downloads honor that origin. Caddy rejects media on the API host and
+non-media paths on the CDN. Authorization remains inside every proxied media route.
+Linux workers pin directory descriptors and reject symlinks/hardlinks/special files;
+hashing and bounded storage consume one opened stream per attempt.
