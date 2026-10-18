@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+# Verified Docker Hub manifest, 2026-10-18; update deliberately with Node LTS.
+FROM node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS dependencies
+WORKDIR /workspace
+RUN npm install --global pnpm@11.26.0
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/server/package.json apps/server/package.json
+COPY packages/protocol/package.json packages/protocol/package.json
+COPY packages/config/package.json packages/config/package.json
+COPY tools/commitlint/package.json tools/commitlint/package.json
+RUN pnpm --filter @silvercord/server... install --prod --frozen-lockfile --ignore-scripts
+COPY apps/server/src apps/server/src
+COPY packages/protocol/src packages/protocol/src
+# Deploy makes workspace dependencies portable; these packages export TS source.
+RUN pnpm --filter @silvercord/server deploy --prod --legacy --ignore-scripts /opt/server
+
+FROM node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=dependencies --chown=node:node /opt/server/ ./
+COPY --from=dependencies /workspace/packages/protocol/package.json /workspace-packages/protocol/package.json
+COPY --from=dependencies /workspace/packages/protocol/src /workspace-packages/protocol/src
+# Node does not strip TypeScript under node_modules. Workspace source dependencies
+# are deliberately copied outside it and linked back; external packages stay JS.
+RUN rm -r node_modules/@silvercord/protocol && \
+    ln -s /workspace-packages/protocol node_modules/@silvercord/protocol && \
+    ln -s /app/node_modules /workspace-packages/protocol/node_modules
+USER node
+EXPOSE 4000
+CMD ["node", "src/main.ts"]
