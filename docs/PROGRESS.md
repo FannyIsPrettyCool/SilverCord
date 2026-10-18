@@ -3,6 +3,30 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — 0.3.0 release candidate: guild chat and animated badges
+
+- Completed the uncommitted expressions work; added full reaction picker, custom reaction
+  chips, status picker (native dialog-safe), and guild emote/sticker management.
+- Guild text/announcement channels now use the existing transcript, composer, attachments,
+  replies, edits, reactions, typing and persisted read/unread state. Permission checks on
+  every message/media operation; shared guild locks serialize writes with permission edits.
+- Scoped message outbox rows resolve current viewers at dispatch, with batched permission
+  resolution. USE_EXTERNAL_EMOJIS is enforced for guild sends and reactions. Private channel
+  metadata stays private-only. Membership changes reset cached transcripts.
+- Badges: original layered vector insignia for seven built-ins; five rim effects, four particle
+  presets, custom colour/intensity, live admin previews and updates, animated uploaded icons.
+  Shared scheduler bounds particles to 180 total/24 per badge at 30 fps, stops in hidden tabs
+  and offscreen. Motion preferences now respond live to OS changes (upstream hook was static).
+- Evidence: all-package lint/typecheck/unit suite (117 desktop tests); 178 real PostgreSQL/Valkey
+  integration tests on VPS. Headless Edge visual/interaction check passes badge previews,
+  particles, custom settings, emoji search/insert, native-dialog Escape and reduced motion.
+  Evidence `.artifacts/work/`. No workstation app windows opened.
+- Owner explicitly chose to ship WITHOUT GIF search. Remaining Phase 3 invites, roles/member
+  list/moderation and voice are still separate roadmap items; 0.3.0 is an interim release,
+  not a claim that every Phase 3/5 acceptance criterion is complete.
+- Next: CI/security/package gates, staging/production rollout, immutable website installer,
+  SHA-256 verification, per-machine local installation (owner authorized; may require UAC).
+
 ## 2026-10-18 — Phase 5: expressions in progress (uncommitted desktop work)
 
 - Committed and pushed: emote/sticker server (tables, routes, token rewrite, custom reactions,

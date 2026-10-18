@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 const path =
   process.platform === 'win32'
-    ? '\\?\pipe\silvercord-rpc-0'
+    ? String.raw`\\?\pipe\silvercord-rpc-0`
     : join(process.env.XDG_RUNTIME_DIR ?? tmpdir(), 'silvercord-rpc-0');
 const socket = connect(path);
 const send = (message) => socket.write(`${JSON.stringify(message)}\n`);

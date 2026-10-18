@@ -112,7 +112,7 @@ check in place; invite flow works end to end.
 - [x] Route permission declaration + CI check (fresh checker required for future guild/channel routes)
 - [x] Initial server lifecycle, categories/text/voice/announcement metadata, channel edits and versioned reorder API
 - [x] Desktop server rail, create/rename/leave and permission-aware channel forms (EN/FR)
-- [ ] Guild message/media authorization + channel-scoped outbox fanout; connect existing chat UI
+- [x] Guild message/media authorization + channel-scoped outbox fanout; connect existing chat UI (0.3.0)
 - [ ] Channel drag reorder, server ownership transfer and deletion
 - [ ] Invites (expiry, max uses, temporary), `silvercord://` deep link
 - [ ] Roles UI (color, icon, hoist, mentionable), overwrites UI
@@ -148,11 +148,11 @@ Started 2026-10-18 on `feat/profile-phase-5-profiles` (owner moved it ahead of g
 - [x] Profile fields (banner, avatar, pronouns, custom status, bio, accent, theme colours) + per-section privacy audiences
 - [x] User summaries endpoint, `PROFILE_CHANGED`, private notes (relationship metadata)
 - [x] Desktop: avatars everywhere, profile popout, full profile view, profile editor with crop, custom status dialog
-- [x] Badges (definitions, awards, rules, pinning, admin UI + CLI) — `docs/spec/badges.md`
+- [x] Badges (definitions, awards, rules, pinning, admin UI + CLI; animated artwork, custom effects and bounded particles) — `docs/spec/badges.md`
 - [x] Per-server profiles (nickname, avatar, banner, bio, pronouns) — form not yet seen in a real app run (seed has no server)
 - [x] Activity: manual, game detection, local RPC (`docs/rpc.md`), media session — `docs/spec/activity.md`; real-app tour of the activity screens pending
-- [ ] Custom emotes/stickers, emoji picker (licensed set) — `docs/spec/expressions.md`
-- [ ] GIF picker: Klipy provider (Tenor API shut down 2026-06-30); needs an owner API key
+- [x] Custom emotes/stickers, emoji picker (licensed set) — `docs/spec/expressions.md`
+- [ ] GIF picker: deferred from 0.3.0 by owner decision; Klipy needs an owner API key
 
 ## Phase 6 — Widgets & theming
 

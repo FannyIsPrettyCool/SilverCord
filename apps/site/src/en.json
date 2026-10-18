@@ -1,9 +1,9 @@
 {
   "title": "SilverCord — Desktop app",
-  "description": "Download SilverCord for Windows. Friends, messages and private media in the SilverCord desktop app.",
+  "description": "Download SilverCord for Windows: guild messaging, custom profiles, emotes, stickers and animated badges.",
   "navigation": "Language",
   "desktop": "Desktop app",
-  "features": "Friends · Messages · Private media",
+  "features": "Guild chat · Profiles · Animated badges",
   "platform": "Windows 11 · 64-bit",
   "downloadLabel": "Download for Windows",
   "downloadDetail": "Installer · version",

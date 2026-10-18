@@ -23,7 +23,12 @@ const config: Configuration = {
   },
   protocols: [{ name: 'SilverCord', schemes: ['silvercord'] }],
   win: { target: ['nsis'], icon: 'resources/icon.png' },
-  nsis: { oneClick: false, perMachine: false, allowToChangeInstallationDirectory: true },
+  nsis: {
+    runAfterFinish: false,
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+  },
   linux: {
     target: ['AppImage', 'deb', 'rpm'],
     icon: 'resources/icon.png',

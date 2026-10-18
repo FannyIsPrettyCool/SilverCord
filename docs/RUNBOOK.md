@@ -142,3 +142,11 @@ The phase 8 drill from scratch (fresh host) is still pending.
 
 ## Monitoring — pending (phase 8)
 ## Incident checklist — pending (phase 8)
+
+
+## Windows local upgrade
+
+The owner’s install is per-machine at `C:\Program Files\silvercord`. Install the verified
+0.3.0 NSIS build with `/S /allusers`; start it elevated for this existing machine-wide install.
+The installer has `runAfterFinish: false` so upgrading does not open an app window. Record
+installed DisplayVersion and compare installed `resources/app.asar` with the packaged file.
