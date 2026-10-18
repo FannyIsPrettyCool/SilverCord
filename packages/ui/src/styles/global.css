@@ -1,13 +1,16 @@
 @import "@fontsource-variable/figtree";
 @import "@fontsource-variable/jetbrains-mono";
+/* Same emoji everywhere (docs/spec/expressions.md); after the text faces so digits stay Figtree. */
+@import "./emoji-font.css";
 
 /*
  * Base layer: typography on a 4px baseline, spacing tokens, focus rings that read on glass.
  * Colour and glass variables come from the active theme (applyTheme).
  */
 :root {
-  --font-ui: "Figtree Variable", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-ui: "Figtree Variable", "Noto Color Emoji", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "Noto Color Emoji", ui-monospace, monospace;
+  --font-emoji: "Noto Color Emoji", sans-serif;
 
   /* Type scale (size / line height), all on the 4px baseline. */
   --text-xs: calc(12px * var(--font-scale, 1));
