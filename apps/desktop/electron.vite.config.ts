@@ -21,5 +21,7 @@ export default defineConfig({
   },
   renderer: {
     plugins: [react()],
+    // Emit every asset as a file: the CSP refuses data: fonts and images from the bundle.
+    build: { assetsInlineLimit: 0 },
   },
 });
