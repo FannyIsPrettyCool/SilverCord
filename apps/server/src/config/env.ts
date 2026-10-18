@@ -59,6 +59,11 @@ const envSchema = z
     MEDIA_STORAGE_DIR: z.string().min(1).default('.data/media'),
     /** Shared with the media-decoder container in production. */
     MEDIA_JOBS_DIR: z.string().min(1).default('.data/media-jobs'),
+    /** BullMQ key prefix; separate stacks (and test apps) sharing one Valkey need their own. */
+    MEDIA_QUEUE_PREFIX: z
+      .string()
+      .regex(/^[a-z0-9-]{1,32}$/)
+      .default('bull'),
     /** `container`: a network-less decoder container processes jobs; `local`: child process. */
     MEDIA_DECODER: z.enum(['local', 'container']).default('local'),
     MEDIA_MAX_FILE_BYTES: z.coerce

@@ -126,7 +126,7 @@ export async function buildApp(
   registerHealthRoutes(app, VERSION);
   registerAuthRoutes(app, auth);
 
-  const mediaQueue = createMediaQueue(env.VALKEY_URL);
+  const mediaQueue = createMediaQueue(env.VALKEY_URL, env.MEDIA_QUEUE_PREFIX);
   app.addHook('onClose', () => mediaQueue.close());
   const services = createChatServices(context, { log: app.log, enqueueMedia: mediaQueue.enqueue });
   const { db, relationships, channels, messages, presence, typing, media, storage } = services;

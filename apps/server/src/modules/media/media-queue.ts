@@ -10,10 +10,11 @@ const SWEEP_MS = 5 * 60_000;
 const connect = (url: string) => new Redis(url, { maxRetriesPerRequest: null });
 
 /** Producer side, used by the API on upload completion. */
-export function createMediaQueue(valkeyUrl: string) {
+export function createMediaQueue(valkeyUrl: string, prefix = 'bull') {
   const connection = connect(valkeyUrl);
-  const queue = new Queue(MEDIA_QUEUE, { connection });
+  const queue = new Queue(MEDIA_QUEUE, { connection, prefix });
   return {
+    prefix,
     /** Job id per upload, so duplicate enqueues collapse into one job. */
     async enqueue(uploadId: bigint) {
       await queue.add(
@@ -52,7 +53,7 @@ export function startMediaWorker(deps: MediaWorkerDependencies) {
   const worker = new Worker<{ uploadId: string }>(
     MEDIA_QUEUE,
     async (job) => deps.processor.process(BigInt(job.data.uploadId)),
-    { connection, concurrency: 1 },
+    { connection, concurrency: 1, prefix: deps.queue.prefix },
   );
   worker.on('failed', (_job, error) => deps.log.warn({ err: error }, 'media job failed'));
   const reconcile = async () => {

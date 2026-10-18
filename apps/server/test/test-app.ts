@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -87,6 +88,9 @@ export async function createTestApp(
     VALKEY_URL: inject('valkeyUrl'),
     MEDIA_STORAGE_DIR: join(mediaRoot, 'storage'),
     MEDIA_JOBS_DIR: join(mediaRoot, 'jobs'),
+    // Concurrent test files share Valkey; a shared queue would let one app's worker drop
+    // another app's jobs (their upload rows live in a different database).
+    MEDIA_QUEUE_PREFIX: `it-${randomUUID().slice(0, 8)}`,
   });
   const context = await createAppContext(env, {
     database,
@@ -108,7 +112,7 @@ export async function createTestApp(
   );
   await app.ready();
   // A second graph over the same database and storage: what the worker process would build.
-  const queue = createMediaQueue(env.VALKEY_URL);
+  const queue = createMediaQueue(env.VALKEY_URL, env.MEDIA_QUEUE_PREFIX);
   const services = createChatServices(context, { log: app.log, enqueueMedia: queue.enqueue });
   const worker = options.mediaWorker
     ? startMediaWorker({

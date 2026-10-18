@@ -9,7 +9,7 @@ import { createChatServices } from './services.ts';
 const env = loadEnv();
 const log = pino({ level: env.LOG_LEVEL });
 const context = await createAppContext(env);
-const queue = createMediaQueue(env.VALKEY_URL);
+const queue = createMediaQueue(env.VALKEY_URL, env.MEDIA_QUEUE_PREFIX);
 const services = createChatServices(context, { log, enqueueMedia: queue.enqueue });
 const worker = startMediaWorker({
   valkeyUrl: env.VALKEY_URL,
