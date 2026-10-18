@@ -1,3 +1,4 @@
+export * from './activity.ts';
 export * from './auth.ts';
 export * from './badges.ts';
 export { BRAND } from './brand.ts';

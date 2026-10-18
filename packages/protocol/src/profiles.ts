@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { activitySchema } from './activity.ts';
 import { badgeAwardSchema } from './badges.ts';
 import { profileImageSchema } from './profile-media.ts';
 import { relationshipKindSchema } from './relationships.ts';
@@ -178,6 +179,8 @@ export const userProfileSchema = z.strictObject({
   bio: z.string().nullable().optional(),
   pronouns: z.string().nullable().optional(),
   customStatus: customStatusSchema.nullable().optional(),
+  /** Primary first (rpc, game, media, manual). */
+  activities: z.array(activitySchema).max(4).optional(),
   memberSince: z.iso.datetime().optional(),
   /** Pinned first, then rarest, then newest. */
   badges: z.array(badgeAwardSchema).optional(),
@@ -216,6 +219,7 @@ export const userSummarySchema = z.strictObject({
   /** Guild context only: the member's nickname there. */
   nickname: z.string().nullable().optional(),
   customStatus: customStatusSchema.nullable().optional(),
+  activity: activitySchema.nullable().optional(),
 });
 export type UserSummary = z.infer<typeof userSummarySchema>;
 export const userSummariesSchema = z.strictObject({ items: z.array(userSummarySchema) });
