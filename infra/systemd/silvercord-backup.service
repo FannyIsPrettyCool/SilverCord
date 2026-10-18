@@ -1,0 +1,12 @@
+# Install: copy both units to /etc/systemd/system, then
+# systemctl daemon-reload && systemctl enable --now silvercord-backup.timer
+[Unit]
+Description=SilverCord nightly Postgres backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Unique UTC name per run; backup.sh refuses to overwrite and writes a checksum.
+ExecStart=/bin/sh -c 'exec /usr/bin/bash /srv/silvercord/infra/scripts/backup.sh /etc/silvercord/production.env "/var/backups/silvercord/nightly-$(date -u +%%Y%%m%%dT%%H%%M%%SZ).dump"'
+Nice=10
