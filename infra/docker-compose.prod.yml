@@ -57,7 +57,7 @@ services:
     networks: [backend]
     read_only: true
     cap_drop: [ALL]
-    tmpfs: [/tmp:rw,noexec,nosuid,size=16m]
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=16m']
     cpus: 0.5
     mem_limit: 256m
     pids_limit: 50
@@ -83,7 +83,7 @@ services:
     init: true
     read_only: true
     cap_drop: [ALL]
-    tmpfs: [/tmp:rw,noexec,nosuid,size=32m]
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=32m']
     ports: [127.0.0.1:14000:4000]
     networks: [backend, outbound]
     cpus: 2
@@ -122,7 +122,7 @@ services:
     user: 1000:1000
     read_only: true
     cap_drop: [ALL]
-    tmpfs: [/tmp:rw,noexec,nosuid,size=64m]
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=64m']
     networks: [backend]
     ports: [127.0.0.1:18025:8025]
     environment:
