@@ -18,13 +18,19 @@ directory=$(realpath -e -- "$(dirname -- "$2")")
 name=$(basename -- "$2")
 [[ "$2" == /* && "$name" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*\.dump$ ]] || exit 2
 output="$directory/$name"
-[[ ! -e "$output" && ! -e "$output.sha256" ]] || { printf 'Backup target already exists.\n' >&2; exit 2; }
+media_name="${name%.dump}.media.tar"
+[[ ! -e "$output" && ! -e "$output.sha256" && ! -e "$directory/$media_name" ]] ||
+  { printf 'Backup target already exists.\n' >&2; exit 2; }
 temporary=$(mktemp -- "$directory/.silvercord-backup.XXXXXXXX")
-trap 'rm -f -- "$temporary"' EXIT
+temporary_media=$(mktemp -- "$directory/.silvercord-media.XXXXXXXX")
+trap 'rm -f -- "$temporary" "$temporary_media"' EXIT
 "${compose[@]}" exec -T postgres pg_dump -U postgres -d silvercord \
   --format=custom --no-owner --no-acl > "$temporary"
 # Parse the archive before publishing it; pg_dump alone does not test recovery.
 "${compose[@]}" exec -T postgres pg_restore --list < "$temporary" > /dev/null
+# Media lives in a local volume (ADR-0009); archive it beside the database dump.
+"${compose[@]}" run --rm --no-deps -T --entrypoint tar api -C /data/media -cf - . > "$temporary_media"
 ln -- "$temporary" "$output"
-(cd -- "$directory" && set -o noclobber && sha256sum -- "$name" > "$name.sha256")
+ln -- "$temporary_media" "$directory/$media_name"
+(cd -- "$directory" && set -o noclobber && sha256sum -- "$name" "$media_name" > "$name.sha256")
 printf 'Backup and checksum created: %s\n' "$output"

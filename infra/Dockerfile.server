@@ -16,7 +16,7 @@ COPY packages/markdown/src packages/markdown/src
 # Deploy makes workspace dependencies portable; these packages export TS source.
 RUN pnpm --filter @silvercord/server deploy --prod --legacy --ignore-scripts /opt/server
 
-FROM node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5
+FROM node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS api
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=dependencies --chown=node:node /opt/server/ ./
@@ -31,6 +31,17 @@ RUN for package in protocol markdown; do \
       ln -s "/workspace-packages/$package" "node_modules/@silvercord/$package" && \
       ln -s /app/node_modules "/workspace-packages/$package/node_modules"; \
     done
+# Named volumes copy this ownership on first mount, so the nonroot user can write media.
+RUN install -d -o node -g node -m 750 /data /data/media /data/jobs
 USER node
 EXPOSE 4000
 CMD ["node", "src/main.ts"]
+
+# Media decoder (ADR-0009): same code plus ffmpeg, run with no network and no secrets.
+FROM api AS decoder
+USER root
+RUN apt-get update && \
+    apt-get install --yes --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+USER node
+CMD ["node", "src/modules/media/decoder/decoder-main.ts", "/data/jobs"]

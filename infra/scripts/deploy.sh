@@ -22,13 +22,17 @@ compose=(docker compose --env-file "$env_file" -f "$root/infra/docker-compose.pr
 # Only one deploy/backup-migration sequence may run at once.
 exec 9> "$backup_directory/.deploy.lock"
 flock -n 9 || { printf 'Another deployment is running.\n' >&2; exit 2; }
-previous_container=$("${compose[@]}" ps -q api)
-previous_image=
-if [[ -n "$previous_container" ]]; then
-  previous_image=$(docker inspect --format '{{.Config.Image}}' "$previous_container")
-fi
+image_of() {
+  local container
+  container=$("${compose[@]}" ps -q "$1")
+  [[ -z "$container" ]] || docker inspect --format '{{.Config.Image}}' "$container"
+}
+previous_image=$(image_of api)
+previous_decoder=$(image_of media-decoder)
 export SILVERCORD_IMAGE="silvercord-api:$revision"
-docker build --file infra/Dockerfile.server --tag "$SILVERCORD_IMAGE" .
+export SILVERCORD_DECODER_IMAGE="silvercord-decoder:$revision"
+docker build --file infra/Dockerfile.server --target api --tag "$SILVERCORD_IMAGE" .
+docker build --file infra/Dockerfile.server --target decoder --tag "$SILVERCORD_DECODER_IMAGE" .
 "${compose[@]}" up -d --wait --wait-timeout 120 postgres valkey
 bash "$root/infra/scripts/backup.sh" "$env_file" \
   "$backup_directory/$(date -u +%Y%m%dT%H%M%SZ)-$revision.dump"
@@ -40,7 +44,8 @@ fi
 if ! "${compose[@]}" up -d --wait --wait-timeout 120; then
   if [[ -n "$previous_image" ]]; then
     export SILVERCORD_IMAGE="$previous_image"
-    "${compose[@]}" up -d --no-deps --wait --wait-timeout 90 api
+    [[ -z "$previous_decoder" ]] || export SILVERCORD_DECODER_IMAGE="$previous_decoder"
+    "${compose[@]}" up -d --no-deps --wait --wait-timeout 90 api worker media-decoder
     printf 'New API failed health checks; previous image restored. Database migrations were not reversed.\n' >&2
   else
     printf 'First deployment failed; there is no previous API image to restore.\n' >&2
@@ -48,4 +53,5 @@ if ! "${compose[@]}" up -d --wait --wait-timeout 120; then
   exit 1
 fi
 docker tag "$SILVERCORD_IMAGE" silvercord-api:current
+docker tag "$SILVERCORD_DECODER_IMAGE" silvercord-decoder:current
 printf 'Deployed %s; check public HTTPS and gateway after Caddy/DNS configuration.\n' "$revision"
