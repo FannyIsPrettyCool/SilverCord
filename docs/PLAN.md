@@ -102,8 +102,8 @@ stays 60 fps on 10k-message seed.
 Accept: permission matrix test suite green; route-without-permission-declaration CI
 check in place; invite flow works end to end.
 
-- [ ] `docs/spec/permissions.md`
-- [ ] `packages/permissions` engine + fast-check properties (monotonicity, precedence, admin bypass, hierarchy, no escalation)
+- [x] `docs/spec/permissions.md`
+- [x] `packages/permissions` engine + fast-check properties (monotonicity, precedence, admin bypass, hierarchy, no escalation)
 - [ ] Route permission declaration + CI check
 - [ ] Guilds, categories, channels (text/voice/announcement), drag reorder
 - [ ] Invites (expiry, max uses, temporary), `silvercord://` deep link
