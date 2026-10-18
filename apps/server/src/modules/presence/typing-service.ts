@@ -89,7 +89,7 @@ export function createTypingService(deps: TypingDependencies) {
       const member = `${userId}:${authSessionId}`;
       const current = await valkey.zscore(key, member);
       if (current !== null && Number(current) - now() > TYPING_TTL_MS - REFRESH_AFTER_MS) return;
-      const wasTyping = (await typingUsers(channelId)).has(userId);
+      await typingUsers(channelId);
       await valkey
         .multi()
         .zadd(key, now() + TYPING_TTL_MS, member)
@@ -97,7 +97,8 @@ export function createTypingService(deps: TypingDependencies) {
         .sadd(keys.session(authSessionId), channelId.toString())
         .pexpire(keys.session(authSessionId), TYPING_TTL_MS * 2)
         .exec();
-      if (!wasTyping) announce(channelId);
+      // Refreshes carry a new expiry too; viewers need it before their local timer elapses.
+      announce(channelId);
     },
 
     /** Called after a successful send from that session. */
