@@ -9,6 +9,7 @@ import { usePresence, useTyping } from '../../api/presence.ts';
 import { useRelationships } from '../../api/social.ts';
 import { useSession } from '../../session/session-store.ts';
 import { Avatar, displayName } from '../presence/Avatar.tsx';
+import { ProfileTrigger } from '../profiles/ProfilePopover.tsx';
 import { Popover } from '../shell/Popover.tsx';
 import { Composer } from './Composer.tsx';
 import { channelTitle, peers } from './channel-name.ts';
@@ -65,9 +66,11 @@ function GroupMembers({ channel }: { readonly channel: Channel }) {
     <div className={styles['members']}>
       <ul className={styles['memberList']}>
         {channel.members.map((member) => (
-          <li key={member.id} className={styles['member']}>
-            <Avatar user={member} size={28} status={statusOf(member.id)} />
-            <span>{displayName(member)}</span>
+          <li key={member.id}>
+            <ProfileTrigger user={member} className={styles['member']}>
+              <Avatar user={member} size={28} status={statusOf(member.id)} />
+              <span>{displayName(member)}</span>
+            </ProfileTrigger>
           </li>
         ))}
       </ul>
@@ -168,7 +171,9 @@ export function ChannelView() {
     <section className={styles['view']} aria-label={title}>
       <Glass as="header" level={1} className={styles['header']}>
         {peer ? (
-          <Avatar user={peer} size={28} status={statusOf(peer.id)} />
+          <ProfileTrigger user={peer} label={displayName(peer)}>
+            <Avatar user={peer} size={28} status={statusOf(peer.id)} />
+          </ProfileTrigger>
         ) : (
           <Users size={22} weight="duotone" aria-hidden="true" />
         )}

@@ -6,6 +6,7 @@ import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMessageActions } from '../../api/chat.ts';
 import { Avatar, displayName } from '../presence/Avatar.tsx';
+import { ProfileTrigger } from '../profiles/ProfilePopover.tsx';
 import { Popover } from '../shell/Popover.tsx';
 import { Attachments } from './Attachments.tsx';
 import { type Density, useChatState } from './chat-state.ts';
@@ -329,14 +330,22 @@ export const MessageItem = memo(function MessageItem({
           {time.short}
         </time>
       ) : author ? (
-        <Avatar user={author} size={40} />
+        <ProfileTrigger user={author} label={name}>
+          <Avatar user={author} size={40} />
+        </ProfileTrigger>
       ) : (
         <span className={styles['ghostAvatar']} aria-hidden="true" />
       )}
       <div className={styles['main']}>
         {!grouped || context.density === 'compact' ? (
           <header className={styles['header']}>
-            <span className={styles['author']}>{name}</span>
+            {author ? (
+              <ProfileTrigger user={author} className={styles['author']}>
+                {name}
+              </ProfileTrigger>
+            ) : (
+              <span className={styles['author']}>{name}</span>
+            )}
             {context.density === 'cozy' ? (
               <time className={styles['time']} dateTime={message.createdAt} title={time.full}>
                 {time.short}

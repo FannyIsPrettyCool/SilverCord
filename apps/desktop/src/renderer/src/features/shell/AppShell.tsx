@@ -1,8 +1,10 @@
-import { SignOut } from '@phosphor-icons/react';
+import { PencilSimple, SignOut, Smiley } from '@phosphor-icons/react';
 import { Glass, IconButton } from '@silvercord/ui';
 import { Link, Outlet, useNavigate, useParams } from '@tanstack/react-router';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOwnPresence } from '../../api/presence.ts';
+import { useOwnProfile } from '../../api/profiles.ts';
 import mark from '../../assets/mark.svg';
 import { useGatewayState } from '../../gateway/use-gateway-connection.ts';
 import { useSession } from '../../session/session-store.ts';
@@ -10,6 +12,9 @@ import { ConversationList } from '../chat/ConversationList.tsx';
 import { GuildNavigation, GuildSidebar } from '../guilds/GuildNavigation.tsx';
 import { Avatar } from '../presence/Avatar.tsx';
 import { StatusMenu } from '../presence/StatusMenu.tsx';
+import { CustomStatusDialog } from '../profiles/CustomStatusDialog.tsx';
+import { StatusLine } from '../profiles/ProfileCard.tsx';
+import { ProfileDialog } from '../profiles/ProfileDialog.tsx';
 import styles from './app-shell.module.css';
 import { Popover } from './Popover.tsx';
 
@@ -30,7 +35,10 @@ export function AppShell() {
   const signOut = useSession((s) => s.signOut);
   const gateway = useGatewayState((s) => s.state);
   const own = useOwnPresence();
+  const profile = useOwnProfile();
+  const openStatus = useRef<(() => void) | null>(null);
   if (!user) return null;
+  const customStatus = profile.data?.customStatus ?? null;
   const name = user.displayName ?? user.username;
   const status =
     gateway !== 'ready'
@@ -71,13 +79,48 @@ export function AppShell() {
                 <span className={styles['identity']}>
                   <span className={styles['displayName']}>{name}</span>
                   <span className={styles['status']} role="status" aria-live="polite">
-                    <ConnectionLabel state={gateway} />
+                    {gateway === 'ready' && customStatus ? (
+                      <StatusLine status={customStatus} />
+                    ) : (
+                      <ConnectionLabel state={gateway} />
+                    )}
                   </span>
                 </span>
               </button>
             )}
           >
-            {() => <StatusMenu />}
+            {(close) => (
+              <div className={styles['menu']}>
+                <StatusMenu />
+                <div className={styles['menuActions']}>
+                  <button
+                    type="button"
+                    className={styles['menuItem']}
+                    onClick={() => {
+                      close();
+                      openStatus.current?.();
+                    }}
+                  >
+                    <Smiley size={16} weight="duotone" aria-hidden="true" />
+                    {customStatus ? t('customStatus.edit') : t('customStatus.set')}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles['menuItem']}
+                    onClick={async () => {
+                      close();
+                      await navigate({
+                        to: '/app/settings/$section',
+                        params: { section: 'profile' },
+                      });
+                    }}
+                  >
+                    <PencilSimple size={16} weight="duotone" aria-hidden="true" />
+                    {t('profile.edit')}
+                  </button>
+                </div>
+              </div>
+            )}
           </Popover>
           <IconButton
             label={t('shell.signOut')}
@@ -93,6 +136,14 @@ export function AppShell() {
       <main className={styles['content']}>
         <Outlet />
       </main>
+      <ProfileDialog />
+      {/* Outside the popover, which unmounts on close; the menu opens it through the ref. */}
+      <CustomStatusDialog
+        trigger={(open) => {
+          openStatus.current = open;
+          return null;
+        }}
+      />
     </div>
   );
 }

@@ -156,6 +156,9 @@
 }
 
 .member {
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: var(--space-2);

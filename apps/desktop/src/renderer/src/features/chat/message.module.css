@@ -9,8 +9,26 @@
 }
 
 .author {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
   font-weight: 650;
   color: var(--color-text);
+
+  &:is(button) {
+    cursor: pointer;
+    border-radius: var(--radius-1);
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+  }
 }
 
 .time,

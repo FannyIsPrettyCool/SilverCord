@@ -10,6 +10,7 @@ import { usePresence } from '../../api/presence.ts';
 import { useRelationshipAction, useRelationships, useSendFriendRequest } from '../../api/social.ts';
 import { errorKey } from '../chat/error-key.ts';
 import { Avatar, displayName } from '../presence/Avatar.tsx';
+import { ProfileTrigger } from '../profiles/ProfilePopover.tsx';
 import styles from './friends.module.css';
 
 type Tab = 'online' | 'all' | 'pending' | 'blocked';
@@ -91,11 +92,13 @@ function Row({
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
     >
-      <Avatar user={user} size={36} status={kind === 'friends' ? status : undefined} />
-      <span className={styles['identity']}>
-        <span className={styles['name']}>{name}</span>
-        <span className={styles['handle']}>@{user.username}</span>
-      </span>
+      <ProfileTrigger user={user} className={styles['person']}>
+        <Avatar user={user} size={36} status={kind === 'friends' ? status : undefined} />
+        <span className={styles['identity']}>
+          <span className={styles['name']}>{name}</span>
+          <span className={styles['handle']}>@{user.username}</span>
+        </span>
+      </ProfileTrigger>
       <span className={styles['actions']}>
         {kind === 'friends' ? (
           <>
