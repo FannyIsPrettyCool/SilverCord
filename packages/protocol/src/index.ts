@@ -20,6 +20,7 @@ export {
   PAGE_LIMIT_DEFAULT,
   PAGE_LIMIT_MAX,
 } from './pagination.ts';
+export * from './presence.ts';
 export * from './relationships.ts';
 export {
   createSnowflakeGenerator,
