@@ -55,6 +55,29 @@ const envSchema = z
       ),
     /** Maximum members of a group DM, including its owner. */
     GROUP_DM_MAX_MEMBERS: z.coerce.number().int().min(3).max(25).default(10),
+    /** Local storage root for uploads and variants (ADR-0009). */
+    MEDIA_STORAGE_DIR: z.string().min(1).default('.data/media'),
+    /** Shared with the media-decoder container in production. */
+    MEDIA_JOBS_DIR: z.string().min(1).default('.data/media-jobs'),
+    /** `container`: a network-less decoder container processes jobs; `local`: child process. */
+    MEDIA_DECODER: z.enum(['local', 'container']).default('local'),
+    MEDIA_MAX_FILE_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(25 * 1024 * 1024),
+    MEDIA_USER_QUOTA_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(512 * 1024 * 1024),
+    MEDIA_INSTANCE_QUOTA_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(20 * 1024 * 1024 * 1024),
+    MEDIA_CONCURRENT_UPLOADS: z.coerce.number().int().min(1).max(20).default(3),
+    MEDIA_UPLOAD_TTL_SECONDS: z.coerce.number().int().min(60).default(3600),
     /** Optional k-anonymity check against Have I Been Pwned; calls an external service. */
     HIBP_ENABLED: booleanFlag,
   })
