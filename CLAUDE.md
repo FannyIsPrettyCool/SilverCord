@@ -22,6 +22,8 @@ Full brief: `docs/BRIEF.md` (verbatim, never edit). Keep this file ≤200 lines.
 | `pnpm --filter @silvercord/desktop test:e2e` | Playwright `_electron` (build first) |
 | `pnpm db:migrate` / `pnpm db:seed` | migrate dev DB / open registration + accounts `aurora`, `tide` (pw `silvercord-dev-password`) |
 | `pnpm --filter @silvercord/server test:integration` | Testcontainers (Postgres 18.6 + Valkey 9.1.2); needs Docker |
+| `bash tools/scripts/remote-integration.sh [filters]` | same suite on the VPS Docker host (no local Docker), private network |
+| `pnpm --filter @silvercord/desktop exec playwright test --config playwright.live.config.ts` | two-client + 10k scroll tests against a seeded server |
 | `pnpm ui:shots` | real-app screenshot tour → `.artifacts/shots/app/` (needs dev stack + `pnpm dev` server + seed) |
 | `pnpm --filter @silvercord/ui test:visual` | Storybook × theme × tier snapshots in Electron (local only; `:update` to rebaseline) |
 | `pnpm --filter @silvercord/ui storybook` | Storybook on :6006 |
@@ -34,7 +36,10 @@ Full brief: `docs/BRIEF.md` (verbatim, never edit). Keep this file ≤200 lines.
 - `apps/desktop/src/main/auth/auth-agent.ts` holds refresh token + MFA ticket; renderer only gets access tokens via IPC.
 - `apps/desktop/src/renderer/src/` — `app/` (router, App), `features/<area>/`, `session/`, `gateway/`, `i18n/locales/{en,fr}.json`.
 - `packages/protocol` — Zod contracts (errors, pagination, auth, users, gateway), `brand.ts` (rename point).
-- `packages/ui` — themes/tokens, `<Glass>` + tiers + governor + refraction, `AmbientLayer`, primitives, Storybook, `visual/` snapshots. `packages/permissions|markdown|widgets` — placeholders.
+- `apps/server/src/modules/{relationships,channels,messages,presence,media}` — phase 2; `src/events/outbox.ts` (ADR-0008), `src/services.ts` builds the domain graph for API and `src/worker-main.ts` (BullMQ media worker). Media decoder runs in a network-less container (ADR-0009).
+- `apps/desktop/src/renderer/src/api/` — REST client (cached access token), TanStack Query keys, gateway→cache `sync.ts`, uploads/media blobs; `features/{chat,social,presence}`.
+- `packages/markdown` — chat-markdown → AST (no HTML).
+- `packages/ui` — themes/tokens, `<Glass>` + tiers + governor + refraction, `AmbientLayer`, primitives, Storybook, `visual/` snapshots. `packages/permissions|widgets` — placeholders.
 - `packages/config` — tsconfig presets. `tools/commitlint` — gitmoji rule. `infra/` — compose, LiveKit config.
 - `docs/adr/` decisions · `docs/spec/` feature specs · `docs/PLATFORM-LIMITS.md` · `docs/DESIGN-CHECKLIST.md` · `docs/RUNBOOK.md`.
 
@@ -71,6 +76,12 @@ Full brief: `docs/BRIEF.md` (verbatim, never edit). Keep this file ≤200 lines.
 - `#root` needs `height: 100%` (renderer `app/app.css`) or layouts collapse.
 - CI uses `concurrency: cancel-in-progress`: a newer push cancels the older run; check the latest SHA. Check runs with `tools/scripts/ci-status.sh <sha>` (annotations are public; logs need admin).
 - Biome `useLiteralKeys` is off (conflicts with `noPropertyAccessFromIndexSignature`).
+- Zustand selectors returning a new array/object loop under React 19 (error #185): wrap them in `useShallow`.
+- Vite inlines small assets as data: URLs, which the CSP blocks: renderer `assetsInlineLimit: 0`.
+- Tiptap classes (`is-editor-empty`) are global: use `:global(...)` inside CSS modules.
+- Staging: `COMPOSE_PROJECT_NAME=silvercord-staging` env file; run one-offs with `SILVERCORD_IMAGE=silvercord-api:silvercord-staging-current` or they use prod's image. Tunnel `ssh -L 4000:127.0.0.1:14100` for local UI work (docs/RUNBOOK.md).
+- Node 24 permission model has no network flag; decoder isolation is the container (`network_mode: none`).
+- ioredis 6 `zrange` takes string bounds ('0', '-1').
 
 ## Agents & commands (`.claude/`)
 Agents: `architect`, `reviewer`, `security-auditor`, `design-critic`, `test-engineer`.

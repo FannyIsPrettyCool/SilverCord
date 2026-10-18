@@ -80,19 +80,22 @@ security checklist test passes; threat model written.
 Accept: two real clients on different machines chat in DMs through the VPS; scroll
 stays 60 fps on 10k-message seed.
 
-- [ ] Specs: relationships, messaging, media, presence
-- [ ] Relationships: friend requests, accept/decline/cancel, remove, block, notes/nicknames, privacy
-- [ ] Channels: DM, group DM (max 10 default)
-- [ ] Messages: create (idempotency key), edit, delete, replies, reactions (unicode), pagination
-- [ ] `packages/markdown`: chat-markdown → AST parser (+ property tests)
-- [ ] Typing indicators, presence (friends + shared guilds, coalesced)
-- [ ] Read states + unread/mention badges
-- [ ] Media: upload pipeline, content sniffing, sharp (EXIF strip, thumbs, blurhash), quotas, CDN origin
-- [ ] Composer (Tiptap): markdown, mentions autocomplete, paste/drop uploads, drafts
-- [ ] Message list: virtualized, scroll anchoring, jump-to; 10k seed at 60 fps
-- [ ] Density: cozy, compact, bubble (DMs)
-- [ ] Prod compose, Caddy + TLS, deploy script, backup job
-- [ ] Deploy to OVH VPS (needs SSH + domain; escalation)
+- [x] Specs: relationships, messaging, media, presence (+ operations, chat-screens; ADR-0008, ADR-0009)
+- [x] Relationships: friend requests, accept/decline/cancel, remove, block, notes/nicknames, privacy
+- [x] Channels: DM, group DM (max 10 default)
+- [x] Messages: create (idempotency key), edit, delete, replies, reactions (unicode), pagination
+- [x] `packages/markdown`: chat-markdown → AST parser (+ property tests)
+- [x] Typing indicators, presence (friends; shared-guild audiences arrive with phase 3)
+- [x] Read states + unread/mention badges
+- [~] Media: upload pipeline, content sniffing, sharp (EXIF strip, thumbs, blurhash), quotas — done;
+      separate CDN origin blocked on a `cdn.` DNS record (ADR-0009: served by the API meanwhile)
+- [x] Composer (Tiptap): markdown, mentions autocomplete, paste/drop uploads, drafts
+- [x] Message list: virtualized, scroll anchoring, jump-to; 10k seed at 60 fps (docs/PERF.md)
+- [x] Density: cozy, compact, bubble (DMs)
+- [x] Prod compose, Caddy + TLS, deploy script, backup job (off-host copy needs storage credentials)
+- [x] Deploy to OVH VPS: https://silvercord.islandmon.cloud
+- [~] Acceptance: two clients chat through the VPS (verified on one machine against the VPS staging
+      stack, `e2e/live/two-clients.live.ts`); cross-machine run needs a second machine
 
 ## Phase 3 — Servers & permissions
 
@@ -191,6 +194,12 @@ high/critical findings open.
 ---
 
 ## Backlog / follow-ups
+
+- [ ] Code block syntax highlighting (messaging spec lists it; plain monospace for now)
+- [ ] Full emoji picker for reactions (quick set of six until phase 5)
+- [ ] Off-host encrypted backups (restic) once storage credentials exist
+- [ ] Real SMTP provider for production (staging profile routes mail to private Mailpit)
+- [ ] Repeat the scroll measurement on an integrated-GPU laptop (docs/PERF.md)
 
 - [ ] Polish: tune High-tier refraction (bezel width, displacement scale, corner artifacts) on real UI pills
 

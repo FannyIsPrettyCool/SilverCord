@@ -3,6 +3,29 @@
 Newest first. Each entry: what changed, what's next, gotchas. A fresh session must be
 able to continue from the top entry alone.
 
+## 2026-10-18 — Phase 2 implemented and deployed (review pending, then `v0.2.0`)
+
+- Server: relationships/blocks/privacy, transactional outbox (ADR-0008), DMs and groups with
+  ordered locks, idempotent messages (replies, edits, deletes, reactions, mentions), read states
+  with capped counts, presence leases + typing markers via gateway lifecycle hooks, media uploads
+  (chunk ledger, quotas, sniffing, sandboxed decoder child + network-less decoder container,
+  authorized delivery; ADR-0009). 121 integration tests, all routes swept for rate limits.
+- `packages/markdown` (AST parser, property tests). Desktop: REST client + TanStack Query,
+  gateway→cache sync, friends view, conversations, virtualized history (anchoring, jump-to),
+  Tiptap composer (mentions, paste/drop uploads, drafts), cozy/compact/bubble, presence UI.
+- Evidence: `e2e/live/two-clients.live.ts` (two Electron clients: typing, delivery, unread badge,
+  reaction, edit, image through the decoder) against the VPS staging stack; 10k scroll p95 7.3 ms
+  (docs/PERF.md); chat screenshots in `.artifacts/shots/app/`.
+- Production runs api + worker + media-decoder at https://silvercord.islandmon.cloud; nightly
+  backups include a media tarball; restore drill done into an isolated DB. Loopback staging stack
+  documented in RUNBOOK (tunnel to localhost:4000).
+- Blocked externally: `cdn.` DNS record (separate media origin), SMTP provider, off-host backup
+  storage credentials, a second machine for the cross-machine acceptance run.
+- Next: resolve reviewer/security findings, tag `v0.2.0`, deploy; then phase 3 (permissions spec,
+  engine, guilds, invites, roles, member list, moderation, threads/pins).
+- Gotchas: zustand selectors must not return new arrays (React #185); Vite data: assets vs CSP;
+  staging one-offs need the staging image tag; no local Docker (use remote-integration.sh).
+
 ## 2026-10-18 — Phase 1 released (`v0.1.0`)
 
 - Verified: review → UI → main merges are on `origin/main` (39608ce); its CI run is green;

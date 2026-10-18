@@ -59,6 +59,32 @@ into `/var/backups/silvercord/nightly-<UTC>.dump` with a `.sha256`. Logs:
 `journalctl -u silvercord-backup.service`. No off-host copy yet: dumps do not survive
 loss of the VPS until a restic target is configured (needs storage credentials).
 
+## Staging (loopback only)
+
+A second copy of the stack runs on the VPS for UI work and live tests, never routed by Caddy:
+checkout `/srv/silvercord-staging` (any branch), env `/etc/silvercord/staging.env`
+(`COMPOSE_PROJECT_NAME=silvercord-staging`, `API_PORT=14100`, `MAILPIT_PORT=18125`,
+`CORS_ORIGINS=app://bundle,http://localhost:5173`), backups in `/var/backups/silvercord-staging`.
+
+```sh
+cd /srv/silvercord-staging && git checkout <branch> && git pull --ff-only
+sudo bash infra/scripts/deploy.sh /etc/silvercord/staging.env /var/backups/silvercord-staging
+sudo env SILVERCORD_IMAGE=silvercord-api:silvercord-staging-current docker compose \
+  --env-file /etc/silvercord/staging.env -f infra/docker-compose.prod.yml \
+  run --rm --no-deps -e NODE_ENV=development -e SEED_PERF_MESSAGES=10000 api node src/db/seed-cli.ts
+```
+
+From the workstation: `ssh -N -L 127.0.0.1:4000:127.0.0.1:14100 -i ~/.ssh/islandmon_ovh
+ubuntu@145.239.79.30`, then `pnpm ui:shots` or the live Playwright config use localhost:4000.
+Stop it with `docker compose ... down` (keeps volumes) when not needed.
+
+## Media
+
+Uploads live in the `silvercord-prod_media-storage` volume; the worker copies one job at a time
+into `media-jobs`, where the network-less `media-decoder` container processes it (ADR-0009).
+`backup.sh` writes `<name>.media.tar` beside each dump; restore media by extracting it into a
+fresh volume. Without a `cdn.` DNS record, media is served by the API itself.
+
 ## Restore drill
 
 ```sh
