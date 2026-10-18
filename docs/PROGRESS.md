@@ -15,7 +15,11 @@ able to continue from the top entry alone.
   separately while preserving API/gateway/health and separate authenticated CDN behavior.
   See `docs/spec/download-site.md` and RUNBOOK for public static paths/deployment.
 - Verified desktop/390px phone/320px narrow/French rendering, keyboard focus, no horizontal
-  overflow, no external requests; all-package checks pass. Deployment/HTTP checks follow.
+  overflow, no external requests; all-package checks pass. Public EN/FR HTML and installer
+  return 200; a full 125,439,672-byte HTTP download matches the local release SHA-256.
+  API health is 200; API-host media remains 404 and unauthenticated CDN media remains 401.
+- Static release is published at `/srv/silvercord-site/releases/502284795190ed09dbbcb375f6dc0d41d882da05`;
+  `current` points there. Caddy config was validated and reloaded; the API was not restarted.
 - Phase 3 foundations remain on `feat/permissions-engine` in `D:\SilverCord`; do not
   deploy the unfinished guild features. SMTP/off-host storage credentials remain external.
 
