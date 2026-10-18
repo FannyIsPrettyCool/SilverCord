@@ -12,10 +12,11 @@ able to continue from the top entry alone.
   non-owner assignment of administrator roles and ineffective administrator timeouts. Sequence
   properties now apply actual accepted role positions and overwrite replacement/deletion.
   All 19 permission tests and typecheck pass.
-- Original untracked `apps/server/src/modules/guilds/guilds-schema.ts` is a draft, not a
-  migration or deployed feature. It remains outside commits until reviewed/completed.
-  Its member-role FK now includes guild id so cross-guild roles cannot be assigned; the
-  migration and real database constraint regression still need implementation.
+- Guild/member/role/ban/audit database foundation is implemented with migration 0007.
+  Composite member-role FKs reject foreign guilds/nonmembers; role positions are unique
+  and deferrable for transactional swaps; position zero belongs only to `@everyone`.
+  Six real PostgreSQL 18.6 tests pass, including ownership RESTRICT and cascading cleanup.
+  Migration regeneration reports no drift. Guild services and routes are still pending.
 - Phase 2 audit fixes are isolated in `D:\SilverCord-phase2-review` on `fix/phase2-review`.
   Audit fixes are merged/deployed on main (582d5d2); final visual/release checks remain.
   Audit fixes are now merged into this branch; take the final Phase 2 release update when tagged.

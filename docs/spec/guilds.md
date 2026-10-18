@@ -12,7 +12,15 @@ Phase 3; BRIEF §6.4. Authorization per docs/spec/permissions.md; events per ADR
 - `roles`: id, guild FK CASCADE, `name` 1–100, `color` 0–0xFFFFFF or null, `icon` (one emoji) or
   null, `permissions` bigint, `position` (unique per guild, deferrable for reorders), `hoist`,
   `mentionable`. Max 100 roles per guild.
+  Position 0 belongs only to the role whose id equals its guild id; every other role is
+  above 0. Permissions are nonnegative. The migration makes the named position uniqueness
+  constraint DEFERRABLE INITIALLY IMMEDIATE; reorders explicitly defer it inside their
+  transaction. Drizzle does not express deferrability, so preserve this migration detail.
+  Guild creation supplies its owner membership and `@everyone` role atomically in the
+  service; the schema permits the intermediate insert order without circular foreign keys.
+  Role caps, emoji validity and owner/member lifecycle checks belong to that service.
 - `member_roles`: PK (guild, user, role); FK to `guild_members` and `roles` CASCADE; index role.
+  Both foreign keys include the guild id, preventing assignment of a role from another guild.
 - `channels` gains `guild_id` (CASCADE), `parent_id` (category or, for threads, the parent text
   channel), `position`, `topic` ≤ 1024, `archived` (threads). Types: `guild_text`,
   `guild_voice`, `guild_category`, `announcement`, `thread` besides `dm`/`group_dm`. Index
