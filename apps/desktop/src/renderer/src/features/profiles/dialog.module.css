@@ -5,6 +5,7 @@
   color: inherit;
   width: min(600px, calc(100vw - 48px));
   max-height: calc(100vh - 64px);
+  overflow: visible;
 
   &::backdrop {
     background: color-mix(in srgb, var(--color-base) 58%, transparent);
@@ -19,7 +20,6 @@
   from {
     opacity: 0;
     transform: translateY(10px) scale(0.96);
-    filter: blur(6px);
   }
 }
 
@@ -31,7 +31,7 @@
 
 .glass {
   position: relative;
-  border-radius: var(--radius-4);
+  border-radius: var(--radius-1);
   overflow: hidden auto;
   max-height: calc(100vh - 64px);
   padding: 0;
@@ -41,7 +41,8 @@
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
-  z-index: 2;
+  z-index: 3;
+  border-radius: 999px;
   background: color-mix(in srgb, var(--color-base) 45%, transparent);
 }
 

@@ -61,11 +61,14 @@ function ColourField({
   value,
   fallback,
   onChange,
+  automatic = true,
 }: {
   readonly label: string;
   readonly value: number | null;
   readonly fallback: number;
   readonly onChange: (value: number | null) => void;
+  /** Show the "Automatic" toggle (a pair shares the first row's toggle). */
+  readonly automatic?: boolean;
 }) {
   const { t } = useTranslation();
   const id = useId();
@@ -76,16 +79,19 @@ function ColourField({
         id={id}
         type="color"
         value={hex(value ?? fallback)}
+        disabled={value === null}
         onChange={(event) => onChange(Number.parseInt(event.target.value.slice(1), 16))}
       />
-      <label className={styles['auto']}>
-        <input
-          type="checkbox"
-          checked={value === null}
-          onChange={(event) => onChange(event.target.checked ? null : fallback)}
-        />
-        {t('settings.auto')}
-      </label>
+      {automatic ? (
+        <label className={styles['auto']}>
+          <input
+            type="checkbox"
+            checked={value === null}
+            onChange={(event) => onChange(event.target.checked ? null : fallback)}
+          />
+          {t('settings.auto')}
+        </label>
+      ) : null}
     </div>
   );
 }
@@ -180,12 +186,14 @@ export function ProfileSettings() {
             onReady={(upload) => set({ banner: { id: upload.id, image: upload.image } })}
             onRemove={() => set({ banner: { id: null, image: null } })}
           />
-          <ColourField
-            label={t('settings.bannerColor')}
-            value={draft.bannerColor}
-            fallback={avatar?.dominantColor ?? 0x6c8cff}
-            onChange={(bannerColor) => set({ bannerColor })}
-          />
+          {banner ? null : (
+            <ColourField
+              label={t('settings.bannerColor')}
+              value={draft.bannerColor}
+              fallback={avatar?.dominantColor ?? 0x6c8cff}
+              onChange={(bannerColor) => set({ bannerColor })}
+            />
+          )}
         </fieldset>
         <fieldset className={styles['group']}>
           <legend>{t('settings.theme')}</legend>
@@ -209,6 +217,7 @@ export function ProfileSettings() {
             label={t('settings.themeSecondary')}
             value={draft.themeColors?.[1] ?? null}
             fallback={0xff6bd6}
+            automatic={false}
             onChange={(value) =>
               set({
                 themeColors: value === null ? null : [draft.themeColors?.[0] ?? 0x4fd8ff, value],

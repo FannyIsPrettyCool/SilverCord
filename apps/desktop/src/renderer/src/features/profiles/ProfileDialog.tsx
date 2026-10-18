@@ -11,6 +11,7 @@ import { useRelationships } from '../../api/social.ts';
 import { Avatar, displayName } from '../presence/Avatar.tsx';
 import styles from './dialog.module.css';
 import { ProfileCard } from './ProfileCard.tsx';
+import { ProfileActions } from './ProfilePopover.tsx';
 import { cardFrom, useProfileView } from './profile-view.ts';
 
 type Tab = 'about' | 'servers' | 'friends';
@@ -48,6 +49,13 @@ function Body({ userId, guildId }: { readonly userId: string; readonly guildId?:
 
   return (
     <ProfileCard card={card} size="full" presence={statusOf(userId)}>
+      <ProfileActions
+        user={card.user}
+        relationship={data.relationship}
+        guildId={guildId}
+        close={close}
+        full
+      />
       {tabs.length > 1 ? (
         <div role="tablist" aria-label={t('profile.tabs')} className={styles['tabs']}>
           {tabs.map((item) => (
@@ -131,6 +139,10 @@ export function ProfileDialog() {
   const userId = useProfileView((s) => s.userId);
   const guildId = useProfileView((s) => s.guildId);
   const close = useProfileView((s) => s.close);
+  const named = useProfile(userId, guildId);
+  const name = named.data
+    ? (named.data.guildMember?.nickname ?? named.data.displayName ?? named.data.username)
+    : t('profile.viewFull');
   useEffect(() => {
     const element = dialog.current;
     if (!element) return;
@@ -141,7 +153,7 @@ export function ProfileDialog() {
     <dialog
       ref={dialog}
       className={styles['dialog']}
-      aria-label={t('profile.viewFull')}
+      aria-label={name}
       onClose={close}
       onPointerDown={(event) => {
         // A press on the backdrop (the dialog element itself) closes it.

@@ -82,6 +82,7 @@ export function ProfileCard({
       className={styles['card']}
       data-size={size}
       data-themed={card.themeColors ? true : undefined}
+      data-banner-image={card.banner ? true : undefined}
       style={cardStyle(card)}
       aria-label={name}
     >

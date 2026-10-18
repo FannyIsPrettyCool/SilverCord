@@ -25,13 +25,19 @@
 
 /* The card paints its own surface; the glass supplies blur, rim and shadow around it. */
 .glass {
-  border-radius: var(--radius-4);
+  border-radius: var(--radius-2);
   overflow: hidden;
   padding: 0;
+
+  /* The opaque card would otherwise hide the specular rim drawn behind content. */
+  &::before {
+    z-index: 2;
+  }
 }
 
 .actions {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
 }

@@ -1,4 +1,4 @@
-import type { PublicUser } from '@silvercord/protocol';
+import type { PublicUser, UserProfile } from '@silvercord/protocol';
 import { Button, Glass, useSpring } from '@silvercord/ui';
 import { useNavigate } from '@tanstack/react-router';
 import { AnimatePresence, motion } from 'motion/react';
@@ -25,19 +25,99 @@ import { cardFrom, useProfileView } from './profile-view.ts';
 const WIDTH = 340;
 const GAP = 12;
 const MARGIN = 12;
+/** Keeps popouts out of the title bar's drag area. */
+const TOP_MARGIN = 48;
 
-/** Beside the trigger (right, else left), clamped inside the window. */
-function place(anchor: DOMRect, height: number) {
+/**
+ * Beside the trigger (right, else left), clamped inside the window; triggers in a top bar
+ * open the popout below them instead.
+ */
+export function place(
+  anchor: Pick<DOMRect, 'top' | 'bottom' | 'left' | 'right'>,
+  height: number,
+  viewport = { width: window.innerWidth, height: window.innerHeight },
+) {
+  const bottomLimit = Math.max(TOP_MARGIN, viewport.height - height - MARGIN);
+  if (anchor.top < 120) {
+    const left = Math.min(Math.max(MARGIN, anchor.left), viewport.width - WIDTH - MARGIN);
+    return { left, top: Math.min(anchor.bottom + GAP, bottomLimit), origin: 'left top' };
+  }
   const right = anchor.right + GAP;
   const left =
-    right + WIDTH + MARGIN <= window.innerWidth
-      ? right
-      : Math.max(MARGIN, anchor.left - GAP - WIDTH);
-  const top = Math.min(
-    Math.max(MARGIN, anchor.top - 24),
-    Math.max(MARGIN, window.innerHeight - height - MARGIN),
-  );
+    right + WIDTH + MARGIN <= viewport.width ? right : Math.max(MARGIN, anchor.left - GAP - WIDTH);
+  const top = Math.min(Math.max(TOP_MARGIN, anchor.top - 24), bottomLimit);
   return { left, top, origin: left >= anchor.right ? 'left top' : 'right top' };
+}
+
+/** Message / add friend / edit, plus "View full profile" in the popout. */
+export function ProfileActions({
+  user,
+  relationship,
+  guildId,
+  close,
+  full,
+}: {
+  readonly user: PublicUser;
+  readonly relationship: UserProfile['relationship'] | undefined;
+  readonly guildId: string | undefined;
+  readonly close: () => void;
+  /** Already in the full view: no "View full profile". */
+  readonly full?: boolean;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const selfId = useSession((s) => s.user?.id ?? null);
+  const openChannel = useOpenChannel();
+  const addFriend = useSendFriendRequest();
+  const openFull = useProfileView((s) => s.open);
+  const self = user.id === selfId;
+  return (
+    <div className={styles['actions']}>
+      {self ? (
+        <Button
+          onClick={async () => {
+            close();
+            await navigate({ to: '/app/settings/$section', params: { section: 'profile' } });
+          }}
+        >
+          {t('profile.edit')}
+        </Button>
+      ) : null}
+      {!self && relationship === 'friends' ? (
+        <Button
+          loading={openChannel.isPending}
+          onClick={async () => {
+            const channel = await openChannel.mutateAsync({ recipientId: user.id });
+            close();
+            await navigate({ to: '/app/channels/$channelId', params: { channelId: channel.id } });
+          }}
+        >
+          {t('profile.message')}
+        </Button>
+      ) : null}
+      {!self && relationship === 'none' ? (
+        <Button
+          variant="quiet"
+          loading={addFriend.isPending}
+          disabled={addFriend.isSuccess}
+          onClick={() => addFriend.mutate(user.username)}
+        >
+          {addFriend.isSuccess ? t('profile.requestSent') : t('profile.addFriend')}
+        </Button>
+      ) : null}
+      {full ? null : (
+        <Button
+          variant="quiet"
+          onClick={() => {
+            close();
+            openFull(user.id, guildId);
+          }}
+        >
+          {t('profile.viewFull')}
+        </Button>
+      )}
+    </div>
+  );
 }
 
 function PopoutContent({
@@ -49,67 +129,19 @@ function PopoutContent({
   readonly guildId: string | undefined;
   readonly close: () => void;
 }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const selfId = useSession((s) => s.user?.id ?? null);
   const profile = useProfile(user.id, guildId);
   const summary = useSummary(user.id, guildId);
   const statusOf = usePresence([user.id]);
-  const openChannel = useOpenChannel();
-  const addFriend = useSendFriendRequest();
-  const openFull = useProfileView((s) => s.open);
   const card = cardFrom(user, profile.data, summary.data);
-  const relationship = profile.data?.relationship;
-  const self = user.id === selfId;
   return (
     <ProfileCard card={card} presence={statusOf(user.id)}>
       {profile.data?.note ? <p className={styles['note']}>{profile.data.note}</p> : null}
-      <div className={styles['actions']}>
-        {self ? (
-          <Button
-            onClick={async () => {
-              close();
-              await navigate({ to: '/app/settings/$section', params: { section: 'profile' } });
-            }}
-          >
-            {t('profile.edit')}
-          </Button>
-        ) : null}
-        {!self && relationship === 'friends' ? (
-          <Button
-            loading={openChannel.isPending}
-            onClick={async () => {
-              const channel = await openChannel.mutateAsync({ recipientId: user.id });
-              close();
-              await navigate({
-                to: '/app/channels/$channelId',
-                params: { channelId: channel.id },
-              });
-            }}
-          >
-            {t('profile.message')}
-          </Button>
-        ) : null}
-        {!self && relationship === 'none' ? (
-          <Button
-            variant="quiet"
-            loading={addFriend.isPending}
-            disabled={addFriend.isSuccess}
-            onClick={() => addFriend.mutate(user.username)}
-          >
-            {addFriend.isSuccess ? t('profile.requestSent') : t('profile.addFriend')}
-          </Button>
-        ) : null}
-        <Button
-          variant="quiet"
-          onClick={() => {
-            close();
-            openFull(user.id, guildId);
-          }}
-        >
-          {t('profile.viewFull')}
-        </Button>
-      </div>
+      <ProfileActions
+        user={user}
+        relationship={profile.data?.relationship}
+        guildId={guildId}
+        close={close}
+      />
     </ProfileCard>
   );
 }
@@ -201,8 +233,8 @@ export function ProfileTrigger({
                 top: position?.top ?? 0,
                 transformOrigin: position?.origin ?? 'left top',
               }}
-              initial={{ opacity: 0, scale: 0.92, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={spring}
             >

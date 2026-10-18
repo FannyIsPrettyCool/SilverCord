@@ -38,7 +38,6 @@ export function SettingsView() {
   return (
     <div className={styles['settings']}>
       <nav className={styles['nav']} aria-label={t('settings.title')}>
-        <h1 className={styles['navTitle']}>{t('settings.title')}</h1>
         {SETTINGS_SECTIONS.map((item) => (
           <Link
             key={item}

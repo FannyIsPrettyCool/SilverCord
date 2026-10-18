@@ -16,7 +16,7 @@ export const frost: ThemeTokens = {
     onAccent: '#FFFFFF',
     danger: '#C8264C',
     success: '#13865A',
-    warning: '#A86400',
+    warning: '#8A5200',
     field: 'rgba(255, 255, 255, 0.55)',
     fieldBorder: 'rgba(30, 45, 90, 0.14)',
     focusRing: '#4C64C9',

@@ -241,7 +241,7 @@
     },
     "audience": {
       "everyone": "Tout le monde",
-      "mutual_guilds": "Amis et membres des serveurs",
+      "mutual_guilds": "Amis et membres",
       "friends": "Amis",
       "only_me": "Moi uniquement"
     },

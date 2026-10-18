@@ -3,6 +3,7 @@
   border: 0;
   background: transparent;
   color: inherit;
+  overflow: visible;
 
   &::backdrop {
     background: color-mix(in srgb, var(--color-base) 60%, transparent);
@@ -77,6 +78,7 @@
 
 .actions {
   display: flex;
+  align-items: center;
   justify-self: end;
   gap: var(--space-2);
 }
